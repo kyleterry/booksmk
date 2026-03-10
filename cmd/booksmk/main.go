@@ -7,16 +7,34 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/kyleterry/booksmk/internal/migrate"
 	"github.com/kyleterry/booksmk/internal/server"
+	"github.com/kyleterry/booksmk/sql/migrations"
 )
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
+	dbURL := mustEnv(logger, "BOOKSMK_DATABASE_URL")
+
+	pool, err := pgxpool.New(context.Background(), dbURL)
+	if err != nil {
+		logger.Error("failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+	defer pool.Close()
+
+	if err := migrate.Run(context.Background(), pool, migrations.FS, logger); err != nil {
+		logger.Error("failed to run migrations", "error", err)
+		os.Exit(1)
+	}
+
 	srv, err := server.New(server.Config{
-		Addr:        envOrDefault("BOOKSMK_ADDR", ":8080"),
-		DatabaseURL: mustEnv(logger, "BOOKSMK_DATABASE_URL"),
-		Logger:      logger,
+		Addr:   envOrDefault("BOOKSMK_ADDR", ":8080"),
+		Pool:   pool,
+		Logger: logger,
 	})
 	if err != nil {
 		logger.Error("failed to create server", "error", err)
