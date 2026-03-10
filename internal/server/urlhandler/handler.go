@@ -66,7 +66,7 @@ func (h *Handler) registerRoutes() {
 	h.mux.Handle("GET /url/{id}", h.requireURLOwner(http.HandlerFunc(h.handleGet)))
 	h.mux.Handle("GET /url/{id}/edit", h.requireURLOwner(http.HandlerFunc(h.handleEdit)))
 	h.mux.Handle("POST /url/{id}", h.requireURLOwner(http.HandlerFunc(h.handleUpdate)))
-	h.mux.Handle("POST /url/{id}/delete", h.requireURLOwner(http.HandlerFunc(h.handleDelete)))
+	h.mux.Handle("DELETE /url/{id}", h.requireURLOwner(http.HandlerFunc(h.handleDelete)))
 }
 
 // requireURLOwner fetches the URL scoped to the authenticated user (implicitly

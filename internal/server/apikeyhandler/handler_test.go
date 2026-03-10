@@ -288,8 +288,8 @@ func TestHandleDelete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ms := &mockAPIKeyStore{}
 			tt.setup(ms)
-			path := "/apikey/" + tt.keyID + "/delete"
-			w := serve(t, newHandler(ms), req(http.MethodPost, path, ""))
+			path := "/apikey/" + tt.keyID
+			w := serve(t, newHandler(ms), req(http.MethodDelete, path, ""))
 			assertStatus(t, w, tt.wantStatus)
 			if tt.wantLoc != "" {
 				assertRedirect(t, w, tt.wantLoc)

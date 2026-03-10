@@ -69,6 +69,19 @@ func (s *Server) requireAPIKeyAuth(next http.Handler) http.Handler {
 	})
 }
 
+// methodOverride allows HTML forms to tunnel DELETE (and other methods) by
+// posting a _method field. It only acts on POST requests.
+func methodOverride(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			if m := r.FormValue("_method"); m != "" {
+				r.Method = strings.ToUpper(m)
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func clearSessionCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:   sessionCookieName,

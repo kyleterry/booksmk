@@ -38,7 +38,8 @@ templ keyCard(k store.APIKey) {
 			<span style="margin-left:1rem">created: { k.CreatedAt.Format("2006-01-02") }</span>
 		</div>
 		<div class="card-actions">
-			<form method="POST" action={ templ.SafeURL("/apikey/" + k.ID.String() + "/delete") } style="margin:0">
+			<form method="POST" action={ templ.SafeURL("/apikey/" + k.ID.String()) } style="margin:0">
+				<input type="hidden" name="_method" value="DELETE"/>
 				<button type="submit" class="btn btn-sm btn-danger">revoke</button>
 			</form>
 		</div>

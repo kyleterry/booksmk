@@ -40,7 +40,8 @@ templ urlCard(u store.URL) {
 		}
 		<div class="card-actions">
 			<a href={ templ.SafeURL("/url/" + u.ID.String() + "/edit") } class="btn btn-sm">edit</a>
-			<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String() + "/delete") } style="margin:0">
+			<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String()) } style="margin:0">
+				<input type="hidden" name="_method" value="DELETE"/>
 				<button type="submit" class="btn btn-sm btn-danger">delete</button>
 			</form>
 		</div>

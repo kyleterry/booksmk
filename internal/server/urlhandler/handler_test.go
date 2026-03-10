@@ -403,8 +403,8 @@ func TestHandleDelete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ms := &mockURLStore{}
 			tt.setup(ms)
-			path := "/url/" + fixtureURLID.String() + "/delete"
-			w := serve(t, newHandler(ms), req(http.MethodPost, path, ""))
+			path := "/url/" + fixtureURLID.String()
+			w := serve(t, newHandler(ms), req(http.MethodDelete, path, ""))
 			assertStatus(t, w, tt.wantStatus)
 			if tt.wantLoc != "" {
 				assertRedirect(t, w, tt.wantLoc)

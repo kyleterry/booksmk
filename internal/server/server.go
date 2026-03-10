@@ -57,7 +57,7 @@ func New(cfg Config) (*Server, error) {
 func (s *Server) Run(ctx context.Context) error {
 	srv := &http.Server{
 		Addr:    s.cfg.Addr,
-		Handler: s.mux,
+		Handler: methodOverride(s.mux),
 		BaseContext: func(l net.Listener) context.Context {
 			return ctx
 		},

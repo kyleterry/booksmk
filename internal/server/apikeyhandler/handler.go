@@ -47,7 +47,7 @@ func (h *Handler) registerRoutes() {
 	h.mux.HandleFunc("GET /apikey/", h.handleList)
 	h.mux.HandleFunc("GET /apikey/new", h.handleNew)
 	h.mux.HandleFunc("POST /apikey/", h.handleCreate)
-	h.mux.HandleFunc("POST /apikey/{id}/delete", h.handleDelete)
+	h.mux.HandleFunc("DELETE /apikey/{id}", h.handleDelete)
 }
 
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Component) {
