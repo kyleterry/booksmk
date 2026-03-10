@@ -1,4 +1,4 @@
-package urlhandler
+package urlfetch
 
 import (
 	"html"
@@ -12,9 +12,9 @@ var titleClient = &http.Client{
 	Timeout: 8 * time.Second,
 }
 
-// fetchTitle fetches rawURL and returns the contents of the <title> tag, or
+// FetchTitle fetches rawURL and returns the contents of the <title> tag, or
 // an empty string if the title cannot be determined.
-func fetchTitle(rawURL string) string {
+func FetchTitle(rawURL string) string {
 	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
 	if err != nil {
 		return ""

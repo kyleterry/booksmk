@@ -134,8 +134,10 @@ func TestHandleList(t *testing.T) {
 		wantBody   string
 	}{
 		{
-			name:       "empty list shows empty state",
-			setup:      func(m *mockURLStore) { m.ListURLsFn = func(_ context.Context, _ uuid.UUID) ([]store.URL, error) { return nil, nil } },
+			name: "empty list shows empty state",
+			setup: func(m *mockURLStore) {
+				m.ListURLsFn = func(_ context.Context, _ uuid.UUID) ([]store.URL, error) { return nil, nil }
+			},
 			wantStatus: http.StatusOK,
 			wantBody:   "no bookmarks",
 		},

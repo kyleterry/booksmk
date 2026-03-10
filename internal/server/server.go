@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/kyleterry/booksmk/internal/server/apihandler"
 	"github.com/kyleterry/booksmk/internal/server/apikeyhandler"
 	"github.com/kyleterry/booksmk/internal/server/urlhandler"
 	"github.com/kyleterry/booksmk/internal/server/userhandler"
@@ -30,19 +31,21 @@ type Server struct {
 	urlHandler    *urlhandler.Handler
 	userHandler   *userhandler.Handler
 	apiKeyHandler *apikeyhandler.Handler
+	apiHandler    *apihandler.Handler
 }
 
 func New(cfg Config) (*Server, error) {
 	st := store.New(cfg.Pool)
 
 	s := &Server{
-		cfg:         cfg,
-		store:       st,
-		logger:      cfg.Logger,
-		mux:         http.NewServeMux(),
+		cfg:           cfg,
+		store:         st,
+		logger:        cfg.Logger,
+		mux:           http.NewServeMux(),
 		urlHandler:    urlhandler.New(st, cfg.Logger),
 		userHandler:   userhandler.New(st, cfg.Logger),
 		apiKeyHandler: apikeyhandler.New(st, cfg.Logger),
+		apiHandler:    apihandler.New(st, cfg.Logger),
 	}
 
 	s.registerRoutes()

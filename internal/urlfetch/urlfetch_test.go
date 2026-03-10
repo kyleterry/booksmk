@@ -1,4 +1,4 @@
-package urlhandler
+package urlfetch
 
 import "testing"
 

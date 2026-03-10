@@ -14,6 +14,7 @@ import (
 	"github.com/kyleterry/booksmk/internal/store"
 	"github.com/kyleterry/booksmk/internal/ui"
 	urlpages "github.com/kyleterry/booksmk/internal/ui/urls"
+	"github.com/kyleterry/booksmk/internal/urlfetch"
 )
 
 type urlStore interface {
@@ -155,7 +156,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 	title := r.FormValue("title")
 	if title == "" {
-		title = fetchTitle(rawURL)
+		title = urlfetch.FetchTitle(rawURL)
 	}
 
 	u, err := h.store.CreateURL(r.Context(), user.ID, rawURL, title, r.FormValue("description"), parseTags(r.FormValue("tags")))

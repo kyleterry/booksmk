@@ -13,20 +13,17 @@
       in {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
-            # go toolchain
             go
-            gotools      # goimports, godoc, etc.
+            gotools
             golangci-lint
 
-            # code generation
             sqlc
             templ
 
-            # database
             postgresql
 
-            # dev server
             air
+            jq
           ];
 
           shellHook = ''
