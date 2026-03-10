@@ -12,64 +12,88 @@ templ Base(title string, user *NavUser, content templ.Component) {
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ title } — booksmk</title>
 			<style>
+				/* gruvbox dark */
+				:root {
+					--bg:    #282828;
+					--bg-h:  #1d2021;
+					--bg-s:  #32302f;
+					--bg1:   #3c3836;
+					--bg2:   #504945;
+					--bg3:   #665c54;
+					--bg4:   #7c6f64;
+					--fg:    #ebdbb2;
+					--fg1:   #d5c4a1;
+					--fg2:   #bdae93;
+					--fg3:   #a89984;
+					--fg4:   #928374;
+					--red:   #fb4934;
+					--green: #b8bb26;
+					--yellow:#fabd2f;
+					--blue:  #83a598;
+					--aqua:  #8ec07c;
+					--orange:#fe8019;
+					--red-d: #cc241d;
+					--blue-d:#458588;
+					--aqua-d:#689d6a;
+				}
 				*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 				body {
 					font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
 					font-size: 14px;
-					background: #0f0f0f;
-					color: #d4d4d4;
+					background: var(--bg);
+					color: var(--fg);
 					min-height: 100vh;
 				}
-				a { color: #7aa2f7; text-decoration: none; }
+				a { color: var(--blue); text-decoration: none; }
 				a:hover { text-decoration: underline; }
 				nav {
 					display: flex;
 					align-items: center;
 					gap: 1.5rem;
 					padding: 0.75rem 1.5rem;
-					border-bottom: 1px solid #2a2a2a;
-					background: #111;
+					border-bottom: 1px solid var(--bg1);
+					background: var(--bg-h);
 				}
 				.nav-brand {
 					font-weight: bold;
-					color: #e2e8f0;
+					color: var(--fg);
 					font-size: 1rem;
 					letter-spacing: -0.5px;
 				}
-				.nav-brand span { color: #7aa2f7; }
+				.nav-brand span { color: var(--yellow); }
 				.nav-links { display: flex; gap: 1.25rem; flex: 1; }
 				.nav-user {
 					font-size: 0.8rem;
-					color: #666;
+					color: var(--fg4);
 					display: flex;
 					align-items: center;
 					gap: 1rem;
 				}
 				.main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; }
-				h1 { font-size: 1.2rem; font-weight: 600; color: #e2e8f0; margin-bottom: 1.5rem; }
-				h2 { font-size: 1rem; font-weight: 600; color: #c9d1d9; margin-bottom: 1rem; }
+				h1 { font-size: 1.2rem; font-weight: 600; color: var(--fg); margin-bottom: 1.5rem; }
+				h2 { font-size: 1rem; font-weight: 600; color: var(--fg1); margin-bottom: 1rem; }
 				.btn {
 					display: inline-block;
 					padding: 0.4rem 0.9rem;
 					border-radius: 4px;
-					border: 1px solid #333;
-					background: #1a1a1a;
-					color: #d4d4d4;
+					border: 1px solid var(--bg2);
+					background: var(--bg1);
+					color: var(--fg1);
 					cursor: pointer;
 					font-family: inherit;
 					font-size: 0.85rem;
 					text-decoration: none;
 				}
-				.btn:hover { background: #222; border-color: #444; text-decoration: none; }
-				.btn-primary { background: #1e3a6e; border-color: #2d5299; color: #7aa2f7; }
-				.btn-primary:hover { background: #243f78; }
-				.btn-danger { background: #3d1a1a; border-color: #5c2626; color: #f28b82; }
-				.btn-danger:hover { background: #4a2020; }
+				.btn:hover { background: var(--bg2); border-color: var(--bg3); text-decoration: none; }
+				.btn-primary { background: #2b3a2b; border-color: var(--aqua-d); color: var(--aqua); }
+				.btn-primary:hover { background: #334433; }
+				.btn-danger { background: #3a1e1e; border-color: var(--red-d); color: var(--red); }
+				.btn-danger:hover { background: #4a2424; }
 				.btn-sm { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
 				form label {
 					display: block;
 					margin-bottom: 0.25rem;
-					color: #9a9a9a;
+					color: var(--fg3);
 					font-size: 0.8rem;
 				}
 				form input[type="text"],
@@ -79,51 +103,52 @@ templ Base(title string, user *NavUser, content templ.Component) {
 				form textarea {
 					width: 100%;
 					padding: 0.5rem 0.75rem;
-					background: #161616;
-					border: 1px solid #2a2a2a;
+					background: var(--bg-h);
+					border: 1px solid var(--bg2);
 					border-radius: 4px;
-					color: #d4d4d4;
+					color: var(--fg);
 					font-family: inherit;
 					font-size: 0.9rem;
 					margin-bottom: 1rem;
 				}
 				form input:focus, form textarea:focus {
 					outline: none;
-					border-color: #3d5a9e;
+					border-color: var(--blue-d);
 				}
+				form input:disabled { color: var(--fg4); cursor: not-allowed; }
 				form textarea { resize: vertical; min-height: 80px; }
 				.form-hint {
 					font-size: 0.75rem;
-					color: #555;
+					color: var(--fg4);
 					margin-top: -0.75rem;
 					margin-bottom: 1rem;
 				}
 				.form-actions { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.5rem; }
 				.card {
-					border: 1px solid #1e1e1e;
-					border-radius: 6px;
+					border: 1px solid var(--bg1);
+					border-radius: 4px;
 					padding: 1rem 1.25rem;
 					margin-bottom: 0.75rem;
-					background: #131313;
+					background: var(--bg-s);
 				}
 				.card-title {
 					font-size: 0.95rem;
 					font-weight: 600;
-					color: #c9d1d9;
+					color: var(--fg1);
 					margin-bottom: 0.25rem;
 				}
 				.card-url {
 					font-size: 0.8rem;
-					color: #555;
+					color: var(--bg4);
 					margin-bottom: 0.5rem;
 					overflow: hidden;
 					text-overflow: ellipsis;
 					white-space: nowrap;
 				}
-				.card-url a { color: #7aa2f7; }
+				.card-url a { color: var(--blue); }
 				.card-desc {
 					font-size: 0.85rem;
-					color: #888;
+					color: var(--fg3);
 					margin-bottom: 0.5rem;
 				}
 				.tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem; }
@@ -131,9 +156,9 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					font-size: 0.7rem;
 					padding: 0.15rem 0.5rem;
 					border-radius: 3px;
-					background: #1a2a1a;
-					border: 1px solid #2a3d2a;
-					color: #7ec47a;
+					background: #2a2f1e;
+					border: 1px solid var(--aqua-d);
+					color: var(--aqua);
 				}
 				.card-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
 				.page-header {
@@ -143,18 +168,18 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					margin-bottom: 1.5rem;
 				}
 				.empty {
-					color: #444;
+					color: var(--bg4);
 					font-size: 0.9rem;
 					padding: 2rem 0;
 					text-align: center;
 				}
 				.detail-field { margin-bottom: 1rem; }
-				.detail-label { font-size: 0.75rem; color: #555; margin-bottom: 0.25rem; }
-				.detail-value { color: #c9d1d9; }
+				.detail-label { font-size: 0.75rem; color: var(--bg4); margin-bottom: 0.25rem; }
+				.detail-value { color: var(--fg1); }
 				.error {
-					background: #2a1515;
-					border: 1px solid #4a2020;
-					color: #f28b82;
+					background: #2d1b1b;
+					border: 1px solid var(--red-d);
+					color: var(--red);
 					padding: 0.6rem 0.9rem;
 					border-radius: 4px;
 					margin-bottom: 1rem;
