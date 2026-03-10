@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/kyleterry/booksmk/internal/server/apikeyhandler"
 	"github.com/kyleterry/booksmk/internal/server/urlhandler"
 	"github.com/kyleterry/booksmk/internal/server/userhandler"
 	"github.com/kyleterry/booksmk/internal/store"
@@ -22,12 +23,13 @@ type Config struct {
 
 // Server is the booksmk HTTP server.
 type Server struct {
-	cfg         Config
-	store       *store.Store
-	logger      *slog.Logger
-	mux         *http.ServeMux
-	urlHandler  *urlhandler.Handler
-	userHandler *userhandler.Handler
+	cfg           Config
+	store         *store.Store
+	logger        *slog.Logger
+	mux           *http.ServeMux
+	urlHandler    *urlhandler.Handler
+	userHandler   *userhandler.Handler
+	apiKeyHandler *apikeyhandler.Handler
 }
 
 func New(cfg Config) (*Server, error) {
@@ -38,8 +40,9 @@ func New(cfg Config) (*Server, error) {
 		store:       st,
 		logger:      cfg.Logger,
 		mux:         http.NewServeMux(),
-		urlHandler:  urlhandler.New(st, cfg.Logger),
-		userHandler: userhandler.New(st, cfg.Logger),
+		urlHandler:    urlhandler.New(st, cfg.Logger),
+		userHandler:   userhandler.New(st, cfg.Logger),
+		apiKeyHandler: apikeyhandler.New(st, cfg.Logger),
 	}
 
 	s.registerRoutes()

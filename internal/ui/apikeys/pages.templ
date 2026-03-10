@@ -1,0 +1,100 @@
+package apikeys
+
+import (
+	"fmt"
+	"github.com/kyleterry/booksmk/internal/store"
+)
+
+templ ListPage(keys []store.APIKey, atLimit bool) {
+	<div class="page-header">
+		<h1>api keys <span style="color:#444;font-weight:normal;font-size:0.9rem">({ fmt.Sprintf("%d", len(keys)) }/5)</span></h1>
+		if atLimit {
+			<span class="btn" style="cursor:default;opacity:0.4">+ new key</span>
+		} else {
+			<a href="/apikey/new" class="btn btn-primary">+ new key</a>
+		}
+	</div>
+	if atLimit {
+		<div class="error" style="border-color:#665c54;background:#2a2520;color:#a89984">limit of 5 keys reached — delete one to create another</div>
+	}
+	if len(keys) == 0 {
+		<div class="empty">no api keys yet</div>
+	}
+	for _, k := range keys {
+		@keyCard(k)
+	}
+}
+
+templ keyCard(k store.APIKey) {
+	<div class="card">
+		<div class="card-title">{ k.Name }</div>
+		<div class="card-url" style="font-family:monospace">{ k.TokenPrefix }...</div>
+		<div style="font-size:0.75rem;color:var(--fg4);margin-top:0.35rem">
+			if k.ExpiresAt == nil {
+				expires: never
+			} else {
+				expires: { k.ExpiresAt.Format("2006-01-02") }
+			}
+			<span style="margin-left:1rem">created: { k.CreatedAt.Format("2006-01-02") }</span>
+		</div>
+		<div class="card-actions">
+			<form method="POST" action={ templ.SafeURL("/apikey/" + k.ID.String() + "/delete") } style="margin:0">
+				<button type="submit" class="btn btn-sm btn-danger">revoke</button>
+			</form>
+		</div>
+	</div>
+}
+
+templ NewPage(errMsg string) {
+	<div class="page-header">
+		<h1>new api key</h1>
+	</div>
+	if errMsg != "" {
+		<div class="error">{ errMsg }</div>
+	}
+	<form method="POST" action="/apikey/">
+		<label for="name">name</label>
+		<input type="text" id="name" name="name" required autofocus placeholder="e.g. cli, home server"/>
+		<label for="expires_in">expires in</label>
+		<select id="expires_in" name="expires_in" style="width:100%;padding:0.5rem 0.75rem;background:var(--bg-h);border:1px solid var(--bg2);border-radius:4px;color:var(--fg);font-family:inherit;font-size:0.9rem;margin-bottom:1rem">
+			<option value="30d">30 days</option>
+			<option value="90d">90 days</option>
+			<option value="1y">1 year</option>
+			<option value="">never</option>
+		</select>
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">create</button>
+			<a href="/apikey/" class="btn">cancel</a>
+		</div>
+	</form>
+}
+
+templ CreatedPage(k store.APIKey, token string) {
+	<div class="page-header">
+		<h1>api key created</h1>
+	</div>
+	<div class="error" style="border-color:var(--aqua-d);background:#1e2a1e;color:var(--aqua)">
+		copy this token now — it will not be shown again
+	</div>
+	<div class="card" style="margin-bottom:1.5rem">
+		<div class="detail-field">
+			<div class="detail-label">name</div>
+			<div class="detail-value">{ k.Name }</div>
+		</div>
+		<div class="detail-field">
+			<div class="detail-label">token</div>
+			<div class="detail-value" style="font-family:monospace;word-break:break-all;font-size:0.85rem;color:var(--yellow)">{ token }</div>
+		</div>
+		<div class="detail-field" style="margin-bottom:0">
+			<div class="detail-label">expires</div>
+			<div class="detail-value">
+				if k.ExpiresAt == nil {
+					never
+				} else {
+					{ k.ExpiresAt.Format("2006-01-02") }
+				}
+			</div>
+		</div>
+	</div>
+	<a href="/apikey/" class="btn">← back to api keys</a>
+}

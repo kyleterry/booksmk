@@ -41,6 +41,16 @@ type UserUrlRow struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+type APIKey struct {
+	ID          uuid.UUID  `json:"id"`
+	UserID      uuid.UUID  `json:"user_id"`
+	Name        string     `json:"name"`
+	TokenHash   string     `json:"token_hash"`
+	TokenPrefix string     `json:"token_prefix"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
 type Tag struct {
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`

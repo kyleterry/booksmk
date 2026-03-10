@@ -62,13 +62,45 @@ templ Base(title string, user *NavUser, content templ.Component) {
 				}
 				.nav-brand span { color: var(--yellow); }
 				.nav-links { display: flex; gap: 1.25rem; flex: 1; }
-				.nav-user {
-					font-size: 0.8rem;
+				.nav-user { position: relative; font-size: 0.8rem; }
+				.nav-user summary {
+					list-style: none;
+					cursor: pointer;
 					color: var(--fg4);
-					display: flex;
-					align-items: center;
-					gap: 1rem;
+					padding: 0.25rem 0.5rem;
+					border-radius: 4px;
+					user-select: none;
 				}
+				.nav-user summary::-webkit-details-marker { display: none; }
+				.nav-user summary:hover { color: var(--fg2); background: var(--bg1); }
+				.nav-user[open] summary { color: var(--fg2); background: var(--bg1); }
+				.nav-dropdown {
+					position: absolute;
+					right: 0;
+					top: calc(100% + 4px);
+					min-width: 140px;
+					background: var(--bg-s);
+					border: 1px solid var(--bg2);
+					border-radius: 4px;
+					overflow: hidden;
+					z-index: 100;
+				}
+				.nav-dropdown a,
+				.nav-dropdown button {
+					display: block;
+					width: 100%;
+					padding: 0.5rem 0.85rem;
+					text-align: left;
+					background: none;
+					border: none;
+					color: var(--fg2);
+					font-family: inherit;
+					font-size: 0.8rem;
+					cursor: pointer;
+					text-decoration: none;
+				}
+				.nav-dropdown a:hover,
+				.nav-dropdown button:hover { background: var(--bg1); color: var(--fg); text-decoration: none; }
 				.main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; }
 				h1 { font-size: 1.2rem; font-weight: 600; color: var(--fg); margin-bottom: 1.5rem; }
 				h2 { font-size: 1rem; font-weight: 600; color: var(--fg1); margin-bottom: 1rem; }
@@ -196,12 +228,15 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					}
 				</div>
 				if user != nil {
-					<div class="nav-user">
-						<span>{ user.Email }</span>
-						<form method="POST" action="/logout" style="margin:0">
-							<button type="submit" class="btn btn-sm">logout</button>
-						</form>
-					</div>
+					<details class="nav-user">
+						<summary>{ user.Email }</summary>
+						<div class="nav-dropdown">
+							<a href="/apikey/">api keys</a>
+							<form method="POST" action="/logout" style="margin:0">
+								<button type="submit">logout</button>
+							</form>
+						</div>
+					</details>
 				}
 			</nav>
 			<main class="main">

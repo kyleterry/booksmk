@@ -8,7 +8,6 @@ sql:
         package: "sqlstore"
         out: "internal/store/sqlstore"
         sql_package: "pgx/v5"
-        emit_rows_affected: false
         emit_json_tags: true
         emit_pointers_for_null_types: true
         overrides:
