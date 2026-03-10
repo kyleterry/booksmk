@@ -1,0 +1,20 @@
+package auth
+
+templ LoginPage(errMsg string) {
+	<div style="max-width:360px;margin:4rem auto">
+		<h1>sign in</h1>
+		if errMsg != "" {
+			<div class="error">{ errMsg }</div>
+		}
+		<form method="POST" action="/login">
+			<label for="email">email</label>
+			<input type="email" id="email" name="email" required autofocus/>
+			<label for="password">password</label>
+			<input type="password" id="password" name="password" required/>
+			<div class="form-actions">
+				<button type="submit" class="btn btn-primary">sign in</button>
+				<a href="/user/new">create account</a>
+			</div>
+		</form>
+	</div>
+}

@@ -1,0 +1,156 @@
+package urls
+
+import (
+	"strings"
+	"github.com/kyleterry/booksmk/internal/store"
+)
+
+templ ListPage(urls []store.URL) {
+	<div class="page-header">
+		<h1>urls <span style="color:#444;font-weight:normal;font-size:0.9rem">({ itoa(len(urls)) })</span></h1>
+		<a href="/url/new" class="btn btn-primary">+ add</a>
+	</div>
+	if len(urls) == 0 {
+		<div class="empty">no bookmarks yet — <a href="/url/new">add one</a></div>
+	}
+	for _, u := range urls {
+		@urlCard(u)
+	}
+}
+
+templ urlCard(u store.URL) {
+	<div class="card">
+		<div class="card-title">
+			if u.Title != "" {
+				<a href={ templ.SafeURL("/url/" + u.ID.String()) }>{ u.Title }</a>
+			} else {
+				<a href={ templ.SafeURL("/url/" + u.ID.String()) }>{ u.URL }</a>
+			}
+		</div>
+		<div class="card-url"><a href={ templ.SafeURL(u.URL) } target="_blank" rel="noopener noreferrer">{ u.URL }</a></div>
+		if u.Description != "" {
+			<div class="card-desc">{ u.Description }</div>
+		}
+		if len(u.Tags) > 0 {
+			<div class="tags">
+				for _, tag := range u.Tags {
+					<span class="tag">{ tag }</span>
+				}
+			</div>
+		}
+		<div class="card-actions">
+			<a href={ templ.SafeURL("/url/" + u.ID.String() + "/edit") } class="btn btn-sm">edit</a>
+			<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String() + "/delete") } style="margin:0">
+				<button type="submit" class="btn btn-sm btn-danger">delete</button>
+			</form>
+		</div>
+	</div>
+}
+
+templ DetailPage(u store.URL) {
+	<div class="page-header">
+		<h1>
+			if u.Title != "" {
+				{ u.Title }
+			} else {
+				{ u.URL }
+			}
+		</h1>
+		<div style="display:flex;gap:0.5rem">
+			<a href={ templ.SafeURL("/url/" + u.ID.String() + "/edit") } class="btn">edit</a>
+			<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String() + "/delete") } style="margin:0">
+				<button type="submit" class="btn btn-danger">delete</button>
+			</form>
+		</div>
+	</div>
+	<div class="card">
+		<div class="detail-field">
+			<div class="detail-label">url</div>
+			<div class="detail-value"><a href={ templ.SafeURL(u.URL) } target="_blank" rel="noopener noreferrer">{ u.URL }</a></div>
+		</div>
+		if u.Title != "" {
+			<div class="detail-field">
+				<div class="detail-label">title</div>
+				<div class="detail-value">{ u.Title }</div>
+			</div>
+		}
+		if u.Description != "" {
+			<div class="detail-field">
+				<div class="detail-label">description</div>
+				<div class="detail-value">{ u.Description }</div>
+			</div>
+		}
+		if len(u.Tags) > 0 {
+			<div class="detail-field">
+				<div class="detail-label">tags</div>
+				<div class="tags">
+					for _, tag := range u.Tags {
+						<span class="tag">{ tag }</span>
+					}
+				</div>
+			</div>
+		}
+	</div>
+	<a href="/url" class="btn" style="margin-top:1rem">← back</a>
+}
+
+templ NewPage(errMsg string) {
+	<div class="page-header">
+		<h1>add url</h1>
+	</div>
+	if errMsg != "" {
+		<div class="error">{ errMsg }</div>
+	}
+	<form method="POST" action="/url">
+		<label for="url">url <span style="color:#f28b82">*</span></label>
+		<input type="url" id="url" name="url" required autofocus placeholder="https://"/>
+		<label for="title">title</label>
+		<input type="text" id="title" name="title" placeholder="optional"/>
+		<label for="description">description</label>
+		<textarea id="description" name="description" placeholder="optional"></textarea>
+		<label for="tags">tags</label>
+		<input type="text" id="tags" name="tags" placeholder="comma-separated, e.g. go, tools, reference"/>
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">save</button>
+			<a href="/url" class="btn">cancel</a>
+		</div>
+	</form>
+}
+
+templ EditPage(u store.URL, errMsg string) {
+	<div class="page-header">
+		<h1>edit url</h1>
+	</div>
+	if errMsg != "" {
+		<div class="error">{ errMsg }</div>
+	}
+	<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String()) }>
+		<label for="url">url</label>
+		<input type="url" id="url" name="url" value={ u.URL } disabled/>
+		<p class="form-hint">url cannot be changed after creation</p>
+		<label for="title">title</label>
+		<input type="text" id="title" name="title" value={ u.Title } autofocus/>
+		<label for="description">description</label>
+		<textarea id="description" name="description">{ u.Description }</textarea>
+		<label for="tags">tags</label>
+		<input type="text" id="tags" name="tags" value={ strings.Join(u.Tags, ", ") }/>
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">save</button>
+			<a href={ templ.SafeURL("/url/" + u.ID.String()) } class="btn">cancel</a>
+		</div>
+	</form>
+}
+
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	buf := [20]byte{}
+	pos := len(buf)
+	for n > 0 {
+		pos--
+		buf[pos] = byte(n%10) + '0'
+		n /= 10
+	}
+	return string(buf[pos:])
+}

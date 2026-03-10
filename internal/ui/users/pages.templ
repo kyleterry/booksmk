@@ -1,0 +1,55 @@
+package users
+
+import "github.com/kyleterry/booksmk/internal/store"
+
+templ RegisterPage(errMsg string) {
+	<div style="max-width:360px;margin:4rem auto">
+		<h1>create account</h1>
+		if errMsg != "" {
+			<div class="error">{ errMsg }</div>
+		}
+		<form method="POST" action="/user">
+			<label for="email">email</label>
+			<input type="email" id="email" name="email" required autofocus/>
+			<label for="password">password</label>
+			<input type="password" id="password" name="password" required/>
+			<div class="form-actions">
+				<button type="submit" class="btn btn-primary">create account</button>
+				<a href="/login">sign in</a>
+			</div>
+		</form>
+	</div>
+}
+
+templ UserDetailPage(user store.User) {
+	<div class="page-header">
+		<h1>account</h1>
+		<a href={ templ.SafeURL("/user/" + user.ID.String() + "/edit") } class="btn">edit</a>
+	</div>
+	<div class="card">
+		<div class="detail-field">
+			<div class="detail-label">email</div>
+			<div class="detail-value">{ user.Email }</div>
+		</div>
+	</div>
+}
+
+templ UserEditPage(user store.User, errMsg string) {
+	<div class="page-header">
+		<h1>edit account</h1>
+	</div>
+	if errMsg != "" {
+		<div class="error">{ errMsg }</div>
+	}
+	<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String()) }>
+		<label for="email">email</label>
+		<input type="email" id="email" name="email" value={ user.Email } required/>
+		<label for="password">new password</label>
+		<input type="password" id="password" name="password"/>
+		<p class="form-hint">leave blank to keep current password</p>
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">save</button>
+			<a href={ templ.SafeURL("/user/" + user.ID.String()) } class="btn">cancel</a>
+		</div>
+	</form>
+}
