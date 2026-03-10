@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/a-h/templ"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/kyleterry/booksmk/internal/store"
@@ -11,8 +12,14 @@ import (
 	"github.com/kyleterry/booksmk/internal/ui/auth"
 )
 
+func (s *Server) render(w http.ResponseWriter, r *http.Request, c templ.Component) {
+	if err := c.Render(r.Context(), w); err != nil {
+		s.logger.Error("render failed", "error", err)
+	}
+}
+
 func (s *Server) handleLoginForm(w http.ResponseWriter, r *http.Request) {
-	ui.Base("sign in", nil, auth.LoginPage("")).Render(r.Context(), w)
+	s.render(w, r, ui.Base("sign in", nil, auth.LoginPage("")))
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -24,13 +31,13 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 	if email == "" || password == "" {
-		ui.Base("sign in", nil, auth.LoginPage("email and password are required")).Render(r.Context(), w)
+		s.render(w, r, ui.Base("sign in", nil, auth.LoginPage("email and password are required")))
 		return
 	}
 
 	user, err := s.store.GetUserByEmail(r.Context(), email)
 	if errors.Is(err, store.ErrNotFound) {
-		ui.Base("sign in", nil, auth.LoginPage("invalid email or password")).Render(r.Context(), w)
+		s.render(w, r, ui.Base("sign in", nil, auth.LoginPage("invalid email or password")))
 		return
 	}
 	if err != nil {
@@ -40,7 +47,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordDigest), []byte(password)); err != nil {
-		ui.Base("sign in", nil, auth.LoginPage("invalid email or password")).Render(r.Context(), w)
+		s.render(w, r, ui.Base("sign in", nil, auth.LoginPage("invalid email or password")))
 		return
 	}
 

@@ -42,7 +42,7 @@ func isolatedPool(t *testing.T) *pgxpool.Pool {
 		t.Fatalf("create schema: %v", err)
 	}
 	t.Cleanup(func() {
-		admin.Exec(context.Background(), "drop schema "+schema+" cascade")
+		_, _ = admin.Exec(context.Background(), "drop schema "+schema+" cascade")
 		admin.Close()
 	})
 

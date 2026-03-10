@@ -30,7 +30,11 @@ func Run(ctx context.Context, pool *pgxpool.Pool, migrations fs.FS, logger *slog
 	if _, err := conn.Exec(ctx, "select pg_advisory_lock($1)", advisoryLockKey); err != nil {
 		return fmt.Errorf("migrate: acquire lock: %w", err)
 	}
-	defer conn.Exec(context.Background(), "select pg_advisory_unlock($1)", advisoryLockKey)
+	defer func() {
+		if _, err := conn.Exec(context.Background(), "select pg_advisory_unlock($1)", advisoryLockKey); err != nil {
+			logger.Warn("failed to release migration lock", "error", err)
+		}
+	}()
 
 	// Ensure the versions table exists.
 	_, err = conn.Exec(ctx, `
@@ -95,12 +99,12 @@ func Run(ctx context.Context, pool *pgxpool.Pool, migrations fs.FS, logger *slog
 		}
 
 		if _, err := tx.Exec(ctx, string(sql)); err != nil {
-			tx.Rollback(ctx)
+			_ = tx.Rollback(ctx)
 			return fmt.Errorf("migrate: apply %s: %w", version, err)
 		}
 
 		if _, err := tx.Exec(ctx, "insert into schema_migrations (version) values ($1)", version); err != nil {
-			tx.Rollback(ctx)
+			_ = tx.Rollback(ctx)
 			return fmt.Errorf("migrate: record %s: %w", version, err)
 		}
 

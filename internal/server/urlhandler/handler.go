@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/a-h/templ"
 	"github.com/google/uuid"
 
 	"github.com/kyleterry/booksmk/internal/reqctx"
@@ -99,6 +100,12 @@ func (h *Handler) requireURLOwner(next http.Handler) http.Handler {
 	})
 }
 
+func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Component) {
+	if err := c.Render(r.Context(), w); err != nil {
+		h.logger.Error("render failed", "error", err)
+	}
+}
+
 func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 	u, ok := reqctx.User(r.Context())
 	if !ok {
@@ -121,11 +128,11 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ui.Base("urls", h.navUser(r), urlpages.ListPage(urls)).Render(r.Context(), w)
+	h.render(w, r, ui.Base("urls", h.navUser(r), urlpages.ListPage(urls)))
 }
 
 func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
-	ui.Base("add url", h.navUser(r), urlpages.NewPage("")).Render(r.Context(), w)
+	h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage("")))
 }
 
 func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -142,7 +149,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 	rawURL := r.FormValue("url")
 	if rawURL == "" {
-		ui.Base("add url", h.navUser(r), urlpages.NewPage("url is required")).Render(r.Context(), w)
+		h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage("url is required")))
 		return
 	}
 
@@ -154,7 +161,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	u, err := h.store.CreateURL(r.Context(), user.ID, rawURL, title, r.FormValue("description"), parseTags(r.FormValue("tags")))
 	if err != nil {
 		h.logger.Error("failed to create url", "error", err)
-		ui.Base("add url", h.navUser(r), urlpages.NewPage("failed to save url")).Render(r.Context(), w)
+		h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage("failed to save url")))
 		return
 	}
 
@@ -163,12 +170,12 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	u := urlFromContext(r.Context())
-	ui.Base(u.Title, h.navUser(r), urlpages.DetailPage(u)).Render(r.Context(), w)
+	h.render(w, r, ui.Base(u.Title, h.navUser(r), urlpages.DetailPage(u)))
 }
 
 func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 	u := urlFromContext(r.Context())
-	ui.Base("edit url", h.navUser(r), urlpages.EditPage(u, "")).Render(r.Context(), w)
+	h.render(w, r, ui.Base("edit url", h.navUser(r), urlpages.EditPage(u, "")))
 }
 
 func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
@@ -182,7 +189,7 @@ func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := h.store.UpdateURL(r.Context(), u.ID, user.ID, r.FormValue("title"), r.FormValue("description"), parseTags(r.FormValue("tags"))); err != nil {
 		h.logger.Error("failed to update url", "id", u.ID, "error", err)
-		ui.Base("edit url", h.navUser(r), urlpages.EditPage(u, "failed to save changes")).Render(r.Context(), w)
+		h.render(w, r, ui.Base("edit url", h.navUser(r), urlpages.EditPage(u, "failed to save changes")))
 		return
 	}
 

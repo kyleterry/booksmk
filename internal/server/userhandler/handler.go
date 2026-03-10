@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/a-h/templ"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
@@ -54,6 +55,12 @@ func (h *Handler) registerRoutes() {
 	h.mux.HandleFunc("DELETE /user/{id}", h.handleDelete)
 }
 
+func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Component) {
+	if err := c.Render(r.Context(), w); err != nil {
+		h.logger.Error("render failed", "error", err)
+	}
+}
+
 func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 	u, ok := reqctx.User(r.Context())
 	if !ok {
@@ -63,7 +70,7 @@ func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 }
 
 func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
-	ui.Base("create account", nil, userpages.RegisterPage("")).Render(r.Context(), w)
+	h.render(w, r, ui.Base("create account", nil, userpages.RegisterPage("")))
 }
 
 func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +83,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	if email == "" || password == "" {
-		ui.Base("create account", nil, userpages.RegisterPage("email and password are required")).Render(r.Context(), w)
+		h.render(w, r, ui.Base("create account", nil, userpages.RegisterPage("email and password are required")))
 		return
 	}
 
@@ -90,7 +97,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	user, err := h.store.CreateUser(r.Context(), email, string(digest))
 	if err != nil {
 		h.logger.Error("failed to create user", "error", err)
-		ui.Base("create account", nil, userpages.RegisterPage("failed to create account")).Render(r.Context(), w)
+		h.render(w, r, ui.Base("create account", nil, userpages.RegisterPage("failed to create account")))
 		return
 	}
 
@@ -115,7 +122,7 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ui.Base("account", h.navUser(r), userpages.UserDetailPage(user)).Render(r.Context(), w)
+	h.render(w, r, ui.Base("account", h.navUser(r), userpages.UserDetailPage(user)))
 }
 
 func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +143,7 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ui.Base("edit account", h.navUser(r), userpages.UserEditPage(user, "")).Render(r.Context(), w)
+	h.render(w, r, ui.Base("edit account", h.navUser(r), userpages.UserEditPage(user, "")))
 }
 
 func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
@@ -154,7 +161,7 @@ func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	if email == "" {
 		user, _ := h.store.GetUser(r.Context(), id)
-		ui.Base("edit account", h.navUser(r), userpages.UserEditPage(user, "email is required")).Render(r.Context(), w)
+		h.render(w, r, ui.Base("edit account", h.navUser(r), userpages.UserEditPage(user, "email is required")))
 		return
 	}
 
