@@ -1,7 +1,9 @@
 package urls
 
 import (
+	"net/url"
 	"strings"
+
 	"github.com/kyleterry/booksmk/internal/store"
 )
 
@@ -59,7 +61,8 @@ templ DetailPage(u store.URL) {
 		</h1>
 		<div style="display:flex;gap:0.5rem">
 			<a href={ templ.SafeURL("/url/" + u.ID.String() + "/edit") } class="btn">edit</a>
-			<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String() + "/delete") } style="margin:0">
+			<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String()) } style="margin:0">
+				<input type="hidden" name="_method" value="DELETE"/>
 				<button type="submit" class="btn btn-danger">delete</button>
 			</form>
 		</div>
@@ -92,6 +95,15 @@ templ DetailPage(u store.URL) {
 			</div>
 		}
 	</div>
+	if embed := youtubeEmbedURL(u.URL); embed != "" {
+		<div class="embed-container">
+			<iframe
+				src={ templ.SafeURL(embed) }
+				allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+				allowfullscreen
+			></iframe>
+		</div>
+	}
 	<a href="/url" class="btn" style="margin-top:1rem">← back</a>
 }
 
@@ -140,6 +152,31 @@ templ EditPage(u store.URL, errMsg string) {
 			<a href={ templ.SafeURL("/url/" + u.ID.String()) } class="btn">cancel</a>
 		</div>
 	</form>
+}
+
+// youtubeEmbedURL returns a YouTube embed URL for the given raw URL, or empty
+// string if the URL is not a recognised YouTube video link.
+func youtubeEmbedURL(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	var videoID string
+	switch u.Hostname() {
+	case "www.youtube.com", "youtube.com":
+		switch {
+		case u.Path == "/watch":
+			videoID = u.Query().Get("v")
+		case strings.HasPrefix(u.Path, "/shorts/"):
+			videoID = strings.TrimPrefix(u.Path, "/shorts/")
+		}
+	case "youtu.be":
+		videoID = strings.TrimPrefix(u.Path, "/")
+	}
+	if videoID == "" {
+		return ""
+	}
+	return "https://www.youtube.com/embed/" + videoID
 }
 
 func itoa(n int) string {

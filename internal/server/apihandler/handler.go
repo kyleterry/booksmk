@@ -71,11 +71,17 @@ func (h *Handler) handleCreateURL(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "url is required", http.StatusBadRequest)
 		return
 	}
+	if body.Title == "" || len(body.Tags) == 0 {
+		meta := urlfetch.Fetch(body.URL)
+		if body.Title == "" {
+			body.Title = meta.Title
+		}
+		if len(body.Tags) == 0 {
+			body.Tags = meta.Tags
+		}
+	}
 	if body.Tags == nil {
 		body.Tags = []string{}
-	}
-	if body.Title == "" {
-		body.Title = urlfetch.FetchTitle(body.URL)
 	}
 
 	u, _ := reqctx.User(r.Context())

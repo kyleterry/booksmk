@@ -155,11 +155,18 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	title := r.FormValue("title")
-	if title == "" {
-		title = urlfetch.FetchTitle(rawURL)
+	tags := parseTags(r.FormValue("tags"))
+	if title == "" || len(tags) == 0 {
+		meta := urlfetch.Fetch(rawURL)
+		if title == "" {
+			title = meta.Title
+		}
+		if len(tags) == 0 {
+			tags = meta.Tags
+		}
 	}
 
-	u, err := h.store.CreateURL(r.Context(), user.ID, rawURL, title, r.FormValue("description"), parseTags(r.FormValue("tags")))
+	u, err := h.store.CreateURL(r.Context(), user.ID, rawURL, title, r.FormValue("description"), tags)
 	if err != nil {
 		h.logger.Error("failed to create url", "error", err)
 		h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage("failed to save url")))

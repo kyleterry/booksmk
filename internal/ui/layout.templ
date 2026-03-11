@@ -208,6 +208,20 @@ templ Base(title string, user *NavUser, content templ.Component) {
 				.detail-field { margin-bottom: 1rem; }
 				.detail-label { font-size: 0.75rem; color: var(--bg4); margin-bottom: 0.25rem; }
 				.detail-value { color: var(--fg1); }
+				.embed-container {
+					position: relative;
+					padding-bottom: 56.25%; /* 16:9 */
+					height: 0;
+					overflow: hidden;
+					margin-top: 1rem;
+					border-radius: 4px;
+				}
+				.embed-container iframe {
+					position: absolute;
+					top: 0; left: 0;
+					width: 100%; height: 100%;
+					border: 0;
+				}
 				.error {
 					background: #2d1b1b;
 					border: 1px solid var(--red-d);
