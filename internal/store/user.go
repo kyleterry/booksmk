@@ -26,8 +26,8 @@ func userFromSQL(u sqlstore.User) User {
 		ID:             u.ID,
 		Email:          u.Email,
 		PasswordDigest: u.PasswordDigest,
-		CreatedAt:      u.CreatedAt,
-		UpdatedAt:      u.UpdatedAt,
+		CreatedAt:      u.CreatedAt.Time,
+		UpdatedAt:      u.UpdatedAt.Time,
 	}
 }
 

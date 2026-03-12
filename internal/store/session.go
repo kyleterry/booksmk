@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/kyleterry/booksmk/internal/store/sqlstore"
 )
@@ -26,8 +27,8 @@ func sessionFromSQL(s sqlstore.Session) Session {
 	return Session{
 		Token:     s.Token,
 		UserID:    s.UserID,
-		CreatedAt: s.CreatedAt,
-		ExpiresAt: s.ExpiresAt,
+		CreatedAt: s.CreatedAt.Time,
+		ExpiresAt: s.ExpiresAt.Time,
 	}
 }
 
@@ -39,7 +40,7 @@ func (s *Store) CreateSession(ctx context.Context, userID uuid.UUID) (Session, e
 	sess, err := s.queries.CreateSession(ctx, sqlstore.CreateSessionParams{
 		Token:     token,
 		UserID:    userID,
-		ExpiresAt: time.Now().Add(sessionDuration),
+		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(sessionDuration), Valid: true},
 	})
 	if err != nil {
 		return Session{}, err

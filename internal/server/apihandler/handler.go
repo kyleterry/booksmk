@@ -100,8 +100,8 @@ func (h *Handler) handleCreateURL(w http.ResponseWriter, r *http.Request) {
 		Title:       created.Title,
 		Description: created.Description,
 		Tags:        created.Tags,
-		CreatedAt:   created.CreatedAt,
-		UpdatedAt:   created.UpdatedAt,
+		CreatedAt:   created.CreatedAt.Time,
+		UpdatedAt:   created.UpdatedAt.Time,
 	})
 }
 

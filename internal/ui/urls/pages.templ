@@ -36,7 +36,7 @@ templ urlCard(u store.URL) {
 		if len(u.Tags) > 0 {
 			<div class="tags">
 				for _, tag := range u.Tags {
-					<span class="tag">{ tag }</span>
+					<a href={ templ.SafeURL("/url?tag=" + tag) } class="tag">{ tag }</a>
 				}
 			</div>
 		}
@@ -89,7 +89,7 @@ templ DetailPage(u store.URL) {
 				<div class="detail-label">tags</div>
 				<div class="tags">
 					for _, tag := range u.Tags {
-						<span class="tag">{ tag }</span>
+						<a href={ templ.SafeURL("/url?tag=" + tag) } class="tag">{ tag }</a>
 					}
 				</div>
 			</div>
@@ -105,6 +105,19 @@ templ DetailPage(u store.URL) {
 		</div>
 	}
 	<a href="/url" class="btn" style="margin-top:1rem">← back</a>
+}
+
+templ TagPage(tag string, urls []store.URL) {
+	<div class="page-header">
+		<h1>tag: <span style="color:#8ec07c">{ tag }</span> <span style="color:#444;font-weight:normal;font-size:0.9rem">({ itoa(len(urls)) })</span></h1>
+		<a href="/url" class="btn">← all</a>
+	</div>
+	if len(urls) == 0 {
+		<div class="empty">no bookmarks with this tag</div>
+	}
+	for _, u := range urls {
+		@urlCard(u)
+	}
 }
 
 templ NewPage(errMsg string) {

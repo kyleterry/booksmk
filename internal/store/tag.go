@@ -11,7 +11,7 @@ import (
 // setURLTags replaces all tags for a user's URL with the given tag names.
 // Tag names are upserted globally; the user-url-tag association is per-user.
 func (s *Store) setURLTags(ctx context.Context, userID, urlID uuid.UUID, tags []string) error {
-	if err := s.queries.RemoveAllTagsFromURL(ctx, userID, urlID); err != nil {
+	if err := s.queries.RemoveAllTagsFromURL(ctx, sqlstore.RemoveAllTagsFromURLParams{UserID: userID, URLID: urlID}); err != nil {
 		return err
 	}
 	for _, name := range tags {

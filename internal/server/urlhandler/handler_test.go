@@ -34,11 +34,12 @@ var (
 // ---- mock store -------------------------------------------------------------
 
 type mockURLStore struct {
-	GetURLFn    func(context.Context, uuid.UUID, uuid.UUID) (store.URL, error)
-	ListURLsFn  func(context.Context, uuid.UUID) ([]store.URL, error)
-	CreateURLFn func(context.Context, uuid.UUID, string, string, string, []string) (store.URL, error)
-	UpdateURLFn func(context.Context, uuid.UUID, uuid.UUID, string, string, []string) (store.URL, error)
-	DeleteURLFn func(context.Context, uuid.UUID, uuid.UUID) error
+	GetURLFn        func(context.Context, uuid.UUID, uuid.UUID) (store.URL, error)
+	ListURLsFn      func(context.Context, uuid.UUID) ([]store.URL, error)
+	ListURLsByTagFn func(context.Context, uuid.UUID, string) ([]store.URL, error)
+	CreateURLFn     func(context.Context, uuid.UUID, string, string, string, []string) (store.URL, error)
+	UpdateURLFn     func(context.Context, uuid.UUID, uuid.UUID, string, string, []string) (store.URL, error)
+	DeleteURLFn     func(context.Context, uuid.UUID, uuid.UUID) error
 }
 
 func (m *mockURLStore) GetURL(ctx context.Context, id, userID uuid.UUID) (store.URL, error) {
@@ -51,6 +52,13 @@ func (m *mockURLStore) GetURL(ctx context.Context, id, userID uuid.UUID) (store.
 func (m *mockURLStore) ListURLs(ctx context.Context, userID uuid.UUID) ([]store.URL, error) {
 	if m.ListURLsFn != nil {
 		return m.ListURLsFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *mockURLStore) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string) ([]store.URL, error) {
+	if m.ListURLsByTagFn != nil {
+		return m.ListURLsByTagFn(ctx, userID, tag)
 	}
 	return nil, nil
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/kyleterry/booksmk/internal/store/sqlstore"
 )
@@ -35,13 +36,18 @@ type NewAPIKeyResult struct {
 }
 
 func apiKeyFromSQL(k sqlstore.APIKey) APIKey {
+	var expiresAt *time.Time
+	if k.ExpiresAt.Valid {
+		t := k.ExpiresAt.Time
+		expiresAt = &t
+	}
 	return APIKey{
 		ID:          k.ID,
 		UserID:      k.UserID,
 		Name:        k.Name,
 		TokenPrefix: k.TokenPrefix,
-		ExpiresAt:   k.ExpiresAt,
-		CreatedAt:   k.CreatedAt,
+		ExpiresAt:   expiresAt,
+		CreatedAt:   k.CreatedAt.Time,
 	}
 }
 
@@ -63,12 +69,16 @@ func (s *Store) CreateAPIKey(ctx context.Context, userID uuid.UUID, name string,
 	tokenHash := hex.EncodeToString(sum[:])
 	tokenPrefix := token[:12]
 
+	var pgExpiresAt pgtype.Timestamptz
+	if expiresAt != nil {
+		pgExpiresAt = pgtype.Timestamptz{Time: *expiresAt, Valid: true}
+	}
 	k, err := s.queries.CreateAPIKey(ctx, sqlstore.CreateAPIKeyParams{
 		UserID:      userID,
 		Name:        name,
 		TokenHash:   tokenHash,
 		TokenPrefix: tokenPrefix,
-		ExpiresAt:   expiresAt,
+		ExpiresAt:   pgExpiresAt,
 	})
 	if err != nil {
 		return NewAPIKeyResult{}, err

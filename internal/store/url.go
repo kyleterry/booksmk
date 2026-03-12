@@ -3,10 +3,10 @@ package store
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/kyleterry/booksmk/internal/store/sqlstore"
 )
@@ -17,23 +17,22 @@ type URL struct {
 	Title       string
 	Description string
 	Tags        []string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
 }
 
-func urlFromSQL(u sqlstore.UserUrlRow) URL {
-	tags := u.Tags
+func newURL(id uuid.UUID, rawURL, title, description string, tags []string, createdAt, updatedAt pgtype.Timestamptz) URL {
 	if tags == nil {
 		tags = []string{}
 	}
 	return URL{
-		ID:          u.ID,
-		URL:         u.Url,
-		Title:       u.Title,
-		Description: u.Description,
+		ID:          id,
+		URL:         rawURL,
+		Title:       title,
+		Description: description,
 		Tags:        tags,
-		CreatedAt:   u.CreatedAt,
-		UpdatedAt:   u.UpdatedAt,
+		CreatedAt:   createdAt,
+		UpdatedAt:   updatedAt,
 	}
 }
 
@@ -45,12 +44,11 @@ func (s *Store) GetURL(ctx context.Context, id, userID uuid.UUID) (URL, error) {
 	if err != nil {
 		return URL{}, err
 	}
-	tags, err := s.queries.ListTagNamesForURL(ctx, userID, id)
+	tags, err := s.queries.ListTagNamesForURL(ctx, sqlstore.ListTagNamesForURLParams{UserID: userID, URLID: id})
 	if err != nil {
 		return URL{}, err
 	}
-	u.Tags = tags
-	return urlFromSQL(u), nil
+	return newURL(u.ID, u.Url, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt), nil
 }
 
 func (s *Store) ListURLs(ctx context.Context, userID uuid.UUID) ([]URL, error) {
@@ -60,12 +58,27 @@ func (s *Store) ListURLs(ctx context.Context, userID uuid.UUID) ([]URL, error) {
 	}
 	urls := make([]URL, len(rows))
 	for i, u := range rows {
-		tags, err := s.queries.ListTagNamesForURL(ctx, userID, u.ID)
+		tags, err := s.queries.ListTagNamesForURL(ctx, sqlstore.ListTagNamesForURLParams{UserID: userID, URLID: u.ID})
 		if err != nil {
 			return nil, err
 		}
-		u.Tags = tags
-		urls[i] = urlFromSQL(u)
+		urls[i] = newURL(u.ID, u.Url, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt)
+	}
+	return urls, nil
+}
+
+func (s *Store) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string) ([]URL, error) {
+	rows, err := s.queries.ListURLsByTag(ctx, sqlstore.ListURLsByTagParams{UserID: userID, Name: tag})
+	if err != nil {
+		return nil, err
+	}
+	urls := make([]URL, len(rows))
+	for i, u := range rows {
+		tags, err := s.queries.ListTagNamesForURL(ctx, sqlstore.ListTagNamesForURLParams{UserID: userID, URLID: u.ID})
+		if err != nil {
+			return nil, err
+		}
+		urls[i] = newURL(u.ID, u.Url, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt)
 	}
 	return urls, nil
 }
@@ -115,5 +128,5 @@ func (s *Store) UpdateURL(ctx context.Context, id, userID uuid.UUID, title, desc
 // DeleteURL removes the user's association with the URL. The URL row itself is
 // retained for other users who may share it.
 func (s *Store) DeleteURL(ctx context.Context, id, userID uuid.UUID) error {
-	return s.queries.RemoveURLFromUser(ctx, userID, id)
+	return s.queries.RemoveURLFromUser(ctx, sqlstore.RemoveURLFromUserParams{UserID: userID, URLID: id})
 }

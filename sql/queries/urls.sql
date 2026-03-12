@@ -30,3 +30,12 @@ returning url_id;
 
 -- name: RemoveURLFromUser :exec
 delete from user_urls where user_id = $1 and url_id = $2;
+
+-- name: ListURLsByTag :many
+select u.id, u.url, uu.title, uu.description, uu.created_at, uu.updated_at
+from urls u
+join user_urls uu on uu.url_id = u.id
+join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
+join tags t on t.id = ut.tag_id
+where uu.user_id = $1 and t.name = $2
+order by uu.created_at desc;

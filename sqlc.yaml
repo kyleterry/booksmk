@@ -10,6 +10,9 @@ sql:
         sql_package: "pgx/v5"
         emit_json_tags: true
         emit_pointers_for_null_types: true
+        rename:
+          api_key: APIKey
+          url_id: URLID
         overrides:
           - db_type: "pg_catalog.timestamptz"
             go_type: "time.Time"

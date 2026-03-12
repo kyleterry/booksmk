@@ -20,6 +20,7 @@ import (
 type urlStore interface {
 	GetURL(ctx context.Context, id, userID uuid.UUID) (store.URL, error)
 	ListURLs(ctx context.Context, userID uuid.UUID) ([]store.URL, error)
+	ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string) ([]store.URL, error)
 	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error)
 	UpdateURL(ctx context.Context, id, userID uuid.UUID, title, description string, tags []string) (store.URL, error)
 	DeleteURL(ctx context.Context, id, userID uuid.UUID) error
@@ -119,6 +120,17 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 	user, ok := reqctx.User(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if tag := r.URL.Query().Get("tag"); tag != "" {
+		urls, err := h.store.ListURLsByTag(r.Context(), user.ID, tag)
+		if err != nil {
+			h.logger.Error("failed to list urls by tag", "tag", tag, "error", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+		h.render(w, r, ui.Base("tag: "+tag, h.navUser(r), urlpages.TagPage(tag, urls)))
 		return
 	}
 
