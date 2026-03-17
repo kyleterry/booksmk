@@ -40,13 +40,6 @@ templ urlCard(u store.URL) {
 				}
 			</div>
 		}
-		<div class="card-actions">
-			<a href={ templ.SafeURL("/url/" + u.ID.String() + "/edit") } class="btn btn-sm">edit</a>
-			<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String()) } style="margin:0">
-				<input type="hidden" name="_method" value="DELETE"/>
-				<button type="submit" class="btn btn-sm btn-danger">delete</button>
-			</form>
-		</div>
 	</div>
 }
 
@@ -59,13 +52,6 @@ templ DetailPage(u store.URL) {
 				{ u.URL }
 			}
 		</h1>
-		<div style="display:flex;gap:0.5rem">
-			<a href={ templ.SafeURL("/url/" + u.ID.String() + "/edit") } class="btn">edit</a>
-			<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String()) } style="margin:0">
-				<input type="hidden" name="_method" value="DELETE"/>
-				<button type="submit" class="btn btn-danger">delete</button>
-			</form>
-		</div>
 	</div>
 	<div class="card">
 		<div class="detail-field">
@@ -104,13 +90,18 @@ templ DetailPage(u store.URL) {
 			></iframe>
 		</div>
 	}
-	<a href="/url" class="btn" style="margin-top:1rem">← back</a>
+	<div class="card-actions" style="margin-top:1rem">
+		<a href={ templ.SafeURL("/url/" + u.ID.String() + "/edit") } class="btn">edit</a>
+		<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String()) } style="margin:0">
+			<input type="hidden" name="_method" value="DELETE"/>
+			<button type="submit" class="btn btn-danger">delete</button>
+		</form>
+	</div>
 }
 
 templ TagPage(tag string, urls []store.URL) {
 	<div class="page-header">
 		<h1>tag: <span style="color:#8ec07c">{ tag }</span> <span style="color:#444;font-weight:normal;font-size:0.9rem">({ itoa(len(urls)) })</span></h1>
-		<a href="/url" class="btn">← all</a>
 	</div>
 	if len(urls) == 0 {
 		<div class="empty">no bookmarks with this tag</div>
