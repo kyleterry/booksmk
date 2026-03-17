@@ -19,6 +19,15 @@ type APIKey struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type InviteCode struct {
+	ID        uuid.UUID          `json:"id"`
+	Code      string             `json:"code"`
+	CreatedBy uuid.UUID          `json:"created_by"`
+	UsedBy    pgtype.UUID        `json:"used_by"`
+	UsedAt    pgtype.Timestamptz `json:"used_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type Session struct {
 	Token     string             `json:"token"`
 	UserID    uuid.UUID          `json:"user_id"`
@@ -47,6 +56,7 @@ type User struct {
 	ID             uuid.UUID          `json:"id"`
 	Email          string             `json:"email"`
 	PasswordDigest string             `json:"password_digest"`
+	IsAdmin        bool               `json:"is_admin"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }

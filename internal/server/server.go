@@ -10,6 +10,7 @@ import (
 
 	"github.com/kyleterry/booksmk/internal/server/apihandler"
 	"github.com/kyleterry/booksmk/internal/server/apikeyhandler"
+	"github.com/kyleterry/booksmk/internal/server/invitehandler"
 	"github.com/kyleterry/booksmk/internal/server/urlhandler"
 	"github.com/kyleterry/booksmk/internal/server/userhandler"
 	"github.com/kyleterry/booksmk/internal/store"
@@ -31,6 +32,7 @@ type Server struct {
 	urlHandler    *urlhandler.Handler
 	userHandler   *userhandler.Handler
 	apiKeyHandler *apikeyhandler.Handler
+	inviteHandler *invitehandler.Handler
 	apiHandler    *apihandler.Handler
 }
 
@@ -45,6 +47,7 @@ func New(cfg Config) (*Server, error) {
 		urlHandler:    urlhandler.New(st, cfg.Logger),
 		userHandler:   userhandler.New(st, cfg.Logger),
 		apiKeyHandler: apikeyhandler.New(st, cfg.Logger),
+		inviteHandler: invitehandler.New(st, cfg.Logger),
 		apiHandler:    apihandler.New(st, cfg.Logger),
 	}
 

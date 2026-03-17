@@ -23,7 +23,7 @@ func TestCreateUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			digest := mustHashPassword(t, "secret")
-			u, err := s.CreateUser(ctx, tt.email, digest)
+			u, err := s.CreateUser(ctx, tt.email, digest, false)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("CreateUser() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -43,7 +43,7 @@ func TestGetUser(t *testing.T) {
 	s := testStore(t)
 	ctx := context.Background()
 
-	created, err := s.CreateUser(ctx, "bob@example.com", mustHashPassword(t, "secret"))
+	created, err := s.CreateUser(ctx, "bob@example.com", mustHashPassword(t, "secret"), false)
 	if err != nil {
 		t.Fatalf("setup: CreateUser: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestGetUser_NotFound(t *testing.T) {
 	s := testStore(t)
 	ctx := context.Background()
 
-	u, err := s.CreateUser(ctx, "gettest@example.com", mustHashPassword(t, "pass"))
+	u, err := s.CreateUser(ctx, "gettest@example.com", mustHashPassword(t, "pass"), false)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestGetUserByEmail(t *testing.T) {
 	ctx := context.Background()
 
 	digest := mustHashPassword(t, "secret")
-	created, err := s.CreateUser(ctx, "carol@example.com", digest)
+	created, err := s.CreateUser(ctx, "carol@example.com", digest, false)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestUpdateUser(t *testing.T) {
 	s := testStore(t)
 	ctx := context.Background()
 
-	u, err := s.CreateUser(ctx, "dave@example.com", mustHashPassword(t, "pass"))
+	u, err := s.CreateUser(ctx, "dave@example.com", mustHashPassword(t, "pass"), false)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestUpdateUserPassword(t *testing.T) {
 	s := testStore(t)
 	ctx := context.Background()
 
-	u, err := s.CreateUser(ctx, "eve@example.com", mustHashPassword(t, "oldpass"))
+	u, err := s.CreateUser(ctx, "eve@example.com", mustHashPassword(t, "oldpass"), false)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -174,7 +174,7 @@ func TestDeleteUser(t *testing.T) {
 	s := testStore(t)
 	ctx := context.Background()
 
-	u, err := s.CreateUser(ctx, "frank@example.com", mustHashPassword(t, "pass"))
+	u, err := s.CreateUser(ctx, "frank@example.com", mustHashPassword(t, "pass"), false)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}

@@ -27,19 +27,43 @@ var (
 // ---- mock store -------------------------------------------------------------
 
 type mockUserStore struct {
-	CreateUserFn         func(context.Context, string, string) (store.User, error)
-	GetUserFn            func(context.Context, uuid.UUID) (store.User, error)
-	ListUsersFn          func(context.Context) ([]store.User, error)
-	UpdateUserFn         func(context.Context, uuid.UUID, string) (store.User, error)
-	UpdateUserPasswordFn func(context.Context, uuid.UUID, string) (store.User, error)
-	DeleteUserFn         func(context.Context, uuid.UUID) error
+	CountUsersFn          func(context.Context) (int64, error)
+	CreateUserFn          func(context.Context, string, string, bool) (store.User, error)
+	GetUserFn             func(context.Context, uuid.UUID) (store.User, error)
+	ListUsersFn           func(context.Context) ([]store.User, error)
+	UpdateUserFn          func(context.Context, uuid.UUID, string) (store.User, error)
+	UpdateUserPasswordFn  func(context.Context, uuid.UUID, string) (store.User, error)
+	DeleteUserFn          func(context.Context, uuid.UUID) error
+	GetInviteCodeByCodeFn func(context.Context, string) (store.InviteCode, error)
+	UseInviteCodeFn       func(context.Context, uuid.UUID, uuid.UUID) error
 }
 
-func (m *mockUserStore) CreateUser(ctx context.Context, email, digest string) (store.User, error) {
+func (m *mockUserStore) CountUsers(ctx context.Context) (int64, error) {
+	if m.CountUsersFn != nil {
+		return m.CountUsersFn(ctx)
+	}
+	return 0, nil
+}
+
+func (m *mockUserStore) CreateUser(ctx context.Context, email, digest string, isAdmin bool) (store.User, error) {
 	if m.CreateUserFn != nil {
-		return m.CreateUserFn(ctx, email, digest)
+		return m.CreateUserFn(ctx, email, digest, isAdmin)
 	}
 	return store.User{}, errors.New("CreateUser not configured")
+}
+
+func (m *mockUserStore) GetInviteCodeByCode(ctx context.Context, code string) (store.InviteCode, error) {
+	if m.GetInviteCodeByCodeFn != nil {
+		return m.GetInviteCodeByCodeFn(ctx, code)
+	}
+	return store.InviteCode{}, store.ErrNotFound
+}
+
+func (m *mockUserStore) UseInviteCode(ctx context.Context, id, usedBy uuid.UUID) error {
+	if m.UseInviteCodeFn != nil {
+		return m.UseInviteCodeFn(ctx, id, usedBy)
+	}
+	return nil
 }
 
 func (m *mockUserStore) GetUser(ctx context.Context, id uuid.UUID) (store.User, error) {
@@ -147,15 +171,15 @@ func TestHandleCreate(t *testing.T) {
 		wantBody   string
 	}{
 		{
-			name: "valid registration redirects to profile",
+			name: "valid first user registration redirects to login",
 			body: "email=new%40example.com&password=secret",
 			setup: func(m *mockUserStore) {
-				m.CreateUserFn = func(_ context.Context, email, _ string) (store.User, error) {
+				m.CreateUserFn = func(_ context.Context, email, _ string, _ bool) (store.User, error) {
 					return store.User{ID: fixtureUserID, Email: email}, nil
 				}
 			},
 			wantStatus: http.StatusSeeOther,
-			wantLoc:    "/user/" + fixtureUserID.String(),
+			wantLoc:    "/login",
 		},
 		{
 			name:       "missing email shows error",
@@ -175,7 +199,7 @@ func TestHandleCreate(t *testing.T) {
 			name: "store error shows error",
 			body: "email=dupe%40example.com&password=secret",
 			setup: func(m *mockUserStore) {
-				m.CreateUserFn = func(_ context.Context, _, _ string) (store.User, error) {
+				m.CreateUserFn = func(_ context.Context, _, _ string, _ bool) (store.User, error) {
 					return store.User{}, errors.New("duplicate key")
 				}
 			},

@@ -10,7 +10,7 @@ import (
 // setupUser creates a user for use in URL tests.
 func setupUser(t *testing.T, s *store.Store, email string) store.User {
 	t.Helper()
-	u, err := s.CreateUser(context.Background(), email, mustHashPassword(t, "pass"))
+	u, err := s.CreateUser(context.Background(), email, mustHashPassword(t, "pass"), false)
 	if err != nil {
 		t.Fatalf("setupUser(%q): %v", email, err)
 	}

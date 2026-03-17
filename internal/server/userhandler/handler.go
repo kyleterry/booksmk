@@ -17,12 +17,15 @@ import (
 )
 
 type userStore interface {
-	CreateUser(ctx context.Context, email, passwordDigest string) (store.User, error)
+	CountUsers(ctx context.Context) (int64, error)
+	CreateUser(ctx context.Context, email, passwordDigest string, isAdmin bool) (store.User, error)
 	GetUser(ctx context.Context, id uuid.UUID) (store.User, error)
 	ListUsers(ctx context.Context) ([]store.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, email string) (store.User, error)
 	UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordDigest string) (store.User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	GetInviteCodeByCode(ctx context.Context, code string) (store.InviteCode, error)
+	UseInviteCode(ctx context.Context, id, usedBy uuid.UUID) error
 }
 
 // Handler handles all requests under the /user prefix.
@@ -66,11 +69,19 @@ func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 	if !ok {
 		return nil
 	}
-	return &ui.NavUser{Email: u.Email}
+	return &ui.NavUser{Email: u.Email, IsAdmin: u.IsAdmin}
+}
+
+func (h *Handler) requireInviteCode(ctx context.Context) bool {
+	count, err := h.store.CountUsers(ctx)
+	if err != nil {
+		return true
+	}
+	return count > 0
 }
 
 func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, ui.Base("create account", nil, userpages.RegisterPage("")))
+	h.render(w, r, ui.Base("create account", nil, userpages.RegisterPage("", h.requireInviteCode(r.Context()))))
 }
 
 func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -79,12 +90,29 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	needsInvite := h.requireInviteCode(r.Context())
 	email := r.FormValue("email")
 	password := r.FormValue("password")
+	inviteCode := r.FormValue("invite_code")
 
 	if email == "" || password == "" {
-		h.render(w, r, ui.Base("create account", nil, userpages.RegisterPage("email and password are required")))
+		h.render(w, r, ui.Base("create account", nil, userpages.RegisterPage("email and password are required", needsInvite)))
 		return
+	}
+
+	if needsInvite && inviteCode == "" {
+		h.render(w, r, ui.Base("create account", nil, userpages.RegisterPage("invite code is required", needsInvite)))
+		return
+	}
+
+	var invite store.InviteCode
+	if needsInvite {
+		var err error
+		invite, err = h.store.GetInviteCodeByCode(r.Context(), inviteCode)
+		if err != nil || invite.UsedBy != nil {
+			h.render(w, r, ui.Base("create account", nil, userpages.RegisterPage("invalid or already used invite code", needsInvite)))
+			return
+		}
 	}
 
 	digest, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -94,14 +122,23 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.store.CreateUser(r.Context(), email, string(digest))
+	// The first user is automatically an admin.
+	isAdmin := !needsInvite
+
+	user, err := h.store.CreateUser(r.Context(), email, string(digest), isAdmin)
 	if err != nil {
 		h.logger.Error("failed to create user", "error", err)
-		h.render(w, r, ui.Base("create account", nil, userpages.RegisterPage("failed to create account")))
+		h.render(w, r, ui.Base("create account", nil, userpages.RegisterPage("failed to create account", needsInvite)))
 		return
 	}
 
-	http.Redirect(w, r, "/user/"+user.ID.String(), http.StatusSeeOther)
+	if needsInvite {
+		if err := h.store.UseInviteCode(r.Context(), invite.ID, user.ID); err != nil {
+			h.logger.Error("failed to mark invite code as used", "error", err)
+		}
+	}
+
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {

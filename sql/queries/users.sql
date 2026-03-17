@@ -8,8 +8,8 @@ select * from users where email = $1;
 select * from users order by created_at desc;
 
 -- name: CreateUser :one
-insert into users (email, password_digest)
-values ($1, $2)
+insert into users (email, password_digest, is_admin)
+values ($1, $2, $3)
 returning *;
 
 -- name: UpdateUser :one
@@ -26,3 +26,6 @@ returning *;
 
 -- name: DeleteUser :exec
 delete from users where id = $1;
+
+-- name: CountUsers :one
+select count(*) from users;

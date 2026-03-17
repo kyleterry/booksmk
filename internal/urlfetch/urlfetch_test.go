@@ -162,9 +162,9 @@ func TestDefaultTags(t *testing.T) {
 
 func TestYoutubeOEmbedTitle(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		wantHit  bool
+		name    string
+		input   string
+		wantHit bool
 	}{
 		{"standard watch URL", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", true},
 		{"youtu.be URL", "https://youtu.be/dQw4w9WgXcQ", true},

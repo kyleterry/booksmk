@@ -17,6 +17,7 @@ type User struct {
 	ID             uuid.UUID
 	Email          string
 	PasswordDigest string
+	IsAdmin        bool
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -26,6 +27,7 @@ func userFromSQL(u sqlstore.User) User {
 		ID:             u.ID,
 		Email:          u.Email,
 		PasswordDigest: u.PasswordDigest,
+		IsAdmin:        u.IsAdmin,
 		CreatedAt:      u.CreatedAt.Time,
 		UpdatedAt:      u.UpdatedAt.Time,
 	}
@@ -65,10 +67,15 @@ func (s *Store) ListUsers(ctx context.Context) ([]User, error) {
 	return users, nil
 }
 
-func (s *Store) CreateUser(ctx context.Context, email, passwordDigest string) (User, error) {
+func (s *Store) CountUsers(ctx context.Context) (int64, error) {
+	return s.queries.CountUsers(ctx)
+}
+
+func (s *Store) CreateUser(ctx context.Context, email, passwordDigest string, isAdmin bool) (User, error) {
 	u, err := s.queries.CreateUser(ctx, sqlstore.CreateUserParams{
 		Email:          email,
 		PasswordDigest: passwordDigest,
+		IsAdmin:        isAdmin,
 	})
 	if err != nil {
 		return User{}, err

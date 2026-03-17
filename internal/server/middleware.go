@@ -69,6 +69,18 @@ func (s *Server) requireAPIKeyAuth(next http.Handler) http.Handler {
 	})
 }
 
+// requireAdmin wraps requireAuth and additionally checks that the user is an admin.
+func (s *Server) requireAdmin(next http.Handler) http.Handler {
+	return s.requireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u, ok := reqctx.User(r.Context())
+		if !ok || !u.IsAdmin {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	}))
+}
+
 // methodOverride allows HTML forms to tunnel DELETE (and other methods) by
 // posting a _method field. It only acts on POST requests.
 func methodOverride(next http.Handler) http.Handler {

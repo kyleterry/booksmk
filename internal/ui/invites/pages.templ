@@ -1,0 +1,41 @@
+package invites
+
+import "github.com/kyleterry/booksmk/internal/store"
+
+templ ListPage(codes []store.InviteCode) {
+	<div class="page-header">
+		<h1>invite codes</h1>
+		<form method="POST" action="/invite/" style="margin:0">
+			<button type="submit" class="btn btn-primary">+ generate</button>
+		</form>
+	</div>
+	if len(codes) == 0 {
+		<div class="empty">no invite codes yet</div>
+	}
+	for _, c := range codes {
+		@inviteCard(c)
+	}
+}
+
+templ inviteCard(c store.InviteCode) {
+	<div class="card">
+		<div class="card-title" style="font-family:monospace;font-size:0.85rem">{ c.Code }</div>
+		<div style="font-size:0.75rem;color:var(--fg4);margin-top:0.35rem">
+			if c.UsedBy != nil {
+				<span style="color:var(--aqua)">used</span>
+				<span style="margin-left:0.5rem">{ c.UsedAt.Format("2006-01-02") }</span>
+			} else {
+				<span style="color:var(--yellow)">available</span>
+			}
+			<span style="margin-left:1rem">created: { c.CreatedAt.Format("2006-01-02") }</span>
+		</div>
+	</div>
+	if c.UsedBy == nil {
+		<div class="card-actions">
+			<form method="POST" action={ templ.SafeURL("/invite/" + c.ID.String()) } style="margin:0">
+				<input type="hidden" name="_method" value="DELETE"/>
+				<button type="submit" class="btn btn-sm btn-danger">delete</button>
+			</form>
+		</div>
+	}
+}

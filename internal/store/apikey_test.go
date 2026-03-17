@@ -12,7 +12,7 @@ import (
 // mustCreateUser is a test helper that creates a user and fails the test on error.
 func mustCreateUser(t *testing.T, s *store.Store, email string) store.User {
 	t.Helper()
-	u, err := s.CreateUser(context.Background(), email, mustHashPassword(t, "secret"))
+	u, err := s.CreateUser(context.Background(), email, mustHashPassword(t, "secret"), false)
 	if err != nil {
 		t.Fatalf("mustCreateUser(%q): %v", email, err)
 	}

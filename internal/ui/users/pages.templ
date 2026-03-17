@@ -2,7 +2,7 @@ package users
 
 import "github.com/kyleterry/booksmk/internal/store"
 
-templ RegisterPage(errMsg string) {
+templ RegisterPage(errMsg string, requireInvite bool) {
 	<div style="max-width:360px;margin:4rem auto">
 		<h1>create account</h1>
 		if errMsg != "" {
@@ -13,6 +13,10 @@ templ RegisterPage(errMsg string) {
 			<input type="email" id="email" name="email" required autofocus/>
 			<label for="password">password</label>
 			<input type="password" id="password" name="password" required/>
+			if requireInvite {
+				<label for="invite_code">invite code</label>
+				<input type="text" id="invite_code" name="invite_code" required placeholder="required"/>
+			}
 			<div class="form-actions">
 				<button type="submit" class="btn btn-primary">create account</button>
 				<a href="/login">sign in</a>
