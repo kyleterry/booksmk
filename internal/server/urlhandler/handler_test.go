@@ -34,12 +34,13 @@ var (
 // ---- mock store -------------------------------------------------------------
 
 type mockURLStore struct {
-	GetURLFn        func(context.Context, uuid.UUID, uuid.UUID) (store.URL, error)
-	ListURLsFn      func(context.Context, uuid.UUID) ([]store.URL, error)
-	ListURLsByTagFn func(context.Context, uuid.UUID, string) ([]store.URL, error)
-	CreateURLFn     func(context.Context, uuid.UUID, string, string, string, []string) (store.URL, error)
-	UpdateURLFn     func(context.Context, uuid.UUID, uuid.UUID, string, string, []string) (store.URL, error)
-	DeleteURLFn     func(context.Context, uuid.UUID, uuid.UUID) error
+	GetURLFn                func(context.Context, uuid.UUID, uuid.UUID) (store.URL, error)
+	ListURLsFn              func(context.Context, uuid.UUID) ([]store.URL, error)
+	ListURLsByTagFn         func(context.Context, uuid.UUID, string) ([]store.URL, error)
+	CreateURLFn             func(context.Context, uuid.UUID, string, string, string, []string) (store.URL, error)
+	UpdateURLFn             func(context.Context, uuid.UUID, uuid.UUID, string, string, []string) (store.URL, error)
+	DeleteURLFn             func(context.Context, uuid.UUID, uuid.UUID) error
+	ListDiscussionsForURLFn func(context.Context, uuid.UUID) ([]store.Discussion, error)
 }
 
 func (m *mockURLStore) GetURL(ctx context.Context, id, userID uuid.UUID) (store.URL, error) {
@@ -82,6 +83,13 @@ func (m *mockURLStore) DeleteURL(ctx context.Context, id, userID uuid.UUID) erro
 		return m.DeleteURLFn(ctx, id, userID)
 	}
 	return errors.New("DeleteURL not configured")
+}
+
+func (m *mockURLStore) ListDiscussionsForURL(ctx context.Context, urlID uuid.UUID) ([]store.Discussion, error) {
+	if m.ListDiscussionsForURLFn != nil {
+		return m.ListDiscussionsForURLFn(ctx, urlID)
+	}
+	return nil, nil
 }
 
 // ---- helpers ----------------------------------------------------------------

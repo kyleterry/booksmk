@@ -1,6 +1,7 @@
 package urls
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -67,7 +68,7 @@ templ urlCard(u store.URL) {
 	</div>
 }
 
-templ DetailPage(u store.URL) {
+templ DetailPage(u store.URL, discussions []store.Discussion) {
 	<div class="page-header">
 		<h1>
 			if u.Title != "" {
@@ -123,6 +124,26 @@ templ DetailPage(u store.URL) {
 				allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 				allowfullscreen
 			></iframe>
+		</div>
+	}
+	if len(discussions) > 0 {
+		<div style="margin-top:2rem">
+			<h2>discussions</h2>
+			for _, d := range discussions {
+				<div class="card" style="border-left-color:var(--accent-d)">
+					<div class="card-title">
+						<a href={ templ.SafeURL(d.DiscussionURL) } target="_blank" rel="noopener noreferrer">{ d.Title }</a>
+					</div>
+					<div class="card-url">
+						<span style="font-size:0.71rem;color:var(--fg4)">{ d.Source }</span>
+						<span class="card-date">
+							if d.Score > 0 || d.CommentCount > 0 {
+								{ fmt.Sprintf("%d pts · %d comments", d.Score, d.CommentCount) }
+							}
+						</span>
+					</div>
+				</div>
+			}
 		</div>
 	}
 }

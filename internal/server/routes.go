@@ -22,7 +22,7 @@ func (s *Server) registerRoutes() {
 
 	s.mux.Handle("/apikey/", s.requireAuth(s.apiKeyHandler))
 
-	s.mux.Handle("/invite/", s.requireAdmin(s.inviteHandler))
+	s.mux.Handle("/admin/", s.requireAdmin(s.adminHandler))
 
 	s.mux.Handle("/api/", s.requireAPIKeyAuth(s.apiHandler))
 }

@@ -24,6 +24,7 @@ type urlStore interface {
 	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error)
 	UpdateURL(ctx context.Context, id, userID uuid.UUID, title, description string, tags []string) (store.URL, error)
 	DeleteURL(ctx context.Context, id, userID uuid.UUID) error
+	ListDiscussionsForURL(ctx context.Context, urlID uuid.UUID) ([]store.Discussion, error)
 }
 
 type contextKey int
@@ -190,7 +191,12 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	u := urlFromContext(r.Context())
-	h.render(w, r, ui.Base(u.Title, h.navUser(r), urlpages.DetailPage(u)))
+	discussions, err := h.store.ListDiscussionsForURL(r.Context(), u.ID)
+	if err != nil {
+		h.logger.Error("failed to list discussions", "url_id", u.ID, "error", err)
+		discussions = nil
+	}
+	h.render(w, r, ui.Base(u.Title, h.navUser(r), urlpages.DetailPage(u, discussions)))
 }
 
 func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {

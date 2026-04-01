@@ -1,0 +1,104 @@
+package admin
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/kyleterry/booksmk/internal/store"
+)
+
+templ AdminPage(runs []store.BatchRunSummary, nextAt time.Time, codes []store.InviteCode) {
+	<div class="page-header">
+		<h1>discussion runs <span class="count">({ fmt.Sprintf("%d", len(runs)) })</span></h1>
+		<div style="display:flex;align-items:center;gap:1rem">
+			<div style="font-size:0.72rem;color:var(--fg4)">
+				<span>next run: </span>@nextRunLabel(nextAt)
+			</div>
+			<form method="POST" action="/admin/run" style="margin:0">
+				<button type="submit" class="btn btn-sm btn-primary">run now</button>
+			</form>
+		</div>
+	</div>
+	if len(runs) == 0 {
+		<div class="empty">no runs yet</div>
+	} else {
+		<div style="overflow-x:auto;margin-bottom:3rem">
+			<table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+				<thead>
+					<tr style="border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left">
+						<th style="padding:0.4rem 0.75rem 0.4rem 0;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem">started</th>
+						<th style="padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem">duration</th>
+						<th style="padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right">urls checked</th>
+						<th style="padding:0.4rem 0 0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right">discussions found</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, r := range runs {
+						<tr style="border-bottom:1px solid var(--bg1)">
+							<td style="padding:0.55rem 0.75rem 0.55rem 0;color:var(--fg2);white-space:nowrap">{ r.StartedAt.Format("Jan 2 15:04") }</td>
+							<td style="padding:0.55rem 0.75rem;color:var(--fg3);white-space:nowrap">{ formatDuration(r.CompletedAt.Sub(r.StartedAt)) }</td>
+							<td style="padding:0.55rem 0.75rem;text-align:right;color:var(--fg3)">{ fmt.Sprintf("%d", r.URLCount) }</td>
+							<td style="padding:0.55rem 0 0.55rem 0.75rem;text-align:right">
+								if r.FoundCount > 0 {
+									<span style="color:var(--accent)">{ fmt.Sprintf("%d", r.FoundCount) }</span>
+								} else {
+									<span style="color:var(--fg4)">0</span>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+	<div class="page-header">
+		<h2>invite codes <span class="count">({ fmt.Sprintf("%d", len(codes)) })</span></h2>
+		<form method="POST" action="/admin/invite/" style="margin:0">
+			<button type="submit" class="btn btn-sm btn-primary">+ generate</button>
+		</form>
+	</div>
+	if len(codes) == 0 {
+		<div class="empty" style="padding:1.5rem 0">no invite codes yet</div>
+	}
+	for _, c := range codes {
+		@inviteCard(c)
+	}
+}
+
+templ inviteCard(c store.InviteCode) {
+	<div class="card">
+		<div class="card-title" style="font-family:monospace;font-size:0.85rem;font-weight:normal;color:var(--fg2)">{ c.Code }</div>
+		<div style="font-size:0.75rem;color:var(--fg4);margin-top:0.35rem">
+			if c.UsedBy != nil {
+				<span style="color:var(--green)">used</span>
+				<span style="margin-left:0.5rem">{ c.UsedAt.Format("2006-01-02") }</span>
+			} else {
+				<span style="color:var(--accent)">available</span>
+			}
+			<span style="margin-left:1rem;color:var(--bg3)">created: { c.CreatedAt.Format("2006-01-02") }</span>
+		</div>
+		if c.UsedBy == nil {
+			<div class="card-footer">
+				<form method="POST" action={ templ.SafeURL("/admin/invite/" + c.ID.String()) } style="margin:0">
+					<input type="hidden" name="_method" value="DELETE"/>
+					<button type="submit" class="btn btn-sm btn-danger">delete</button>
+				</form>
+			</div>
+		}
+	</div>
+}
+
+templ nextRunLabel(t time.Time) {
+	if t.Before(time.Now()) {
+		<span style="color:var(--accent)">now</span>
+	} else {
+		<span style="color:var(--fg3)">{ t.Format("Jan 2 15:04") }</span>
+	}
+}
+
+func formatDuration(d time.Duration) string {
+	if d < time.Second {
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	}
+	return fmt.Sprintf("%.1fs", d.Seconds())
+}

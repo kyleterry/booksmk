@@ -101,6 +101,9 @@ func (s *Store) CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, 
 	if err := s.setURLTags(ctx, userID, urlID, tags); err != nil {
 		return URL{}, err
 	}
+	if err := s.queries.EnqueueDiscussionJob(ctx, urlID); err != nil {
+		return URL{}, err
+	}
 	return s.GetURL(ctx, urlID, userID)
 }
 

@@ -8,9 +8,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/kyleterry/booksmk/internal/discuss"
+	"github.com/kyleterry/booksmk/internal/server/adminhandler"
 	"github.com/kyleterry/booksmk/internal/server/apihandler"
 	"github.com/kyleterry/booksmk/internal/server/apikeyhandler"
-	"github.com/kyleterry/booksmk/internal/server/invitehandler"
 	"github.com/kyleterry/booksmk/internal/server/urlhandler"
 	"github.com/kyleterry/booksmk/internal/server/userhandler"
 	"github.com/kyleterry/booksmk/internal/store"
@@ -25,30 +26,32 @@ type Config struct {
 
 // Server is the booksmk HTTP server.
 type Server struct {
-	cfg           Config
-	store         *store.Store
-	logger        *slog.Logger
-	mux           *http.ServeMux
-	urlHandler    *urlhandler.Handler
-	userHandler   *userhandler.Handler
-	apiKeyHandler *apikeyhandler.Handler
-	inviteHandler *invitehandler.Handler
-	apiHandler    *apihandler.Handler
+	cfg              Config
+	store            *store.Store
+	logger           *slog.Logger
+	mux              *http.ServeMux
+	urlHandler       *urlhandler.Handler
+	userHandler      *userhandler.Handler
+	apiKeyHandler    *apikeyhandler.Handler
+	apiHandler       *apihandler.Handler
+	adminHandler     *adminhandler.Handler
+	discussionWorker *discuss.Worker
 }
 
 func New(cfg Config) (*Server, error) {
 	st := store.New(cfg.Pool)
 
 	s := &Server{
-		cfg:           cfg,
-		store:         st,
-		logger:        cfg.Logger,
-		mux:           http.NewServeMux(),
-		urlHandler:    urlhandler.New(st, cfg.Logger),
-		userHandler:   userhandler.New(st, cfg.Logger),
-		apiKeyHandler: apikeyhandler.New(st, cfg.Logger),
-		inviteHandler: invitehandler.New(st, cfg.Logger),
-		apiHandler:    apihandler.New(st, cfg.Logger),
+		cfg:              cfg,
+		store:            st,
+		logger:           cfg.Logger,
+		mux:              http.NewServeMux(),
+		urlHandler:       urlhandler.New(st, cfg.Logger),
+		userHandler:      userhandler.New(st, cfg.Logger),
+		apiKeyHandler:    apikeyhandler.New(st, cfg.Logger),
+		apiHandler:       apihandler.New(st, cfg.Logger),
+		adminHandler:     adminhandler.New(st, cfg.Logger),
+		discussionWorker: discuss.New(st, cfg.Logger),
 	}
 
 	s.registerRoutes()
@@ -72,8 +75,12 @@ func (s *Server) Run(ctx context.Context) error {
 		errCh <- srv.ListenAndServe()
 	}()
 
+	s.logger.Info("starting discussion worker")
+	go s.discussionWorker.Run(ctx)
+
 	select {
 	case <-ctx.Done():
+		s.logger.Info("shutting down")
 		return srv.Shutdown(context.Background())
 	case err := <-errCh:
 		return err

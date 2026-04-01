@@ -2,64 +2,20 @@ package migrate_test
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
-	"strings"
 	"testing"
 	"testing/fstest"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/kyleterry/booksmk/internal/migrate"
+	"github.com/kyleterry/booksmk/internal/testdb"
 	"github.com/kyleterry/booksmk/sql/migrations"
 )
 
 var silentLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
-
-// isolatedPool returns a pool whose search_path is set to a freshly-created
-// schema unique to this test. The schema (and all its objects) is dropped when
-// the test ends. This prevents concurrent test packages from interfering with
-// each other's schema resets.
-func isolatedPool(t *testing.T) *pgxpool.Pool {
-	t.Helper()
-	dbURL := os.Getenv("BOOKSMK_DATABASE_URL")
-	if dbURL == "" {
-		t.Skip("BOOKSMK_DATABASE_URL not set")
-	}
-
-	// Admin pool to create/drop the isolated schema.
-	admin, err := pgxpool.New(context.Background(), dbURL)
-	if err != nil {
-		t.Fatalf("admin connect: %v", err)
-	}
-
-	schema := fmt.Sprintf("migtest_%d", time.Now().UnixNano())
-	if _, err := admin.Exec(context.Background(), "create schema "+schema); err != nil {
-		admin.Close()
-		t.Fatalf("create schema: %v", err)
-	}
-	t.Cleanup(func() {
-		_, _ = admin.Exec(context.Background(), "drop schema "+schema+" cascade")
-		admin.Close()
-	})
-
-	// Build a URL that sets search_path to the isolated schema.
-	sep := "?"
-	if strings.Contains(dbURL, "?") {
-		sep = "&"
-	}
-	isolatedURL := dbURL + sep + "search_path=" + schema
-
-	pool, err := pgxpool.New(context.Background(), isolatedURL)
-	if err != nil {
-		t.Fatalf("isolated connect: %v", err)
-	}
-	t.Cleanup(pool.Close)
-	return pool
-}
 
 func tableExists(t *testing.T, pool *pgxpool.Pool, name string) bool {
 	t.Helper()
@@ -93,7 +49,7 @@ func appliedVersions(t *testing.T, pool *pgxpool.Pool) []string {
 }
 
 func TestRun_AppliesMigrations(t *testing.T) {
-	pool := isolatedPool(t)
+	pool := testdb.New(t)
 
 	if err := migrate.Run(context.Background(), pool, migrations.FS, silentLogger); err != nil {
 		t.Fatalf("migrate.Run: %v", err)
@@ -116,7 +72,7 @@ func TestRun_AppliesMigrations(t *testing.T) {
 }
 
 func TestRun_Idempotent(t *testing.T) {
-	pool := isolatedPool(t)
+	pool := testdb.New(t)
 
 	for i := range 3 {
 		if err := migrate.Run(context.Background(), pool, migrations.FS, silentLogger); err != nil {
@@ -137,7 +93,7 @@ func TestRun_Idempotent(t *testing.T) {
 }
 
 func TestRun_AppliesInOrder(t *testing.T) {
-	pool := isolatedPool(t)
+	pool := testdb.New(t)
 
 	fakeFS := fstest.MapFS{
 		"002-second.sql": {Data: []byte("create table second_table (id int primary key);")},
@@ -161,7 +117,7 @@ func TestRun_AppliesInOrder(t *testing.T) {
 }
 
 func TestRun_SkipsAlreadyApplied(t *testing.T) {
-	pool := isolatedPool(t)
+	pool := testdb.New(t)
 
 	first := fstest.MapFS{
 		"001-first.sql": {Data: []byte("create table first_table (id int primary key);")},
@@ -185,7 +141,7 @@ func TestRun_SkipsAlreadyApplied(t *testing.T) {
 }
 
 func TestRun_RollsBackFailedMigration(t *testing.T) {
-	pool := isolatedPool(t)
+	pool := testdb.New(t)
 
 	bad := fstest.MapFS{
 		"001-bad.sql": {Data: []byte("this is not valid sql !!!;")},
@@ -204,7 +160,7 @@ func TestRun_RollsBackFailedMigration(t *testing.T) {
 }
 
 func TestRun_IgnoresNonSQLFiles(t *testing.T) {
-	pool := isolatedPool(t)
+	pool := testdb.New(t)
 
 	mixed := fstest.MapFS{
 		"001-real.sql": {Data: []byte("create table real_table (id int primary key);")},

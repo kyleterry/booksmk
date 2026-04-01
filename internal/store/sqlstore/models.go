@@ -19,6 +19,20 @@ type APIKey struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type DiscussionRun struct {
+	ID          int32              `json:"id"`
+	ScheduledAt pgtype.Timestamptz `json:"scheduled_at"`
+	LastRunAt   pgtype.Timestamptz `json:"last_run_at"`
+}
+
+type DiscussionRunLog struct {
+	ID          uuid.UUID          `json:"id"`
+	StartedAt   pgtype.Timestamptz `json:"started_at"`
+	CompletedAt pgtype.Timestamptz `json:"completed_at"`
+	UrlCount    int32              `json:"url_count"`
+	FoundCount  int32              `json:"found_count"`
+}
+
 type InviteCode struct {
 	ID        uuid.UUID          `json:"id"`
 	Code      string             `json:"code"`
@@ -44,6 +58,26 @@ type Url struct {
 	ID        uuid.UUID          `json:"id"`
 	Url       string             `json:"url"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type UrlDiscussion struct {
+	ID            uuid.UUID          `json:"id"`
+	URLID         uuid.UUID          `json:"url_id"`
+	Source        string             `json:"source"`
+	Title         string             `json:"title"`
+	DiscussionUrl string             `json:"discussion_url"`
+	Score         int32              `json:"score"`
+	CommentCount  int32              `json:"comment_count"`
+	FoundAt       pgtype.Timestamptz `json:"found_at"`
+}
+
+type UrlDiscussionJob struct {
+	ID            uuid.UUID          `json:"id"`
+	URLID         uuid.UUID          `json:"url_id"`
+	ScheduledAt   pgtype.Timestamptz `json:"scheduled_at"`
+	LastCheckedAt pgtype.Timestamptz `json:"last_checked_at"`
+	CheckCount    int32              `json:"check_count"`
+	EmptyCount    int32              `json:"empty_count"`
 }
 
 type UrlTag struct {
