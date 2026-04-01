@@ -34,7 +34,7 @@ func (f *RedditFetcher) Fetch(ctx context.Context, rawURL string) ([]Discussion,
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusTooManyRequests {
 		return nil, fmt.Errorf("reddit rate limited")

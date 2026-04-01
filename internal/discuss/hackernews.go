@@ -33,7 +33,7 @@ func (f *HackerNewsFetcher) Fetch(ctx context.Context, rawURL string) ([]Discuss
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("hn algolia returned %d", resp.StatusCode)
