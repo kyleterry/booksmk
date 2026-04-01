@@ -7,15 +7,15 @@ import (
 
 templ ListPage(keys []store.APIKey, atLimit bool) {
 	<div class="page-header">
-		<h1>api keys <span style="color:#444;font-weight:normal;font-size:0.9rem">({ fmt.Sprintf("%d", len(keys)) }/5)</span></h1>
+		<h1>api keys <span class="count">({ fmt.Sprintf("%d", len(keys)) }/5)</span></h1>
 		if atLimit {
-			<span class="btn" style="cursor:default;opacity:0.4">+ new key</span>
+			<span class="btn" style="cursor:default;opacity:0.35">+ new key</span>
 		} else {
 			<a href="/apikey/new" class="btn btn-primary">+ new key</a>
 		}
 	</div>
 	if atLimit {
-		<div class="error" style="border-color:#665c54;background:#2a2520;color:#a89984">limit of 5 keys reached — delete one to create another</div>
+		<div class="error" style="border-color:var(--bg3);background:#252020;color:var(--fg3)">limit of 5 keys reached — delete one to create another</div>
 	}
 	if len(keys) == 0 {
 		<div class="empty">no api keys yet</div>
@@ -28,16 +28,18 @@ templ ListPage(keys []store.APIKey, atLimit bool) {
 templ keyCard(k store.APIKey) {
 	<div class="card">
 		<div class="card-title">{ k.Name }</div>
-		<div class="card-url" style="font-family:monospace">{ k.TokenPrefix }...</div>
-		<div style="font-size:0.75rem;color:var(--fg4);margin-top:0.35rem">
-			if k.ExpiresAt == nil {
-				expires: never
-			} else {
-				expires: { k.ExpiresAt.Format("2006-01-02") }
-			}
-			<span style="margin-left:1rem">created: { k.CreatedAt.Format("2006-01-02") }</span>
+		<div class="card-url" style="font-family:monospace">
+			<span>{ k.TokenPrefix }...</span>
 		</div>
-		<div class="card-actions">
+		<div style="font-size:0.75rem;color:var(--fg4);margin-top:0.1rem">
+			if k.ExpiresAt == nil {
+				<span>expires: never</span>
+			} else {
+				<span>expires: { k.ExpiresAt.Format("2006-01-02") }</span>
+			}
+			<span style="margin-left:1rem;color:var(--bg3)">created: { k.CreatedAt.Format("2006-01-02") }</span>
+		</div>
+		<div class="card-footer">
 			<form method="POST" action={ templ.SafeURL("/apikey/" + k.ID.String()) } style="margin:0">
 				<input type="hidden" name="_method" value="DELETE"/>
 				<button type="submit" class="btn btn-sm btn-danger">revoke</button>
@@ -57,7 +59,7 @@ templ NewPage(errMsg string) {
 		<label for="name">name</label>
 		<input type="text" id="name" name="name" required autofocus placeholder="e.g. cli, home server"/>
 		<label for="expires_in">expires in</label>
-		<select id="expires_in" name="expires_in" style="width:100%;padding:0.5rem 0.75rem;background:var(--bg-h);border:1px solid var(--bg2);border-radius:4px;color:var(--fg);font-family:inherit;font-size:0.9rem;margin-bottom:1rem">
+		<select id="expires_in" name="expires_in">
 			<option value="30d">30 days</option>
 			<option value="90d">90 days</option>
 			<option value="1y">1 year</option>
@@ -74,7 +76,7 @@ templ CreatedPage(k store.APIKey, token string) {
 	<div class="page-header">
 		<h1>api key created</h1>
 	</div>
-	<div class="error" style="border-color:var(--aqua-d);background:#1e2a1e;color:var(--aqua)">
+	<div class="error" style="border-color:var(--aqua-d);background:#1a261a;color:var(--aqua)">
 		copy this token now — it will not be shown again
 	</div>
 	<div class="card" style="margin-bottom:1.5rem">

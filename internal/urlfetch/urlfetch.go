@@ -69,6 +69,11 @@ func Fetch(rawURL string) Meta {
 
 	body, title := fetchPageHTML(rawURL)
 	tags := mergeTags(defaults, extractMetaTags(body))
+	// For GitHub URLs, strip the trailing " · GitHub" suffix that the HTML
+	// title includes so the result is cleaner.
+	if title != "" && defaults != nil && defaults[0] == "github" {
+		title = strings.TrimSuffix(title, " · GitHub")
+	}
 	return Meta{Title: title, Tags: tags}
 }
 

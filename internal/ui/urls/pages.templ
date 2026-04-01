@@ -9,27 +9,44 @@ import (
 
 templ ListPage(urls []store.URL) {
 	<div class="page-header">
-		<h1>urls <span style="color:#444;font-weight:normal;font-size:0.9rem">({ itoa(len(urls)) })</span></h1>
+		<h1>urls <span class="count">({ itoa(len(urls)) })</span></h1>
 		<a href="/url/new" class="btn btn-primary">+ add</a>
 	</div>
 	if len(urls) == 0 {
 		<div class="empty">no bookmarks yet — <a href="/url/new">add one</a></div>
-	}
-	for _, u := range urls {
-		@urlCard(u)
+	} else {
+		<input type="search" class="filter-input" placeholder="filter…" id="url-filter"/>
+		for _, u := range urls {
+			@urlCard(u)
+		}
+		<script>
+			(function(){
+				var f=document.getElementById('url-filter');
+				if(!f) return;
+				f.addEventListener('input',function(){
+					var q=this.value.toLowerCase();
+					document.querySelectorAll('.card[data-q]').forEach(function(c){
+						c.style.display=c.dataset.q.includes(q)?'':'none';
+					});
+				});
+			})();
+		</script>
 	}
 }
 
 templ urlCard(u store.URL) {
-	<div class="card">
+	<div class="card" data-q={ strings.ToLower(u.Title + " " + u.URL + " " + strings.Join(u.Tags, " ")) }>
 		<div class="card-title">
 			if u.Title != "" {
 				<a href={ templ.SafeURL("/url/" + u.ID.String()) }>{ u.Title }</a>
 			} else {
-				<a href={ templ.SafeURL("/url/" + u.ID.String()) }>{ u.URL }</a>
+				<a href={ templ.SafeURL("/url/" + u.ID.String()) }>{ hostname(u.URL) }</a>
 			}
 		</div>
-		<div class="card-url"><a href={ templ.SafeURL(u.URL) } target="_blank" rel="noopener noreferrer">{ u.URL }</a></div>
+		<div class="card-url">
+			<a href={ templ.SafeURL(u.URL) } target="_blank" rel="noopener noreferrer">{ hostname(u.URL) }</a>
+			<span class="card-date">{ u.CreatedAt.Time.Format("Jan 2, 2006") }</span>
+		</div>
 		if u.Description != "" {
 			<div class="card-desc">{ u.Description }</div>
 		}
@@ -40,6 +57,13 @@ templ urlCard(u store.URL) {
 				}
 			</div>
 		}
+		<div class="card-footer">
+			<a href={ templ.SafeURL("/url/" + u.ID.String() + "/edit") } class="btn btn-sm">edit</a>
+			<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String()) } style="margin:0">
+				<input type="hidden" name="_method" value="DELETE"/>
+				<button type="submit" class="btn btn-sm btn-danger">delete</button>
+			</form>
+		</div>
 	</div>
 }
 
@@ -49,7 +73,7 @@ templ DetailPage(u store.URL) {
 			if u.Title != "" {
 				{ u.Title }
 			} else {
-				{ u.URL }
+				{ hostname(u.URL) }
 			}
 		</h1>
 	</div>
@@ -73,13 +97,24 @@ templ DetailPage(u store.URL) {
 		if len(u.Tags) > 0 {
 			<div class="detail-field">
 				<div class="detail-label">tags</div>
-				<div class="tags">
+				<div class="tags" style="margin-top:0.3rem">
 					for _, tag := range u.Tags {
 						<a href={ templ.SafeURL("/url?tag=" + tag) } class="tag">{ tag }</a>
 					}
 				</div>
 			</div>
 		}
+		<div class="detail-field" style="margin-bottom:0">
+			<div class="detail-label">added</div>
+			<div class="detail-value" style="font-size:0.85rem;color:var(--fg3)">{ u.CreatedAt.Time.Format("January 2, 2006") }</div>
+		</div>
+		<div class="card-footer">
+			<a href={ templ.SafeURL("/url/" + u.ID.String() + "/edit") } class="btn btn-sm">edit</a>
+			<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String()) } style="margin:0">
+				<input type="hidden" name="_method" value="DELETE"/>
+				<button type="submit" class="btn btn-sm btn-danger">delete</button>
+			</form>
+		</div>
 	</div>
 	if embed := youtubeEmbedURL(u.URL); embed != "" {
 		<div class="embed-container">
@@ -90,18 +125,11 @@ templ DetailPage(u store.URL) {
 			></iframe>
 		</div>
 	}
-	<div class="card-actions" style="margin-top:1rem">
-		<a href={ templ.SafeURL("/url/" + u.ID.String() + "/edit") } class="btn">edit</a>
-		<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String()) } style="margin:0">
-			<input type="hidden" name="_method" value="DELETE"/>
-			<button type="submit" class="btn btn-danger">delete</button>
-		</form>
-	</div>
 }
 
 templ TagPage(tag string, urls []store.URL) {
 	<div class="page-header">
-		<h1>tag: <span style="color:#8ec07c">{ tag }</span> <span style="color:#444;font-weight:normal;font-size:0.9rem">({ itoa(len(urls)) })</span></h1>
+		<h1>tag: <span style="color:var(--aqua)">{ tag }</span> <span class="count">({ itoa(len(urls)) })</span></h1>
 	</div>
 	if len(urls) == 0 {
 		<div class="empty">no bookmarks with this tag</div>
@@ -119,7 +147,7 @@ templ NewPage(errMsg string) {
 		<div class="error">{ errMsg }</div>
 	}
 	<form method="POST" action="/url">
-		<label for="url">url <span style="color:#f28b82">*</span></label>
+		<label for="url">url <span style="color:var(--red)">*</span></label>
 		<input type="url" id="url" name="url" required autofocus placeholder="https://"/>
 		<label for="title">title</label>
 		<input type="text" id="title" name="title" placeholder="optional"/>
@@ -181,6 +209,14 @@ func youtubeEmbedURL(rawURL string) string {
 		return ""
 	}
 	return "https://www.youtube.com/embed/" + videoID
+}
+
+func hostname(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Hostname() == "" {
+		return rawURL
+	}
+	return u.Hostname()
 }
 
 func itoa(n int) string {

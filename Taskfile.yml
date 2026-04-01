@@ -1,0 +1,83 @@
+version: '3'
+
+vars:
+  CONTAINER: booksmk-postgres
+  PG_PORT: 5432
+  PG_USER: postgres
+  PG_DB: booksmk
+  DATABASE_URL: postgres://{{.PG_USER}}@localhost:{{.PG_PORT}}/{{.PG_DB}}
+
+tasks:
+  db:start:
+    desc: Start the postgres dev container
+    cmds:
+      - |
+        if podman inspect {{.CONTAINER}} &>/dev/null; then
+          podman start {{.CONTAINER}}
+        else
+          podman run -d --name {{.CONTAINER}} \
+            -p {{.PG_PORT}}:5432 \
+            -e POSTGRES_HOST_AUTH_METHOD=trust \
+            -e POSTGRES_USER={{.PG_USER}} \
+            -e POSTGRES_DB={{.PG_DB}} \
+            docker.io/library/postgres:17
+        fi
+
+  db:stop:
+    desc: Stop the postgres dev container
+    cmds:
+      - podman stop {{.CONTAINER}} || true
+
+  db:rm:
+    desc: Stop and remove the postgres dev container (destroys data)
+    cmds:
+      - podman stop {{.CONTAINER}} || true
+      - podman rm {{.CONTAINER}} || true
+
+  db:wait:
+    desc: Wait until postgres is accepting connections
+    cmds:
+      - until podman exec {{.CONTAINER}} pg_isready -U {{.PG_USER}}; do sleep 0.5; done
+
+  db:init:
+    desc: Apply the database schema
+    cmds:
+      - psql {{.DATABASE_URL}} -f sql/schema.sql
+
+  db:reset:
+    desc: Destroy and re-create the database from schema
+    cmds:
+      - task: db:rm
+      - task: db:start
+      - task: db:wait
+      - task: db:init
+
+  dev:
+    desc: Run the dev server with live reload
+    env:
+      BOOKSMK_DATABASE_URL: "{{.DATABASE_URL}}"
+    cmds:
+      - air
+
+  build:
+    desc: Build all binaries
+    cmds:
+      - go build ./cmd/booksmk ./cmd/booksmkctl
+
+  generate:
+    desc: Run all code generators
+    cmds:
+      - sqlc generate
+      - templ generate
+
+  test:
+    desc: Run the test suite
+    env:
+      BOOKSMK_DATABASE_URL: "{{.DATABASE_URL}}"
+    cmds:
+      - go test ./...
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - goimports -w .

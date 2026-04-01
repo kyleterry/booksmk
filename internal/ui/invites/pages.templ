@@ -19,7 +19,7 @@ templ ListPage(codes []store.InviteCode) {
 
 templ inviteCard(c store.InviteCode) {
 	<div class="card">
-		<div class="card-title" style="font-family:monospace;font-size:0.85rem">{ c.Code }</div>
+		<div class="card-title" style="font-family:monospace;font-size:0.85rem;font-weight:normal;color:var(--fg2)">{ c.Code }</div>
 		<div style="font-size:0.75rem;color:var(--fg4);margin-top:0.35rem">
 			if c.UsedBy != nil {
 				<span style="color:var(--aqua)">used</span>
@@ -27,15 +27,15 @@ templ inviteCard(c store.InviteCode) {
 			} else {
 				<span style="color:var(--yellow)">available</span>
 			}
-			<span style="margin-left:1rem">created: { c.CreatedAt.Format("2006-01-02") }</span>
+			<span style="margin-left:1rem;color:var(--bg3)">created: { c.CreatedAt.Format("2006-01-02") }</span>
 		</div>
+		if c.UsedBy == nil {
+			<div class="card-footer">
+				<form method="POST" action={ templ.SafeURL("/invite/" + c.ID.String()) } style="margin:0">
+					<input type="hidden" name="_method" value="DELETE"/>
+					<button type="submit" class="btn btn-sm btn-danger">delete</button>
+				</form>
+			</div>
+		}
 	</div>
-	if c.UsedBy == nil {
-		<div class="card-actions">
-			<form method="POST" action={ templ.SafeURL("/invite/" + c.ID.String()) } style="margin:0">
-				<input type="hidden" name="_method" value="DELETE"/>
-				<button type="submit" class="btn btn-sm btn-danger">delete</button>
-			</form>
-		</div>
-	}
 }

@@ -24,12 +24,11 @@
 
             air
             jq
+            go-task
           ];
 
           shellHook = ''
-            export PGDATA="$PWD/.pgdata"
-            export PGHOST="$PWD/.pgrun"
-            export BOOKSMK_DATABASE_URL="postgres:///booksmk?host=$PGHOST"
+            export BOOKSMK_DATABASE_URL="postgres://postgres@localhost:5432/booksmk"
           '';
         };
       }
