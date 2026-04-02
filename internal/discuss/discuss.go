@@ -47,7 +47,6 @@ func New(st discussStore, logger *slog.Logger) *Worker {
 		fetchers: []Fetcher{
 			&HackerNewsFetcher{},
 			&RedditFetcher{},
-			&LobstersFetcher{},
 		},
 	}
 }

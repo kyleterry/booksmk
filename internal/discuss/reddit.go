@@ -17,12 +17,7 @@ type RedditFetcher struct{}
 func (f *RedditFetcher) Name() string { return "reddit" }
 
 func (f *RedditFetcher) Fetch(ctx context.Context, rawURL string) ([]Discussion, error) {
-	// Reddit's url: operator matches domain+path; strip the scheme.
-	stripped := rawURL
-	if u, err := url.Parse(rawURL); err == nil {
-		stripped = u.Host + u.Path
-	}
-	apiURL := "https://www.reddit.com/search.json?sort=top&type=link&limit=10&q=url:" + url.QueryEscape(stripped)
+	apiURL := "https://www.reddit.com/api/info.json?url=" + url.QueryEscape(rawURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {

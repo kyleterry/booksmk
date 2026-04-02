@@ -12,12 +12,30 @@ import (
 
 var lobstersClient = &http.Client{Timeout: 10 * time.Second}
 
+// lobstersSlot is a size-1 channel used as a rate limit token.
+// A goroutine returns the token after 1 second, capping throughput to 1 req/s.
+var lobstersSlot = func() chan struct{} {
+	ch := make(chan struct{}, 1)
+	ch <- struct{}{}
+	return ch
+}()
+
 // LobstersFetcher searches Lobste.rs via its search RSS feed.
 type LobstersFetcher struct{}
 
 func (f *LobstersFetcher) Name() string { return "lobsters" }
 
 func (f *LobstersFetcher) Fetch(ctx context.Context, rawURL string) ([]Discussion, error) {
+	select {
+	case <-lobstersSlot:
+		go func() {
+			time.Sleep(time.Second)
+			lobstersSlot <- struct{}{}
+		}()
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
 	feedURL := "https://lobste.rs/search.rss?order=relevance&what=stories&q=" + url.QueryEscape(rawURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
