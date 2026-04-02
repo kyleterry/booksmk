@@ -61,7 +61,7 @@ func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 	if !ok {
 		return nil
 	}
-	return &ui.NavUser{Email: u.Email, IsAdmin: u.IsAdmin}
+	return &ui.NavUser{ID: u.ID.String(), Email: u.Email, IsAdmin: u.IsAdmin}
 }
 
 func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +105,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, r, ui.Base("api key created", h.navUser(r), apikeypages.CreatedPage(result.APIKey, result.Token)))
+	h.render(w, r, ui.Base("api key created", h.navUser(r), apikeypages.CreatedPage(result.APIKey, result.Token, u.ID.String())))
 }
 
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +122,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/apikey/", http.StatusSeeOther)
+	http.Redirect(w, r, "/user/"+u.ID.String(), http.StatusSeeOther)
 }
 
 // parseExpiresIn converts a duration string ("30d", "90d", "1y", "") to a *time.Time.

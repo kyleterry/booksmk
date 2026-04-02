@@ -3,6 +3,7 @@ package discuss
 import (
 	"context"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 
@@ -41,13 +42,21 @@ type Worker struct {
 }
 
 func New(st discussStore, logger *slog.Logger) *Worker {
+	fetchers := []Fetcher{
+		&HackerNewsFetcher{},
+	}
+
+	redditID := os.Getenv("REDDIT_CLIENT_ID")
+	redditSecret := os.Getenv("REDDIT_CLIENT_SECRET")
+	if redditID != "" && redditSecret != "" {
+		fetchers = append(fetchers, &RedditFetcher{clientID: redditID, clientSecret: redditSecret})
+		logger.Info("reddit fetcher enabled")
+	}
+
 	return &Worker{
-		store:  st,
-		logger: logger,
-		fetchers: []Fetcher{
-			&HackerNewsFetcher{},
-			&RedditFetcher{},
-		},
+		store:    st,
+		logger:   logger,
+		fetchers: fetchers,
 	}
 }
 

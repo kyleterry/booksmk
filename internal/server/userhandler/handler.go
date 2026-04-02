@@ -26,6 +26,7 @@ type userStore interface {
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetInviteCodeByCode(ctx context.Context, code string) (store.InviteCode, error)
 	UseInviteCode(ctx context.Context, id, usedBy uuid.UUID) error
+	ListAPIKeys(ctx context.Context, userID uuid.UUID) ([]store.APIKey, error)
 }
 
 // Handler handles all requests under the /user prefix.
@@ -56,6 +57,8 @@ func (h *Handler) registerRoutes() {
 	h.mux.HandleFunc("GET /user/{id}/edit", h.handleEdit)
 	h.mux.HandleFunc("POST /user/{id}", h.handleUpdate)
 	h.mux.HandleFunc("DELETE /user/{id}", h.handleDelete)
+	h.mux.HandleFunc("GET /user/{id}/change-password", h.handleChangePasswordForm)
+	h.mux.HandleFunc("POST /user/{id}/change-password", h.handleChangePassword)
 }
 
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Component) {
@@ -69,7 +72,7 @@ func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 	if !ok {
 		return nil
 	}
-	return &ui.NavUser{Email: u.Email, IsAdmin: u.IsAdmin}
+	return &ui.NavUser{ID: u.ID.String(), Email: u.Email, IsAdmin: u.IsAdmin}
 }
 
 func (h *Handler) requireInviteCode(ctx context.Context) bool {
@@ -159,7 +162,14 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, r, ui.Base("account", h.navUser(r), userpages.UserDetailPage(user)))
+	keys, err := h.store.ListAPIKeys(r.Context(), id)
+	if err != nil {
+		h.logger.Error("failed to list api keys", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	h.render(w, r, ui.Base("settings", h.navUser(r), userpages.UserDetailPage(user, keys)))
 }
 
 func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
@@ -211,20 +221,6 @@ func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if password := r.FormValue("password"); password != "" {
-		digest, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		if err != nil {
-			h.logger.Error("failed to hash password", "error", err)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
-			return
-		}
-		if _, err := h.store.UpdateUserPassword(r.Context(), id, string(digest)); err != nil {
-			h.logger.Error("failed to update password", "id", id, "error", err)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
-			return
-		}
-	}
-
 	http.Redirect(w, r, "/user/"+id.String(), http.StatusSeeOther)
 }
 
@@ -242,6 +238,79 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/user", http.StatusSeeOther)
+}
+
+func (h *Handler) handleChangePasswordForm(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.store.GetUser(r.Context(), id)
+	if errors.Is(err, store.ErrNotFound) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		h.logger.Error("failed to get user", "id", id, "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	h.render(w, r, ui.Base("change password", h.navUser(r), userpages.ChangePasswordPage(user, "")))
+}
+
+func (h *Handler) handleChangePassword(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.store.GetUser(r.Context(), id)
+	if errors.Is(err, store.ErrNotFound) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		h.logger.Error("failed to get user", "id", id, "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	currentPassword := r.FormValue("current_password")
+	newPassword := r.FormValue("password")
+
+	if currentPassword == "" || newPassword == "" {
+		h.render(w, r, ui.Base("change password", h.navUser(r), userpages.ChangePasswordPage(user, "current and new password are required")))
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordDigest), []byte(currentPassword)); err != nil {
+		h.render(w, r, ui.Base("change password", h.navUser(r), userpages.ChangePasswordPage(user, "current password is incorrect")))
+		return
+	}
+
+	digest, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		h.logger.Error("failed to hash password", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := h.store.UpdateUserPassword(r.Context(), id, string(digest)); err != nil {
+		h.logger.Error("failed to update password", "id", id, "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/user/"+id.String(), http.StatusSeeOther)
 }
 
 func pathUUID(r *http.Request) (uuid.UUID, error) {

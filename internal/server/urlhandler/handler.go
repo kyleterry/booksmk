@@ -114,7 +114,7 @@ func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 	if !ok {
 		return nil
 	}
-	return &ui.NavUser{Email: u.Email, IsAdmin: u.IsAdmin}
+	return &ui.NavUser{ID: u.ID.String(), Email: u.Email, IsAdmin: u.IsAdmin}
 }
 
 func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
@@ -239,7 +239,7 @@ func pathUUID(r *http.Request) (uuid.UUID, error) {
 	return uuid.Parse(r.PathValue("id"))
 }
 
-// parseTags splits a comma-separated tag string into trimmed, non-empty names.
+// parseTags splits a comma-separated tag string into slugified, non-empty names.
 func parseTags(raw string) []string {
 	if raw == "" {
 		return []string{}
@@ -247,9 +247,30 @@ func parseTags(raw string) []string {
 	parts := strings.Split(raw, ",")
 	tags := make([]string, 0, len(parts))
 	for _, p := range parts {
-		if t := strings.TrimSpace(p); t != "" {
+		if t := toSlug(strings.TrimSpace(p)); t != "" {
 			tags = append(tags, t)
 		}
 	}
 	return tags
+}
+
+// toSlug lowercases s and converts it to a URL-safe slug, replacing spaces and
+// non-alphanumeric characters with hyphens and collapsing consecutive hyphens.
+func toSlug(s string) string {
+	s = strings.ToLower(s)
+	var b strings.Builder
+	prevHyphen := false
+	for _, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z' || r >= '0' && r <= '9':
+			b.WriteRune(r)
+			prevHyphen = false
+		case r == ' ' || r == '-' || r == '_':
+			if !prevHyphen {
+				b.WriteRune('-')
+				prevHyphen = true
+			}
+		}
+	}
+	return strings.Trim(b.String(), "-")
 }

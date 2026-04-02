@@ -16,8 +16,6 @@ import (
 	"github.com/kyleterry/booksmk/internal/store"
 )
 
-// ---- fixtures ---------------------------------------------------------------
-
 var (
 	fixtureUserID = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	fixtureUser   = store.User{ID: fixtureUserID, Email: "test@example.com"}
@@ -30,8 +28,6 @@ var (
 		Tags:  []string{"go", "test"},
 	}
 )
-
-// ---- mock store -------------------------------------------------------------
 
 type mockURLStore struct {
 	GetURLFn                func(context.Context, uuid.UUID, uuid.UUID) (store.URL, error)
@@ -92,8 +88,6 @@ func (m *mockURLStore) ListDiscussionsForURL(ctx context.Context, urlID uuid.UUI
 	return nil, nil
 }
 
-// ---- helpers ----------------------------------------------------------------
-
 func newHandler(ms *mockURLStore) *Handler {
 	return New(ms, slog.New(slog.NewTextHandler(io.Discard, nil)))
 }
@@ -139,8 +133,6 @@ func assertRedirect(t *testing.T, w *httptest.ResponseRecorder, loc string) {
 		t.Errorf("Location = %q, want %q", got, loc)
 	}
 }
-
-// ---- tests ------------------------------------------------------------------
 
 func TestHandleList(t *testing.T) {
 	tests := []struct {
@@ -441,6 +433,12 @@ func TestParseTags(t *testing.T) {
 		{"trims whitespace", "  go  ,  tools  ", []string{"go", "tools"}},
 		{"skips empty parts", "go,,tools", []string{"go", "tools"}},
 		{"only commas", ",,,", []string{}},
+		{"uppercased", "Go, Tools", []string{"go", "tools"}},
+		{"spaces become hyphens", "web development, open source", []string{"web-development", "open-source"}},
+		{"underscores become hyphens", "my_tag", []string{"my-tag"}},
+		{"collapses consecutive separators", "foo  bar", []string{"foo-bar"}},
+		{"strips special characters", "c++, .net", []string{"c", "net"}},
+		{"mixed case with spaces", "My Favorite Tag", []string{"my-favorite-tag"}},
 	}
 
 	for _, tt := range tests {

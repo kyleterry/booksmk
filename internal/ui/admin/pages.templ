@@ -7,9 +7,77 @@ import (
 	"github.com/kyleterry/booksmk/internal/store"
 )
 
-templ AdminPage(runs []store.BatchRunSummary, nextAt time.Time, codes []store.InviteCode) {
+templ UsersPage(users []store.User) {
 	<div class="page-header">
-		<h1>discussion runs <span class="count">({ fmt.Sprintf("%d", len(runs)) })</span></h1>
+		<h1>users <span class="count">({ fmt.Sprintf("%d", len(users)) })</span></h1>
+	</div>
+	if len(users) == 0 {
+		<div class="empty">no users</div>
+	} else {
+		<div style="overflow-x:auto">
+			<table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+				<thead>
+					<tr style="border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left">
+						<th style="padding:0.4rem 0.75rem 0.4rem 0;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem">email</th>
+						<th style="padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem">role</th>
+						<th style="padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem">joined</th>
+						<th style="padding:0.4rem 0 0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem"></th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, u := range users {
+						<tr style="border-bottom:1px solid var(--bg1)">
+							<td style="padding:0.55rem 0.75rem 0.55rem 0;color:var(--fg2)">{ u.Email }</td>
+							<td style="padding:0.55rem 0.75rem;color:var(--fg4)">
+								if u.IsAdmin {
+									<span style="color:var(--accent)">admin</span>
+								} else {
+									<span>user</span>
+								}
+							</td>
+							<td style="padding:0.55rem 0.75rem;color:var(--fg4)">{ u.CreatedAt.Format("2006-01-02") }</td>
+							<td style="padding:0.55rem 0 0.55rem 0.75rem;text-align:right">
+								<a href={ templ.SafeURL("/admin/users/" + u.ID.String() + "/reset-password") } class="btn btn-sm">reset password</a>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}
+
+templ ResetPasswordPage(user store.User, errMsg string) {
+	<div class="page-header">
+		<h1>reset password</h1>
+	</div>
+	<div class="card" style="max-width:360px">
+		<div style="font-size:0.85rem;color:var(--fg3);margin-bottom:1.25rem">
+			setting a new password for <strong style="color:var(--fg1)">{ user.Email }</strong>
+		</div>
+		if errMsg != "" {
+			<div class="error">{ errMsg }</div>
+		}
+		<form method="POST" action={ templ.SafeURL("/admin/users/" + user.ID.String() + "/reset-password") }>
+			<label for="password">new password</label>
+			<input type="password" id="password" name="password" required autofocus/>
+			<div class="form-actions">
+				<button type="submit" class="btn btn-primary">set password</button>
+				<a href="/admin/users" class="btn">cancel</a>
+			</div>
+		</form>
+	</div>
+}
+
+templ AdminPage(runs []store.BatchRunSummary, nextAt time.Time, codes []store.InviteCode) {
+	<div class="page-header" style="margin-bottom:2rem">
+		<h1>admin</h1>
+		<div style="display:flex;gap:0.75rem">
+			<a href="/admin/users" class="btn btn-sm">users</a>
+		</div>
+	</div>
+	<div class="page-header">
+		<h2>discussion runs <span class="count">({ fmt.Sprintf("%d", len(runs)) })</span></h2>
 		<div style="display:flex;align-items:center;gap:1rem">
 			<div style="font-size:0.72rem;color:var(--fg4)">
 				<span>next run: </span>@nextRunLabel(nextAt)

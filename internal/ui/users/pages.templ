@@ -1,6 +1,10 @@
 package users
 
-import "github.com/kyleterry/booksmk/internal/store"
+import (
+	"fmt"
+
+	"github.com/kyleterry/booksmk/internal/store"
+)
 
 templ RegisterPage(errMsg string, requireInvite bool) {
 	<div style="max-width:360px;margin:4rem auto">
@@ -25,17 +29,56 @@ templ RegisterPage(errMsg string, requireInvite bool) {
 	</div>
 }
 
-templ UserDetailPage(user store.User) {
+templ UserDetailPage(user store.User, keys []store.APIKey) {
 	<div class="page-header">
-		<h1>account</h1>
-		<a href={ templ.SafeURL("/user/" + user.ID.String() + "/edit") } class="btn">edit</a>
+		<h1>settings</h1>
 	</div>
-	<div class="card">
+	<div class="card" style="margin-bottom:2rem">
 		<div class="detail-field">
 			<div class="detail-label">email</div>
 			<div class="detail-value">{ user.Email }</div>
 		</div>
+		<div class="card-footer">
+			<a href={ templ.SafeURL("/user/" + user.ID.String() + "/edit") } class="btn btn-sm">edit email</a>
+			<a href={ templ.SafeURL("/user/" + user.ID.String() + "/change-password") } class="btn btn-sm" style="margin-left:0.5rem">change password</a>
+		</div>
 	</div>
+	<div class="page-header">
+		<h2>api keys <span class="count">({ fmt.Sprintf("%d", len(keys)) }/5)</span></h2>
+		if len(keys) >= 5 {
+			<span class="btn btn-sm" style="cursor:default;opacity:0.35">+ new key</span>
+		} else {
+			<a href="/apikey/new" class="btn btn-sm btn-primary">+ new key</a>
+		}
+	</div>
+	if len(keys) >= 5 {
+		<div class="error" style="border-color:var(--bg3);background:#252020;color:var(--fg3);margin-bottom:1rem">limit of 5 keys reached — delete one to create another</div>
+	}
+	if len(keys) == 0 {
+		<div class="empty">no api keys yet</div>
+	}
+	for _, k := range keys {
+		<div class="card">
+			<div class="card-title">{ k.Name }</div>
+			<div class="card-url" style="font-family:monospace">
+				<span>{ k.TokenPrefix }...</span>
+			</div>
+			<div style="font-size:0.75rem;color:var(--fg4);margin-top:0.1rem">
+				if k.ExpiresAt == nil {
+					<span>expires: never</span>
+				} else {
+					<span>expires: { k.ExpiresAt.Format("2006-01-02") }</span>
+				}
+				<span style="margin-left:1rem;color:var(--bg3)">created: { k.CreatedAt.Format("2006-01-02") }</span>
+			</div>
+			<div class="card-footer">
+				<form method="POST" action={ templ.SafeURL("/apikey/" + k.ID.String()) } style="margin:0">
+					<input type="hidden" name="_method" value="DELETE"/>
+					<button type="submit" class="btn btn-sm btn-danger">revoke</button>
+				</form>
+			</div>
+		</div>
+	}
 }
 
 templ UserEditPage(user store.User, errMsg string) {
@@ -48,11 +91,27 @@ templ UserEditPage(user store.User, errMsg string) {
 	<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String()) }>
 		<label for="email">email</label>
 		<input type="email" id="email" name="email" value={ user.Email } required/>
-		<label for="password">new password</label>
-		<input type="password" id="password" name="password"/>
-		<p class="form-hint">leave blank to keep current password</p>
 		<div class="form-actions">
 			<button type="submit" class="btn btn-primary">save</button>
+			<a href={ templ.SafeURL("/user/" + user.ID.String()) } class="btn">cancel</a>
+		</div>
+	</form>
+}
+
+templ ChangePasswordPage(user store.User, errMsg string) {
+	<div class="page-header">
+		<h1>change password</h1>
+	</div>
+	if errMsg != "" {
+		<div class="error">{ errMsg }</div>
+	}
+	<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/change-password") }>
+		<label for="current_password">current password</label>
+		<input type="password" id="current_password" name="current_password" required autofocus/>
+		<label for="password">new password</label>
+		<input type="password" id="password" name="password" required/>
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">change password</button>
 			<a href={ templ.SafeURL("/user/" + user.ID.String()) } class="btn">cancel</a>
 		</div>
 	</form>

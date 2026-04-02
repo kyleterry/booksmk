@@ -11,20 +11,15 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/kyleterry/booksmk/internal/reqctx"
 	"github.com/kyleterry/booksmk/internal/store"
 )
 
-// ---- fixtures ---------------------------------------------------------------
-
 var (
 	fixtureUserID = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	fixtureUser   = store.User{ID: fixtureUserID, Email: "test@example.com"}
 )
-
-// ---- mock store -------------------------------------------------------------
 
 type mockUserStore struct {
 	CountUsersFn          func(context.Context) (int64, error)
@@ -36,6 +31,7 @@ type mockUserStore struct {
 	DeleteUserFn          func(context.Context, uuid.UUID) error
 	GetInviteCodeByCodeFn func(context.Context, string) (store.InviteCode, error)
 	UseInviteCodeFn       func(context.Context, uuid.UUID, uuid.UUID) error
+	ListAPIKeysFn         func(context.Context, uuid.UUID) ([]store.APIKey, error)
 }
 
 func (m *mockUserStore) CountUsers(ctx context.Context) (int64, error) {
@@ -101,7 +97,12 @@ func (m *mockUserStore) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// ---- helpers ----------------------------------------------------------------
+func (m *mockUserStore) ListAPIKeys(ctx context.Context, userID uuid.UUID) ([]store.APIKey, error) {
+	if m.ListAPIKeysFn != nil {
+		return m.ListAPIKeysFn(ctx, userID)
+	}
+	return nil, nil
+}
 
 func newHandler(ms *mockUserStore) *Handler {
 	return New(ms, slog.New(slog.NewTextHandler(io.Discard, nil)))
@@ -152,8 +153,6 @@ func assertRedirect(t *testing.T, w *httptest.ResponseRecorder, loc string) {
 		t.Errorf("Location = %q, want %q", got, loc)
 	}
 }
-
-// ---- tests ------------------------------------------------------------------
 
 func TestHandleNew(t *testing.T) {
 	w := serve(t, newHandler(&mockUserStore{}), req(http.MethodGet, "/user/new", ""))
@@ -271,10 +270,6 @@ func TestHandleGet(t *testing.T) {
 }
 
 func TestHandleUpdate(t *testing.T) {
-	// pre-generate a bcrypt digest so UpdateUserPassword mock can verify it's called
-	digest, _ := bcrypt.GenerateFromPassword([]byte("newpassword"), bcrypt.MinCost)
-	_ = digest
-
 	tests := []struct {
 		name       string
 		body       string
@@ -289,20 +284,6 @@ func TestHandleUpdate(t *testing.T) {
 			setup: func(m *mockUserStore) {
 				m.UpdateUserFn = func(_ context.Context, _ uuid.UUID, email string) (store.User, error) {
 					return store.User{ID: fixtureUserID, Email: email}, nil
-				}
-			},
-			wantStatus: http.StatusSeeOther,
-			wantLoc:    "/user/" + fixtureUserID.String(),
-		},
-		{
-			name: "email + password update redirects to profile",
-			body: "email=updated%40example.com&password=newpassword",
-			setup: func(m *mockUserStore) {
-				m.UpdateUserFn = func(_ context.Context, _ uuid.UUID, email string) (store.User, error) {
-					return store.User{ID: fixtureUserID, Email: email}, nil
-				}
-				m.UpdateUserPasswordFn = func(_ context.Context, _ uuid.UUID, _ string) (store.User, error) {
-					return fixtureUser, nil
 				}
 			},
 			wantStatus: http.StatusSeeOther,

@@ -1,6 +1,7 @@
 package ui
 
 type NavUser struct {
+	ID      string
 	Email   string
 	IsAdmin bool
 }
@@ -351,7 +352,7 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					<details class="nav-user">
 						<summary>{ user.Email }</summary>
 						<div class="nav-dropdown">
-							<a href="/apikey/">api keys</a>
+							<a href={ templ.SafeURL("/user/" + user.ID) }>settings</a>
 							if user.IsAdmin {
 								<a href="/admin/">admin</a>
 							}

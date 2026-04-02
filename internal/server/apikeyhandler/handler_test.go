@@ -17,8 +17,6 @@ import (
 	"github.com/kyleterry/booksmk/internal/store"
 )
 
-// ---- fixtures ---------------------------------------------------------------
-
 var (
 	fixtureUserID = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	fixtureUser   = store.User{ID: fixtureUserID, Email: "test@example.com"}
@@ -32,8 +30,6 @@ var (
 		CreatedAt:   time.Now(),
 	}
 )
-
-// ---- mock store -------------------------------------------------------------
 
 type mockAPIKeyStore struct {
 	CreateAPIKeyFn func(context.Context, uuid.UUID, string, *time.Time) (store.NewAPIKeyResult, error)
@@ -61,8 +57,6 @@ func (m *mockAPIKeyStore) DeleteAPIKey(ctx context.Context, id, userID uuid.UUID
 	}
 	return nil
 }
-
-// ---- helpers ----------------------------------------------------------------
 
 func newHandler(ms *mockAPIKeyStore) *Handler {
 	return New(ms, slog.New(slog.NewTextHandler(io.Discard, nil)))
@@ -108,8 +102,6 @@ func assertRedirect(t *testing.T, w *httptest.ResponseRecorder, loc string) {
 		t.Errorf("Location = %q, want %q", got, loc)
 	}
 }
-
-// ---- tests ------------------------------------------------------------------
 
 func TestHandleList(t *testing.T) {
 	tests := []struct {
@@ -260,13 +252,13 @@ func TestHandleDelete(t *testing.T) {
 		wantLoc    string
 	}{
 		{
-			name:  "success redirects to list",
+			name:  "success redirects to settings",
 			keyID: fixtureKeyID.String(),
 			setup: func(m *mockAPIKeyStore) {
 				m.DeleteAPIKeyFn = func(_ context.Context, _, _ uuid.UUID) error { return nil }
 			},
 			wantStatus: http.StatusSeeOther,
-			wantLoc:    "/apikey/",
+			wantLoc:    "/user/" + fixtureUserID.String(),
 		},
 		{
 			name:       "invalid uuid returns 400",
