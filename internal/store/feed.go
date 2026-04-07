@@ -275,6 +275,38 @@ func (s *Store) ListTimelineItems(ctx context.Context, userID uuid.UUID, limit, 
 	return items, nil
 }
 
+// GetTimelineItem returns a single timeline item scoped to the user.
+func (s *Store) GetTimelineItem(ctx context.Context, userID, itemID uuid.UUID) (TimelineItem, error) {
+	row, err := s.queries.GetTimelineItem(ctx, sqlstore.GetTimelineItemParams{UserID: userID, ID: itemID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return TimelineItem{}, ErrNotFound
+	}
+	if err != nil {
+		return TimelineItem{}, err
+	}
+
+	isRead, _ := row.IsRead.(bool)
+	item := TimelineItem{
+		ID:           row.ID,
+		FeedID:       row.FeedID,
+		FeedTitle:    row.FeedTitle,
+		FeedImageURL: row.FeedImageUrl,
+		GUID:         row.Guid,
+		URL:          row.Url,
+		Title:        row.ItemTitle,
+		Summary:      row.Summary,
+		Author:       row.Author,
+		CreatedAt:    row.CreatedAt.Time,
+		IsRead:       isRead,
+	}
+	if row.PublishedAt.Valid {
+		t := row.PublishedAt.Time
+		item.PublishedAt = &t
+	}
+
+	return item, nil
+}
+
 // MarkItemRead records that the user has read the item.
 func (s *Store) MarkItemRead(ctx context.Context, userID, itemID uuid.UUID) error {
 	return s.queries.MarkItemRead(ctx, sqlstore.MarkItemReadParams{UserID: userID, ItemID: itemID})
@@ -283,6 +315,16 @@ func (s *Store) MarkItemRead(ctx context.Context, userID, itemID uuid.UUID) erro
 // MarkItemUnread removes the user's read record for the item.
 func (s *Store) MarkItemUnread(ctx context.Context, userID, itemID uuid.UUID) error {
 	return s.queries.MarkItemUnread(ctx, sqlstore.MarkItemUnreadParams{UserID: userID, ItemID: itemID})
+}
+
+// MarkAllItemsRead marks every item in all of the user's feeds as read.
+func (s *Store) MarkAllItemsRead(ctx context.Context, userID uuid.UUID) error {
+	return s.queries.MarkAllItemsRead(ctx, userID)
+}
+
+// MarkFeedItemsRead marks every item in a specific feed as read for the user.
+func (s *Store) MarkFeedItemsRead(ctx context.Context, userID, feedID uuid.UUID) error {
+	return s.queries.MarkFeedItemsRead(ctx, sqlstore.MarkFeedItemsReadParams{UserID: userID, FeedID: feedID})
 }
 
 // ListDueFeedPollJobs returns feeds whose poll is scheduled at or before now.

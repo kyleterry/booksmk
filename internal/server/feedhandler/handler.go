@@ -30,8 +30,11 @@ type feedStore interface {
 	UpdateFeed(ctx context.Context, feedID, userID uuid.UUID, customName string, tags []string) (store.Feed, error)
 	ListFeedItems(ctx context.Context, feedID, userID uuid.UUID) ([]store.FeedItem, error)
 	ListTimelineItems(ctx context.Context, userID uuid.UUID, limit, offset int) ([]store.TimelineItem, error)
+	GetTimelineItem(ctx context.Context, userID, itemID uuid.UUID) (store.TimelineItem, error)
 	MarkItemRead(ctx context.Context, userID, itemID uuid.UUID) error
 	MarkItemUnread(ctx context.Context, userID, itemID uuid.UUID) error
+	MarkAllItemsRead(ctx context.Context, userID uuid.UUID) error
+	MarkFeedItemsRead(ctx context.Context, userID, feedID uuid.UUID) error
 }
 
 type contextKey int
@@ -78,8 +81,10 @@ func (h *Handler) registerRoutes() {
 	h.mux.Handle("GET /feed/{id}/edit", h.requireFeedOwner(http.HandlerFunc(h.handleEdit)))
 	h.mux.Handle("POST /feed/{id}", h.requireFeedOwner(http.HandlerFunc(h.handleUpdate)))
 	h.mux.Handle("DELETE /feed/{id}", h.requireFeedOwner(http.HandlerFunc(h.handleDelete)))
+	h.mux.HandleFunc("POST /feed/items/read-all", h.handleMarkAllRead)
 	h.mux.HandleFunc("POST /feed/items/{itemID}/read", h.handleMarkRead)
 	h.mux.HandleFunc("DELETE /feed/items/{itemID}/read", h.handleMarkUnread)
+	h.mux.Handle("POST /feed/{id}/read-all", h.requireFeedOwner(http.HandlerFunc(h.handleMarkFeedAllRead)))
 }
 
 func (h *Handler) requireFeedOwner(next http.Handler) http.Handler {
@@ -292,6 +297,11 @@ func (h *Handler) handleMarkRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Header.Get("HX-Request") == "true" {
+		h.renderItemFragment(w, r, user.ID, itemID)
+		return
+	}
+
 	http.Redirect(w, r, safeReferer(r), http.StatusSeeOther)
 }
 
@@ -314,7 +324,71 @@ func (h *Handler) handleMarkUnread(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Header.Get("HX-Request") == "true" {
+		h.renderItemFragment(w, r, user.ID, itemID)
+		return
+	}
+
 	http.Redirect(w, r, safeReferer(r), http.StatusSeeOther)
+}
+
+func (h *Handler) handleMarkAllRead(w http.ResponseWriter, r *http.Request) {
+	user, ok := reqctx.User(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := h.store.MarkAllItemsRead(r.Context(), user.ID); err != nil {
+		h.logger.Error("failed to mark all items read", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", "/feed")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	http.Redirect(w, r, "/feed", http.StatusSeeOther)
+}
+
+func (h *Handler) handleMarkFeedAllRead(w http.ResponseWriter, r *http.Request) {
+	user, ok := reqctx.User(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	f := feedFromContext(r.Context())
+
+	if err := h.store.MarkFeedItemsRead(r.Context(), user.ID, f.ID); err != nil {
+		h.logger.Error("failed to mark feed items read", "feed_id", f.ID, "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	redirect := "/feed/" + f.ID.String()
+
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", redirect)
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
+}
+
+func (h *Handler) renderItemFragment(w http.ResponseWriter, r *http.Request, userID, itemID uuid.UUID) {
+	item, err := h.store.GetTimelineItem(r.Context(), userID, itemID)
+	if err != nil {
+		h.logger.Error("failed to get timeline item for fragment", "item_id", itemID, "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	h.render(w, r, feedpages.TimelineItemCard(item))
 }
 
 // safeReferer returns the request referer if it is a relative path, otherwise /feed.

@@ -97,6 +97,19 @@ order by fi.published_at desc nulls last
 limit $2
 offset $3;
 
+-- name: GetTimelineItem :one
+select fi.id, fi.feed_id,
+       coalesce(nullif(uf.custom_name, ''), f.title) as feed_title,
+       f.image_url as feed_image_url,
+       fi.guid, fi.url, fi.title as item_title,
+       fi.summary, fi.author, fi.published_at, fi.created_at,
+       (fir.user_id is not null) as is_read
+from feed_items fi
+join feeds f on f.id = fi.feed_id
+join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
+left join feed_item_reads fir on fir.item_id = fi.id and fir.user_id = $1
+where fi.id = $2;
+
 -- name: MarkItemRead :exec
 insert into feed_item_reads (user_id, item_id)
 values ($1, $2)
@@ -104,6 +117,21 @@ on conflict do nothing;
 
 -- name: MarkItemUnread :exec
 delete from feed_item_reads where user_id = $1 and item_id = $2;
+
+-- name: MarkAllItemsRead :exec
+insert into feed_item_reads (user_id, item_id)
+select $1, fi.id
+from feed_items fi
+join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
+on conflict do nothing;
+
+-- name: MarkFeedItemsRead :exec
+insert into feed_item_reads (user_id, item_id)
+select $1, fi.id
+from feed_items fi
+join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
+where fi.feed_id = $2
+on conflict do nothing;
 
 -- name: EnqueueFeedPollJob :exec
 insert into feed_poll_jobs (feed_id)

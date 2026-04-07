@@ -53,7 +53,7 @@ func New(cfg Config) (*Server, error) {
 		urlHandler:       urlhandler.New(st, st, cfg.Logger),
 		userHandler:      userhandler.New(st, cfg.Logger),
 		apiKeyHandler:    apikeyhandler.New(st, cfg.Logger),
-		apiHandler:       apihandler.New(st, cfg.Logger),
+		apiHandler:       apihandler.New(st, st, cfg.Logger),
 		adminHandler:     adminhandler.New(st, cfg.Logger),
 		feedHandler:      feedhandler.New(st, cfg.Logger),
 		discussionWorker: discuss.New(st, cfg.Logger),
