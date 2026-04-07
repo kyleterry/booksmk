@@ -10,27 +10,33 @@ import (
 	"time"
 )
 
-var lobstersClient = &http.Client{Timeout: 10 * time.Second}
-
-// lobstersSlot is a size-1 channel used as a rate limit token.
-// A goroutine returns the token after 1 second, capping throughput to 1 req/s.
-var lobstersSlot = func() chan struct{} {
-	ch := make(chan struct{}, 1)
-	ch <- struct{}{}
-	return ch
-}()
-
 // LobstersFetcher searches Lobste.rs via its search RSS feed.
-type LobstersFetcher struct{}
+type LobstersFetcher struct {
+	client *http.Client
+	// slot is a size-1 channel used as a rate limit token.
+	// A goroutine returns the token after 1 second, capping throughput to 1 req/s.
+	slot chan struct{}
+}
+
+// NewLobstersFetcher returns a new LobstersFetcher.
+func NewLobstersFetcher() *LobstersFetcher {
+	slot := make(chan struct{}, 1)
+	slot <- struct{}{}
+
+	return &LobstersFetcher{
+		client: &http.Client{Timeout: 10 * time.Second},
+		slot:   slot,
+	}
+}
 
 func (f *LobstersFetcher) Name() string { return "lobsters" }
 
 func (f *LobstersFetcher) Fetch(ctx context.Context, rawURL string) ([]Discussion, error) {
 	select {
-	case <-lobstersSlot:
+	case <-f.slot:
 		go func() {
 			time.Sleep(time.Second)
-			lobstersSlot <- struct{}{}
+			f.slot <- struct{}{}
 		}()
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -45,7 +51,7 @@ func (f *LobstersFetcher) Fetch(ctx context.Context, rawURL string) ([]Discussio
 	req.Header.Set("User-Agent", "booksmk/1.0 discussion-finder (personal bookmark manager)")
 	req.Header.Set("Accept", "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1")
 
-	resp, err := lobstersClient.Do(req)
+	resp, err := f.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

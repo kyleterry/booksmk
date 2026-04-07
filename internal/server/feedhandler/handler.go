@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/a-h/templ"
@@ -334,84 +335,31 @@ func parseTags(raw string) []string {
 	if raw == "" {
 		return []string{}
 	}
+	parts := strings.Split(raw, ",")
 	var tags []string
-	for _, p := range splitComma(raw) {
-		if t := toSlug(p); t != "" {
+	for _, p := range parts {
+		if t := toSlug(strings.TrimSpace(p)); t != "" {
 			tags = append(tags, t)
 		}
 	}
 	return tags
 }
 
-func splitComma(s string) []string {
-	var parts []string
-	for _, p := range splitOn(s, ',') {
-		if t := trimSpace(p); t != "" {
-			parts = append(parts, t)
-		}
-	}
-	return parts
-}
-
-func splitOn(s string, sep rune) []string {
-	var parts []string
-	start := 0
-	for i, r := range s {
-		if r == sep {
-			parts = append(parts, s[start:i])
-			start = i + 1
-		}
-	}
-	parts = append(parts, s[start:])
-	return parts
-}
-
-func trimSpace(s string) string {
-	start, end := 0, len(s)
-	for start < end && (s[start] == ' ' || s[start] == '\t') {
-		start++
-	}
-	for end > start && (s[end-1] == ' ' || s[end-1] == '\t') {
-		end--
-	}
-	return s[start:end]
-}
-
 func toSlug(s string) string {
-	lower := toLower(s)
-	var b []byte
+	s = strings.ToLower(s)
+	var b strings.Builder
 	prevHyphen := false
-	for _, r := range lower {
+	for _, r := range s {
 		switch {
 		case r >= 'a' && r <= 'z' || r >= '0' && r <= '9':
-			b = append(b, byte(r))
+			b.WriteRune(r)
 			prevHyphen = false
 		case r == ' ' || r == '-' || r == '_':
 			if !prevHyphen {
-				b = append(b, '-')
+				b.WriteRune('-')
 				prevHyphen = true
 			}
 		}
 	}
-	// trim leading/trailing hyphens
-	result := string(b)
-	for len(result) > 0 && result[0] == '-' {
-		result = result[1:]
-	}
-	for len(result) > 0 && result[len(result)-1] == '-' {
-		result = result[:len(result)-1]
-	}
-	return result
-}
-
-func toLower(s string) string {
-	b := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			c += 'a' - 'A'
-		}
-		b[i] = c
-	}
-	return string(b)
+	return strings.Trim(b.String(), "-")
 }

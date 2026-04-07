@@ -109,6 +109,7 @@ func buildFeed(id uuid.UUID, feedUrl, siteUrl, title, description, imageUrl, cus
 		t := lastFetchedAt.Time
 		f.LastFetchedAt = &t
 	}
+
 	return f
 }
 
@@ -128,6 +129,7 @@ func newFeedItem(id, feedID uuid.UUID, guid, url, title, summary, author string,
 		t := publishedAt.Time
 		item.PublishedAt = &t
 	}
+
 	return item
 }
 
