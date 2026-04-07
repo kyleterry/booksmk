@@ -17,6 +17,8 @@
             gotools
             golangci-lint
 
+            gh
+
             sqlc
             templ
 
