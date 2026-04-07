@@ -36,7 +36,7 @@ func (q *Queries) AddURLToUser(ctx context.Context, arg AddURLToUserParams) erro
 }
 
 const getURL = `-- name: GetURL :one
-select u.id, u.url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 from urls u
 join user_urls uu on uu.url_id = u.id
 where u.id = $1 and uu.user_id = $2
@@ -50,6 +50,7 @@ type GetURLParams struct {
 type GetURLRow struct {
 	ID          uuid.UUID          `json:"id"`
 	Url         string             `json:"url"`
+	FeedUrl     string             `json:"feed_url"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
@@ -62,6 +63,7 @@ func (q *Queries) GetURL(ctx context.Context, arg GetURLParams) (GetURLRow, erro
 	err := row.Scan(
 		&i.ID,
 		&i.Url,
+		&i.FeedUrl,
 		&i.Title,
 		&i.Description,
 		&i.CreatedAt,
@@ -71,7 +73,7 @@ func (q *Queries) GetURL(ctx context.Context, arg GetURLParams) (GetURLRow, erro
 }
 
 const listURLs = `-- name: ListURLs :many
-select u.id, u.url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 from urls u
 join user_urls uu on uu.url_id = u.id
 where uu.user_id = $1
@@ -81,6 +83,7 @@ order by uu.created_at desc
 type ListURLsRow struct {
 	ID          uuid.UUID          `json:"id"`
 	Url         string             `json:"url"`
+	FeedUrl     string             `json:"feed_url"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
@@ -99,6 +102,7 @@ func (q *Queries) ListURLs(ctx context.Context, userID uuid.UUID) ([]ListURLsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Url,
+			&i.FeedUrl,
 			&i.Title,
 			&i.Description,
 			&i.CreatedAt,
@@ -115,7 +119,7 @@ func (q *Queries) ListURLs(ctx context.Context, userID uuid.UUID) ([]ListURLsRow
 }
 
 const listURLsByTag = `-- name: ListURLsByTag :many
-select u.id, u.url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 from urls u
 join user_urls uu on uu.url_id = u.id
 join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
@@ -132,6 +136,7 @@ type ListURLsByTagParams struct {
 type ListURLsByTagRow struct {
 	ID          uuid.UUID          `json:"id"`
 	Url         string             `json:"url"`
+	FeedUrl     string             `json:"feed_url"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
@@ -150,6 +155,7 @@ func (q *Queries) ListURLsByTag(ctx context.Context, arg ListURLsByTagParams) ([
 		if err := rows.Scan(
 			&i.ID,
 			&i.Url,
+			&i.FeedUrl,
 			&i.Title,
 			&i.Description,
 			&i.CreatedAt,
@@ -176,6 +182,20 @@ type RemoveURLFromUserParams struct {
 
 func (q *Queries) RemoveURLFromUser(ctx context.Context, arg RemoveURLFromUserParams) error {
 	_, err := q.db.Exec(ctx, removeURLFromUser, arg.UserID, arg.URLID)
+	return err
+}
+
+const setURLFeedURL = `-- name: SetURLFeedURL :exec
+update urls set feed_url = $2 where id = $1
+`
+
+type SetURLFeedURLParams struct {
+	ID      uuid.UUID `json:"id"`
+	FeedUrl string    `json:"feed_url"`
+}
+
+func (q *Queries) SetURLFeedURL(ctx context.Context, arg SetURLFeedURLParams) error {
+	_, err := q.db.Exec(ctx, setURLFeedURL, arg.ID, arg.FeedUrl)
 	return err
 }
 

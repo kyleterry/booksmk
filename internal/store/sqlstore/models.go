@@ -33,6 +33,52 @@ type DiscussionRunLog struct {
 	FoundCount  int32              `json:"found_count"`
 }
 
+type Feed struct {
+	ID            uuid.UUID          `json:"id"`
+	FeedUrl       string             `json:"feed_url"`
+	SiteUrl       string             `json:"site_url"`
+	Title         string             `json:"title"`
+	Description   string             `json:"description"`
+	ImageUrl      string             `json:"image_url"`
+	LastFetchedAt pgtype.Timestamptz `json:"last_fetched_at"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+type FeedItem struct {
+	ID          uuid.UUID          `json:"id"`
+	FeedID      uuid.UUID          `json:"feed_id"`
+	Guid        string             `json:"guid"`
+	Url         string             `json:"url"`
+	Title       string             `json:"title"`
+	Summary     string             `json:"summary"`
+	Author      string             `json:"author"`
+	PublishedAt pgtype.Timestamptz `json:"published_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type FeedItemRead struct {
+	UserID uuid.UUID          `json:"user_id"`
+	ItemID uuid.UUID          `json:"item_id"`
+	ReadAt pgtype.Timestamptz `json:"read_at"`
+}
+
+type FeedPollJob struct {
+	ID            uuid.UUID          `json:"id"`
+	FeedID        uuid.UUID          `json:"feed_id"`
+	ScheduledAt   pgtype.Timestamptz `json:"scheduled_at"`
+	LastFetchedAt pgtype.Timestamptz `json:"last_fetched_at"`
+	FetchCount    int32              `json:"fetch_count"`
+	ErrorCount    int32              `json:"error_count"`
+	LastError     string             `json:"last_error"`
+}
+
+type FeedTag struct {
+	UserID uuid.UUID `json:"user_id"`
+	FeedID uuid.UUID `json:"feed_id"`
+	TagID  uuid.UUID `json:"tag_id"`
+}
+
 type InviteCode struct {
 	ID        uuid.UUID          `json:"id"`
 	Code      string             `json:"code"`
@@ -57,6 +103,7 @@ type Tag struct {
 type Url struct {
 	ID        uuid.UUID          `json:"id"`
 	Url       string             `json:"url"`
+	FeedUrl   string             `json:"feed_url"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
@@ -93,6 +140,13 @@ type User struct {
 	IsAdmin        bool               `json:"is_admin"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+type UserFeed struct {
+	UserID     uuid.UUID          `json:"user_id"`
+	FeedID     uuid.UUID          `json:"feed_id"`
+	CustomName string             `json:"custom_name"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
 type UserUrl struct {
