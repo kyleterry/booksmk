@@ -10,10 +10,17 @@ import (
 	"time"
 )
 
-var hnClient = &http.Client{Timeout: 10 * time.Second}
-
 // HackerNewsFetcher searches Hacker News via the Algolia API.
-type HackerNewsFetcher struct{}
+type HackerNewsFetcher struct {
+	client *http.Client
+}
+
+// NewHackerNewsFetcher returns a new HackerNewsFetcher.
+func NewHackerNewsFetcher() *HackerNewsFetcher {
+	return &HackerNewsFetcher{
+		client: &http.Client{Timeout: 10 * time.Second},
+	}
+}
 
 func (f *HackerNewsFetcher) Name() string { return "hackernews" }
 
@@ -29,7 +36,7 @@ func (f *HackerNewsFetcher) Fetch(ctx context.Context, rawURL string) ([]Discuss
 		return nil, err
 	}
 
-	resp, err := hnClient.Do(req)
+	resp, err := f.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

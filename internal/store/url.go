@@ -14,6 +14,7 @@ import (
 type URL struct {
 	ID          uuid.UUID
 	URL         string
+	FeedURL     string
 	Title       string
 	Description string
 	Tags        []string
@@ -21,13 +22,14 @@ type URL struct {
 	UpdatedAt   pgtype.Timestamptz
 }
 
-func newURL(id uuid.UUID, rawURL, title, description string, tags []string, createdAt, updatedAt pgtype.Timestamptz) URL {
+func newURL(id uuid.UUID, rawURL, feedURL, title, description string, tags []string, createdAt, updatedAt pgtype.Timestamptz) URL {
 	if tags == nil {
 		tags = []string{}
 	}
 	return URL{
 		ID:          id,
 		URL:         rawURL,
+		FeedURL:     feedURL,
 		Title:       title,
 		Description: description,
 		Tags:        tags,
@@ -48,7 +50,7 @@ func (s *Store) GetURL(ctx context.Context, id, userID uuid.UUID) (URL, error) {
 	if err != nil {
 		return URL{}, err
 	}
-	return newURL(u.ID, u.Url, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt), nil
+	return newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt), nil
 }
 
 func (s *Store) ListURLs(ctx context.Context, userID uuid.UUID) ([]URL, error) {
@@ -62,7 +64,7 @@ func (s *Store) ListURLs(ctx context.Context, userID uuid.UUID) ([]URL, error) {
 		if err != nil {
 			return nil, err
 		}
-		urls[i] = newURL(u.ID, u.Url, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt)
+		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt)
 	}
 	return urls, nil
 }
@@ -78,7 +80,7 @@ func (s *Store) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string)
 		if err != nil {
 			return nil, err
 		}
-		urls[i] = newURL(u.ID, u.Url, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt)
+		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt)
 	}
 	return urls, nil
 }
@@ -132,4 +134,29 @@ func (s *Store) UpdateURL(ctx context.Context, id, userID uuid.UUID, title, desc
 // retained for other users who may share it.
 func (s *Store) DeleteURL(ctx context.Context, id, userID uuid.UUID) error {
 	return s.queries.RemoveURLFromUser(ctx, sqlstore.RemoveURLFromUserParams{UserID: userID, URLID: id})
+}
+
+// SetURLFeedURL stores the discovered feed URL on a URL record.
+func (s *Store) SetURLFeedURL(ctx context.Context, id uuid.UUID, feedURL string) error {
+	return s.queries.SetURLFeedURL(ctx, sqlstore.SetURLFeedURLParams{ID: id, FeedUrl: feedURL})
+}
+
+// BackfillURL is a minimal URL record used by the backfill command.
+type BackfillURL struct {
+	ID  uuid.UUID
+	URL string
+}
+
+// ListURLsForFeedBackfill returns all URL records that have not yet had their
+// feed URL detected, for use by the backfill command.
+func (s *Store) ListURLsForFeedBackfill(ctx context.Context) ([]BackfillURL, error) {
+	rows, err := s.queries.ListURLsForFeedBackfill(ctx)
+	if err != nil {
+		return nil, err
+	}
+	urls := make([]BackfillURL, len(rows))
+	for i, r := range rows {
+		urls[i] = BackfillURL{ID: r.ID, URL: r.Url}
+	}
+	return urls, nil
 }

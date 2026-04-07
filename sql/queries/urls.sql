@@ -1,11 +1,11 @@
 -- name: GetURL :one
-select u.id, u.url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 from urls u
 join user_urls uu on uu.url_id = u.id
 where u.id = $1 and uu.user_id = $2;
 
 -- name: ListURLs :many
-select u.id, u.url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 from urls u
 join user_urls uu on uu.url_id = u.id
 where uu.user_id = $1
@@ -31,8 +31,11 @@ returning url_id;
 -- name: RemoveURLFromUser :exec
 delete from user_urls where user_id = $1 and url_id = $2;
 
+-- name: SetURLFeedURL :exec
+update urls set feed_url = $2 where id = $1;
+
 -- name: ListURLsByTag :many
-select u.id, u.url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 from urls u
 join user_urls uu on uu.url_id = u.id
 join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id

@@ -41,6 +41,7 @@ func apiKeyFromSQL(k sqlstore.APIKey) APIKey {
 		t := k.ExpiresAt.Time
 		expiresAt = &t
 	}
+
 	return APIKey{
 		ID:          k.ID,
 		UserID:      k.UserID,

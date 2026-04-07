@@ -37,6 +37,13 @@ type mockURLStore struct {
 	UpdateURLFn             func(context.Context, uuid.UUID, uuid.UUID, string, string, []string) (store.URL, error)
 	DeleteURLFn             func(context.Context, uuid.UUID, uuid.UUID) error
 	ListDiscussionsForURLFn func(context.Context, uuid.UUID) ([]store.Discussion, error)
+	SetURLFeedURLFn         func(context.Context, uuid.UUID, string) error
+}
+
+type mockFeedStore struct{}
+
+func (m *mockFeedStore) GetFeedByURL(_ context.Context, _ uuid.UUID, _ string) (store.Feed, error) {
+	return store.Feed{}, store.ErrNotFound
 }
 
 func (m *mockURLStore) GetURL(ctx context.Context, id, userID uuid.UUID) (store.URL, error) {
@@ -88,8 +95,15 @@ func (m *mockURLStore) ListDiscussionsForURL(ctx context.Context, urlID uuid.UUI
 	return nil, nil
 }
 
+func (m *mockURLStore) SetURLFeedURL(ctx context.Context, id uuid.UUID, feedURL string) error {
+	if m.SetURLFeedURLFn != nil {
+		return m.SetURLFeedURLFn(ctx, id, feedURL)
+	}
+	return nil
+}
+
 func newHandler(ms *mockURLStore) *Handler {
-	return New(ms, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	return New(ms, &mockFeedStore{}, slog.New(slog.NewTextHandler(io.Discard, nil)))
 }
 
 func serve(t *testing.T, h *Handler, r *http.Request) *httptest.ResponseRecorder {

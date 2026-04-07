@@ -43,13 +43,13 @@ type Worker struct {
 
 func New(st discussStore, logger *slog.Logger) *Worker {
 	fetchers := []Fetcher{
-		&HackerNewsFetcher{},
+		NewHackerNewsFetcher(),
 	}
 
 	redditID := os.Getenv("REDDIT_CLIENT_ID")
 	redditSecret := os.Getenv("REDDIT_CLIENT_SECRET")
 	if redditID != "" && redditSecret != "" {
-		fetchers = append(fetchers, &RedditFetcher{clientID: redditID, clientSecret: redditSecret})
+		fetchers = append(fetchers, NewRedditFetcher(redditID, redditSecret))
 		logger.Info("reddit fetcher enabled")
 	}
 

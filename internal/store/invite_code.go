@@ -38,6 +38,7 @@ func inviteCodeFromSQL(ic sqlstore.InviteCode) InviteCode {
 		t := ic.UsedAt.Time
 		code.UsedAt = &t
 	}
+
 	return code
 }
 

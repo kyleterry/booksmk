@@ -11,10 +11,9 @@ import (
 	"time"
 )
 
-var redditClient = &http.Client{Timeout: 10 * time.Second}
-
 // RedditFetcher searches Reddit for link submissions using app-only OAuth.
 type RedditFetcher struct {
+	client       *http.Client
 	clientID     string
 	clientSecret string
 
@@ -23,9 +22,18 @@ type RedditFetcher struct {
 	tokenExpiry time.Time
 }
 
+// NewRedditFetcher returns a new RedditFetcher using the given OAuth credentials.
+func NewRedditFetcher(clientID, clientSecret string) *RedditFetcher {
+	return &RedditFetcher{
+		client:       &http.Client{Timeout: 10 * time.Second},
+		clientID:     clientID,
+		clientSecret: clientSecret,
+	}
+}
+
 func (f *RedditFetcher) Name() string { return "reddit" }
 
-func (f *RedditFetcher) token_(ctx context.Context) (string, error) {
+func (f *RedditFetcher) fetchToken(ctx context.Context) (string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -42,7 +50,7 @@ func (f *RedditFetcher) token_(ctx context.Context) (string, error) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "booksmk:discussion-finder:v1.0 (personal use)")
 
-	resp, err := redditClient.Do(req)
+	resp, err := f.client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -69,7 +77,7 @@ func (f *RedditFetcher) token_(ctx context.Context) (string, error) {
 }
 
 func (f *RedditFetcher) Fetch(ctx context.Context, rawURL string) ([]Discussion, error) {
-	tok, err := f.token_(ctx)
+	tok, err := f.fetchToken(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("reddit auth: %w", err)
 	}
@@ -82,7 +90,7 @@ func (f *RedditFetcher) Fetch(ctx context.Context, rawURL string) ([]Discussion,
 	req.Header.Set("Authorization", "Bearer "+tok)
 	req.Header.Set("User-Agent", "booksmk:discussion-finder:v1.0 (personal use)")
 
-	resp, err := redditClient.Do(req)
+	resp, err := f.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

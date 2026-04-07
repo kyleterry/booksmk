@@ -68,7 +68,7 @@ templ urlCard(u store.URL) {
 	</div>
 }
 
-templ DetailPage(u store.URL, discussions []store.Discussion) {
+templ DetailPage(u store.URL, discussions []store.Discussion, subscribedFeed *store.Feed) {
 	<div class="page-header">
 		<h1>
 			if u.Title != "" {
@@ -115,6 +115,16 @@ templ DetailPage(u store.URL, discussions []store.Discussion) {
 				<input type="hidden" name="_method" value="DELETE"/>
 				<button type="submit" class="btn btn-sm btn-danger">delete</button>
 			</form>
+			if u.FeedURL != "" {
+				if subscribedFeed != nil {
+					<a href={ templ.SafeURL("/feed/" + subscribedFeed.ID.String()) } class="btn btn-sm">view feed ↗</a>
+				} else {
+					<form method="POST" action="/feed" style="margin:0">
+						<input type="hidden" name="feed_url" value={ u.FeedURL }/>
+						<button type="submit" class="btn btn-sm btn-primary">subscribe to feed</button>
+					</form>
+				}
+			}
 		</div>
 	</div>
 	if embed := youtubeEmbedURL(u.URL); embed != "" {
