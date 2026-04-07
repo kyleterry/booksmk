@@ -47,8 +47,9 @@ var titleClient = &http.Client{
 
 // Meta holds metadata extracted from a URL.
 type Meta struct {
-	Title string
-	Tags  []string
+	Title   string
+	Tags    []string
+	FeedURL string
 }
 
 // Fetch fetches metadata for rawURL in a single HTTP request where possible.
@@ -74,7 +75,7 @@ func Fetch(rawURL string) Meta {
 	if title != "" && defaults != nil && defaults[0] == "github" {
 		title = strings.TrimSuffix(title, " · GitHub")
 	}
-	return Meta{Title: title, Tags: tags}
+	return Meta{Title: title, Tags: tags, FeedURL: extractFeedLink(body, rawURL)}
 }
 
 // FetchTitle returns the title for rawURL. For YouTube URLs it uses the oEmbed
@@ -251,6 +252,47 @@ func mergeTags(base, extra []string) []string {
 		}
 	}
 	return out
+}
+
+// reFeedLink matches <link> tags that advertise an RSS or Atom feed.
+var reFeedLink = regexp.MustCompile(`(?i)<link[^>]+rel=["']alternate["'][^>]*>|<link[^>]+rel=alternate[^>]*>`)
+
+// reHref extracts the href attribute value from a tag.
+var reHref = regexp.MustCompile(`(?i)href=["']([^"']+)["']`)
+
+// reType extracts the type attribute value from a tag.
+var reType = regexp.MustCompile(`(?i)type=["']([^"']+)["']`)
+
+// extractFeedLink scans src for a <link rel="alternate" type="application/rss+xml|atom+xml">
+// and returns its href resolved against baseURL. Returns empty string if none found.
+func extractFeedLink(src, baseURL string) string {
+	matches := reFeedLink.FindAllString(src, -1)
+	for _, tag := range matches {
+		tm := reType.FindStringSubmatch(tag)
+		if len(tm) < 2 {
+			continue
+		}
+		t := strings.ToLower(tm[1])
+		if !strings.Contains(t, "rss") && !strings.Contains(t, "atom") {
+			continue
+		}
+		hm := reHref.FindStringSubmatch(tag)
+		if len(hm) < 2 || hm[1] == "" {
+			continue
+		}
+		href := hm[1]
+		// Resolve relative hrefs against the page URL.
+		base, err := url.Parse(baseURL)
+		if err != nil {
+			return href
+		}
+		ref, err := url.Parse(href)
+		if err != nil {
+			return href
+		}
+		return base.ResolveReference(ref).String()
+	}
+	return ""
 }
 
 // extractTitle finds the first <title>...</title> in src (case-insensitive).

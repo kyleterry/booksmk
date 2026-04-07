@@ -9,9 +9,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/kyleterry/booksmk/internal/discuss"
+	"github.com/kyleterry/booksmk/internal/feedworker"
 	"github.com/kyleterry/booksmk/internal/server/adminhandler"
 	"github.com/kyleterry/booksmk/internal/server/apihandler"
 	"github.com/kyleterry/booksmk/internal/server/apikeyhandler"
+	"github.com/kyleterry/booksmk/internal/server/feedhandler"
 	"github.com/kyleterry/booksmk/internal/server/urlhandler"
 	"github.com/kyleterry/booksmk/internal/server/userhandler"
 	"github.com/kyleterry/booksmk/internal/store"
@@ -35,7 +37,9 @@ type Server struct {
 	apiKeyHandler    *apikeyhandler.Handler
 	apiHandler       *apihandler.Handler
 	adminHandler     *adminhandler.Handler
+	feedHandler      *feedhandler.Handler
 	discussionWorker *discuss.Worker
+	feedWorker       *feedworker.Worker
 }
 
 func New(cfg Config) (*Server, error) {
@@ -46,12 +50,14 @@ func New(cfg Config) (*Server, error) {
 		store:            st,
 		logger:           cfg.Logger,
 		mux:              http.NewServeMux(),
-		urlHandler:       urlhandler.New(st, cfg.Logger),
+		urlHandler:       urlhandler.New(st, st, cfg.Logger),
 		userHandler:      userhandler.New(st, cfg.Logger),
 		apiKeyHandler:    apikeyhandler.New(st, cfg.Logger),
 		apiHandler:       apihandler.New(st, cfg.Logger),
 		adminHandler:     adminhandler.New(st, cfg.Logger),
+		feedHandler:      feedhandler.New(st, cfg.Logger),
 		discussionWorker: discuss.New(st, cfg.Logger),
+		feedWorker:       feedworker.New(st, cfg.Logger),
 	}
 
 	s.registerRoutes()
@@ -77,6 +83,9 @@ func (s *Server) Run(ctx context.Context) error {
 
 	s.logger.Info("starting discussion worker")
 	go s.discussionWorker.Run(ctx)
+
+	s.logger.Info("starting feed worker")
+	go s.feedWorker.Run(ctx)
 
 	select {
 	case <-ctx.Done():

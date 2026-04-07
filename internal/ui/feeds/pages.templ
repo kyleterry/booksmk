@@ -1,0 +1,272 @@
+package feeds
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/kyleterry/booksmk/internal/store"
+)
+
+templ TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, hasMore bool) {
+	<div class="page-header">
+		<h1>feeds</h1>
+		<a href="/feed/new" class="btn btn-primary">+ subscribe</a>
+	</div>
+	if len(feeds) > 0 {
+		<div class="feed-nav">
+			for _, f := range feeds {
+				<a href={ templ.SafeURL("/feed/" + f.ID.String()) } class="feed-nav-link">{ feedLabel(f) }</a>
+			}
+		</div>
+	}
+	if len(groups) == 0 {
+		<div class="empty">no items yet — <a href="/feed/new">subscribe to a feed</a></div>
+	} else {
+		for _, g := range groups {
+			<div class="date-group">
+				<div class="date-group-label">{ g.Label }</div>
+				for _, item := range g.Items {
+					@timelineItemCard(item)
+				}
+			</div>
+		}
+		<div class="pagination">
+			if page > 1 {
+				<a href={ templ.SafeURL(fmt.Sprintf("/feed?page=%d", page-1)) } class="btn btn-sm">← newer</a>
+			}
+			if hasMore {
+				<a href={ templ.SafeURL(fmt.Sprintf("/feed?page=%d", page+1)) } class="btn btn-sm">older →</a>
+			}
+		</div>
+	}
+}
+
+templ timelineItemCard(item store.TimelineItem) {
+	<div class={ cardClass(item.IsRead) }>
+		<div class="card-title">
+			if item.FeedImageURL != "" {
+				<img src={ item.FeedImageURL } alt="" class="feed-icon" loading="lazy"/>
+			}
+			<a href={ templ.SafeURL(item.URL) } target="_blank" rel="noopener noreferrer">{ item.Title }</a>
+		</div>
+		<div class="card-url">
+			<a href={ templ.SafeURL("/feed/" + item.FeedID.String()) } style="color:var(--fg4);font-size:0.71rem">{ item.FeedTitle }</a>
+			<span class="card-date">{ formatDate(item.PublishedAt) }</span>
+		</div>
+		if item.Summary != "" {
+			<div class="card-desc">{ truncate(item.Summary, 200) }</div>
+		}
+		<div class="card-footer">
+			if item.IsRead {
+				<form method="POST" action={ templ.SafeURL("/feed/items/" + item.ID.String() + "/read") } style="margin:0">
+					<input type="hidden" name="_method" value="DELETE"/>
+					<button type="submit" class="btn btn-sm">mark unread</button>
+				</form>
+			} else {
+				<form method="POST" action={ templ.SafeURL("/feed/items/" + item.ID.String() + "/read") } style="margin:0">
+					<button type="submit" class="btn btn-sm">mark read</button>
+				</form>
+			}
+		</div>
+	</div>
+}
+
+templ FeedDetailPage(feed store.Feed, groups []store.FeedItemGroup) {
+	<div class="page-header">
+		<div style="display:flex;align-items:center;gap:0.75rem">
+			if feed.ImageURL != "" {
+				<img src={ feed.ImageURL } alt="" class="feed-icon-lg" loading="lazy"/>
+			}
+			<h1>{ feedLabel(feed) } <span class="count">({ itoa(totalFeedItems(groups)) })</span></h1>
+		</div>
+		<div style="display:flex;gap:0.5rem">
+			if feed.SiteURL != "" {
+				<a href={ templ.SafeURL(feed.SiteURL) } target="_blank" rel="noopener noreferrer" class="btn btn-sm">site ↗</a>
+			}
+			<a href={ templ.SafeURL("/feed/" + feed.ID.String() + "/edit") } class="btn btn-sm">edit</a>
+			<form method="POST" action={ templ.SafeURL("/feed/" + feed.ID.String()) } style="margin:0">
+				<input type="hidden" name="_method" value="DELETE"/>
+				<button type="submit" class="btn btn-sm btn-danger">unsubscribe</button>
+			</form>
+		</div>
+	</div>
+	if feed.Description != "" {
+		<p style="color:var(--fg3);font-size:0.8rem;margin-bottom:0.5rem">{ feed.Description }</p>
+	}
+	<p style="color:var(--fg4);font-size:0.71rem;margin-bottom:1.25rem;word-break:break-all">{ feed.FeedURL }</p>
+	if len(feed.Tags) > 0 {
+		<div class="tags" style="margin-bottom:1.25rem">
+			for _, tag := range feed.Tags {
+				<span class="tag">{ tag }</span>
+			}
+		</div>
+	}
+	if len(groups) == 0 {
+		<div class="empty">no items yet — check back soon</div>
+	} else {
+		for _, g := range groups {
+			<div class="date-group">
+				<div class="date-group-label">{ g.Label }</div>
+				for _, item := range g.Items {
+					@feedItemCard(feed.ImageURL, item)
+				}
+			</div>
+		}
+	}
+}
+
+templ feedItemCard(feedImageURL string, item store.FeedItem) {
+	<div class={ cardClass(item.IsRead) }>
+		<div class="card-title">
+			if feedImageURL != "" {
+				<img src={ feedImageURL } alt="" class="feed-icon" loading="lazy"/>
+			}
+			<a href={ templ.SafeURL(item.URL) } target="_blank" rel="noopener noreferrer">{ item.Title }</a>
+		</div>
+		<div class="card-url">
+			if item.Author != "" {
+				<span style="font-size:0.71rem;color:var(--fg4)">{ item.Author }</span>
+			}
+			<span class="card-date">{ formatDate(item.PublishedAt) }</span>
+		</div>
+		if item.Summary != "" {
+			<div class="card-desc">{ truncate(item.Summary, 200) }</div>
+		}
+		<div class="card-footer">
+			if item.IsRead {
+				<form method="POST" action={ templ.SafeURL("/feed/items/" + item.ID.String() + "/read") } style="margin:0">
+					<input type="hidden" name="_method" value="DELETE"/>
+					<button type="submit" class="btn btn-sm">mark unread</button>
+				</form>
+			} else {
+				<form method="POST" action={ templ.SafeURL("/feed/items/" + item.ID.String() + "/read") } style="margin:0">
+					<button type="submit" class="btn btn-sm">mark read</button>
+				</form>
+			}
+		</div>
+	</div>
+}
+
+templ NewFeedPage(errMsg, prefillURL string) {
+	<div class="page-header">
+		<h1>subscribe to feed</h1>
+	</div>
+	if errMsg != "" {
+		<div class="error">{ errMsg }</div>
+	}
+	<form method="POST" action="/feed">
+		<label for="feed_url">feed url <span style="color:var(--red)">*</span></label>
+		<input type="url" id="feed_url" name="feed_url" required autofocus placeholder="https://example.com/feed.xml" value={ prefillURL }/>
+		<label for="tags">tags</label>
+		<input type="text" id="tags" name="tags" placeholder="comma-separated, e.g. tech, news"/>
+		<p class="form-hint">leave blank to auto-detect from feed categories</p>
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">subscribe</button>
+			<a href="/feed" class="btn">cancel</a>
+		</div>
+	</form>
+}
+
+templ EditFeedPage(feed store.Feed, errMsg string) {
+	<div class="page-header">
+		<h1>edit feed</h1>
+	</div>
+	if errMsg != "" {
+		<div class="error">{ errMsg }</div>
+	}
+	<form method="POST" action={ templ.SafeURL("/feed/" + feed.ID.String()) }>
+		<label for="feed_url">feed url</label>
+		<input type="url" id="feed_url" name="feed_url" value={ feed.FeedURL } disabled/>
+		<p class="form-hint">feed url cannot be changed</p>
+		<label for="custom_name">display name</label>
+		<input type="text" id="custom_name" name="custom_name" value={ feed.CustomName } autofocus placeholder={ feed.Title }/>
+		<p class="form-hint">leave blank to use the feed's own title</p>
+		<label for="tags">tags</label>
+		<input type="text" id="tags" name="tags" value={ strings.Join(feed.Tags, ", ") }/>
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">save</button>
+			<a href={ templ.SafeURL("/feed/" + feed.ID.String()) } class="btn">cancel</a>
+		</div>
+	</form>
+}
+
+func cardClass(isRead bool) string {
+	if isRead {
+		return "card feed-item-read"
+	}
+	return "card feed-item-unread"
+}
+
+func feedLabel(f store.Feed) string {
+	if f.CustomName != "" {
+		return f.CustomName
+	}
+	if f.Title != "" {
+		return f.Title
+	}
+	return f.FeedURL
+}
+
+func totalFeedItems(groups []store.FeedItemGroup) int {
+	n := 0
+	for _, g := range groups {
+		n += len(g.Items)
+	}
+	return n
+}
+
+func formatDate(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format("Jan 2, 2006")
+}
+
+func truncate(s string, max int) string {
+	s = strings.TrimSpace(s)
+	if len(s) <= max {
+		return s
+	}
+	// truncate at word boundary
+	cut := s[:max]
+	if i := strings.LastIndexByte(cut, ' '); i > max/2 {
+		cut = cut[:i]
+	}
+	return cut + "…"
+}
+
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	buf := [20]byte{}
+	pos := len(buf)
+	for n > 0 {
+		pos--
+		buf[pos] = byte(n%10) + '0'
+		n /= 10
+	}
+	return string(buf[pos:])
+}
+
+func formatLastFetched(t *time.Time) string {
+	if t == nil {
+		return "never"
+	}
+	return fmt.Sprintf("%s ago", since(*t))
+}
+
+func since(t time.Time) string {
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh", int(d.Hours()))
+	default:
+		return fmt.Sprintf("%dd", int(d.Hours()/24))
+	}
+}

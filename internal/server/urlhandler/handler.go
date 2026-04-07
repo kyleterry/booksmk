@@ -25,6 +25,11 @@ type urlStore interface {
 	UpdateURL(ctx context.Context, id, userID uuid.UUID, title, description string, tags []string) (store.URL, error)
 	DeleteURL(ctx context.Context, id, userID uuid.UUID) error
 	ListDiscussionsForURL(ctx context.Context, urlID uuid.UUID) ([]store.Discussion, error)
+	SetURLFeedURL(ctx context.Context, id uuid.UUID, feedURL string) error
+}
+
+type feedQueryStore interface {
+	GetFeedByURL(ctx context.Context, userID uuid.UUID, feedURL string) (store.Feed, error)
 }
 
 type contextKey int
@@ -42,16 +47,18 @@ func urlFromContext(ctx context.Context) store.URL {
 
 // Handler handles all requests under the /url prefix.
 type Handler struct {
-	store  urlStore
-	logger *slog.Logger
-	mux    *http.ServeMux
+	store     urlStore
+	feedStore feedQueryStore
+	logger    *slog.Logger
+	mux       *http.ServeMux
 }
 
-func New(s urlStore, logger *slog.Logger) *Handler {
+func New(s urlStore, fs feedQueryStore, logger *slog.Logger) *Handler {
 	h := &Handler{
-		store:  s,
-		logger: logger,
-		mux:    http.NewServeMux(),
+		store:     s,
+		feedStore: fs,
+		logger:    logger,
+		mux:       http.NewServeMux(),
 	}
 	h.registerRoutes()
 	return h
@@ -169,14 +176,13 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 	title := r.FormValue("title")
 	tags := parseTags(r.FormValue("tags"))
-	if title == "" || len(tags) == 0 {
-		meta := urlfetch.Fetch(rawURL)
-		if title == "" {
-			title = meta.Title
-		}
-		if len(tags) == 0 {
-			tags = meta.Tags
-		}
+
+	meta := urlfetch.Fetch(rawURL)
+	if title == "" {
+		title = meta.Title
+	}
+	if len(tags) == 0 {
+		tags = meta.Tags
 	}
 
 	u, err := h.store.CreateURL(r.Context(), user.ID, rawURL, title, r.FormValue("description"), tags)
@@ -186,17 +192,34 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if meta.FeedURL != "" {
+		if err := h.store.SetURLFeedURL(r.Context(), u.ID, meta.FeedURL); err != nil {
+			h.logger.Warn("failed to set feed url", "url_id", u.ID, "error", err)
+		}
+	}
+
 	http.Redirect(w, r, "/url/"+u.ID.String(), http.StatusSeeOther)
 }
 
 func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	u := urlFromContext(r.Context())
+	user, _ := reqctx.User(r.Context())
+
 	discussions, err := h.store.ListDiscussionsForURL(r.Context(), u.ID)
 	if err != nil {
 		h.logger.Error("failed to list discussions", "url_id", u.ID, "error", err)
 		discussions = nil
 	}
-	h.render(w, r, ui.Base(u.Title, h.navUser(r), urlpages.DetailPage(u, discussions)))
+
+	var subscribedFeed *store.Feed
+	if u.FeedURL != "" {
+		f, err := h.feedStore.GetFeedByURL(r.Context(), user.ID, u.FeedURL)
+		if err == nil {
+			subscribedFeed = &f
+		}
+	}
+
+	h.render(w, r, ui.Base(u.Title, h.navUser(r), urlpages.DetailPage(u, discussions, subscribedFeed)))
 }
 
 func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
