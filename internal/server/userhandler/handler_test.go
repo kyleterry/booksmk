@@ -28,6 +28,8 @@ type mockUserStore struct {
 	ListUsersFn           func(context.Context) ([]store.User, error)
 	UpdateUserFn          func(context.Context, uuid.UUID, string) (store.User, error)
 	UpdateUserPasswordFn  func(context.Context, uuid.UUID, string) (store.User, error)
+	UpdateUserThemeFn     func(context.Context, uuid.UUID, string) (store.User, error)
+	UpdateUserFontSizeFn  func(context.Context, uuid.UUID, string) (store.User, error)
 	DeleteUserFn          func(context.Context, uuid.UUID) error
 	GetInviteCodeByCodeFn func(context.Context, string) (store.InviteCode, error)
 	UseInviteCodeFn       func(context.Context, uuid.UUID, uuid.UUID) error
@@ -86,6 +88,20 @@ func (m *mockUserStore) UpdateUser(ctx context.Context, id uuid.UUID, email stri
 func (m *mockUserStore) UpdateUserPassword(ctx context.Context, id uuid.UUID, digest string) (store.User, error) {
 	if m.UpdateUserPasswordFn != nil {
 		return m.UpdateUserPasswordFn(ctx, id, digest)
+	}
+	return store.User{}, nil
+}
+
+func (m *mockUserStore) UpdateUserTheme(ctx context.Context, id uuid.UUID, theme string) (store.User, error) {
+	if m.UpdateUserThemeFn != nil {
+		return m.UpdateUserThemeFn(ctx, id, theme)
+	}
+	return store.User{}, nil
+}
+
+func (m *mockUserStore) UpdateUserFontSize(ctx context.Context, id uuid.UUID, fontSize string) (store.User, error) {
+	if m.UpdateUserFontSizeFn != nil {
+		return m.UpdateUserFontSizeFn(ctx, id, fontSize)
 	}
 	return store.User{}, nil
 }

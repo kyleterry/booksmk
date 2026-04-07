@@ -43,6 +43,30 @@ templ UserDetailPage(user store.User, keys []store.APIKey) {
 			<a href={ templ.SafeURL("/user/" + user.ID.String() + "/change-password") } class="btn btn-sm" style="margin-left:0.5rem">change password</a>
 		</div>
 	</div>
+	<div class="card" style="margin-bottom:2rem">
+		<div class="detail-field">
+			<div class="detail-label">theme</div>
+		</div>
+		<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/theme") } style="margin:0">
+			<select name="theme" onchange="this.form.submit()" style="width:auto;margin-bottom:0">
+				<option value="dark" selected?={ user.Theme == "dark" }>dark</option>
+				<option value="light" selected?={ user.Theme == "light" }>light</option>
+				<option value="auto" selected?={ user.Theme == "auto" }>auto (system)</option>
+			</select>
+		</form>
+	</div>
+	<div class="card" style="margin-bottom:2rem">
+		<div class="detail-field">
+			<div class="detail-label">font size</div>
+		</div>
+		<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/font-size") } style="margin:0">
+			<select name="font_size" onchange="this.form.submit()" style="width:auto;margin-bottom:0">
+				<option value="small" selected?={ user.FontSize == "small" }>small</option>
+				<option value="medium" selected?={ user.FontSize == "medium" || user.FontSize == "" }>medium</option>
+				<option value="large" selected?={ user.FontSize == "large" }>large</option>
+			</select>
+		</form>
+	</div>
 	<div class="page-header">
 		<h2>api keys <span class="count">({ fmt.Sprintf("%d", len(keys)) }/5)</span></h2>
 		if len(keys) >= 5 {

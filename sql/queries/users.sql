@@ -27,5 +27,17 @@ returning *;
 -- name: DeleteUser :exec
 delete from users where id = $1;
 
+-- name: UpdateUserTheme :one
+update users
+set theme = $1, updated_at = now()
+where id = $2
+returning *;
+
+-- name: UpdateUserFontSize :one
+update users
+set font_size = $1, updated_at = now()
+where id = $2
+returning *;
+
 -- name: CountUsers :one
 select count(*) from users;

@@ -3,6 +3,8 @@ create table users (
 	email           text         not null unique,
 	password_digest text         not null,
 	is_admin        boolean      not null default false,
+	theme           text         not null default 'dark' check (theme in ('dark', 'light', 'auto')),
+	font_size       text         not null default 'medium' check (font_size in ('small', 'medium', 'large')),
 	created_at      timestamptz  not null default now(),
 	updated_at      timestamptz  not null default now()
 );
