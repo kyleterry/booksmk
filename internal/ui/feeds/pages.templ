@@ -78,7 +78,7 @@ templ FeedDetailPage(feed store.Feed, groups []store.FeedItemGroup) {
 			if feed.ImageURL != "" {
 				<img src={ feed.ImageURL } alt="" class="feed-icon-lg" loading="lazy"/>
 			}
-			<h1>{ feedLabel(feed) } <span class="count">({ itoa(totalFeedItems(groups)) })</span></h1>
+			<h1 style="margin-bottom:0">{ feedLabel(feed) } <span class="count">({ itoa(totalFeedItems(groups)) })</span></h1>
 		</div>
 		<div style="display:flex;gap:0.5rem">
 			if feed.SiteURL != "" {
