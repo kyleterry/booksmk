@@ -18,18 +18,27 @@ type urlStore interface {
 	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error)
 }
 
-// Handler handles requests under the /api prefix.
-type Handler struct {
-	store  urlStore
-	logger *slog.Logger
-	mux    *http.ServeMux
+type feedItemStore interface {
+	MarkItemRead(ctx context.Context, userID, itemID uuid.UUID) error
+	MarkItemUnread(ctx context.Context, userID, itemID uuid.UUID) error
+	MarkAllItemsRead(ctx context.Context, userID uuid.UUID) error
+	MarkFeedItemsRead(ctx context.Context, userID, feedID uuid.UUID) error
 }
 
-func New(s urlStore, logger *slog.Logger) *Handler {
+// Handler handles requests under the /api prefix.
+type Handler struct {
+	store         urlStore
+	feedItemStore feedItemStore
+	logger        *slog.Logger
+	mux           *http.ServeMux
+}
+
+func New(s urlStore, f feedItemStore, logger *slog.Logger) *Handler {
 	h := &Handler{
-		store:  s,
-		logger: logger,
-		mux:    http.NewServeMux(),
+		store:         s,
+		feedItemStore: f,
+		logger:        logger,
+		mux:           http.NewServeMux(),
 	}
 	h.registerRoutes()
 	return h
@@ -41,6 +50,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) registerRoutes() {
 	h.mux.HandleFunc("POST /api/urls", h.handleCreateURL)
+	h.mux.HandleFunc("POST /api/feed/items/read-all", h.handleMarkAllItemsRead)
+	h.mux.HandleFunc("POST /api/feed/{feedID}/read-all", h.handleMarkFeedItemsRead)
+	h.mux.HandleFunc("POST /api/feed/items/{itemID}/read", h.handleMarkItemRead)
+	h.mux.HandleFunc("DELETE /api/feed/items/{itemID}/read", h.handleMarkItemUnread)
 }
 
 type createURLRequest struct {
@@ -103,6 +116,72 @@ func (h *Handler) handleCreateURL(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:   created.CreatedAt.Time,
 		UpdatedAt:   created.UpdatedAt.Time,
 	})
+}
+
+func (h *Handler) handleMarkItemRead(w http.ResponseWriter, r *http.Request) {
+	u, _ := reqctx.User(r.Context())
+
+	itemID, err := uuid.Parse(r.PathValue("itemID"))
+	if err != nil {
+		jsonError(w, "invalid item id", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.feedItemStore.MarkItemRead(r.Context(), u.ID, itemID); err != nil {
+		h.logger.Error("api: failed to mark item read", "item_id", itemID, "error", err)
+		jsonError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) handleMarkItemUnread(w http.ResponseWriter, r *http.Request) {
+	u, _ := reqctx.User(r.Context())
+
+	itemID, err := uuid.Parse(r.PathValue("itemID"))
+	if err != nil {
+		jsonError(w, "invalid item id", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.feedItemStore.MarkItemUnread(r.Context(), u.ID, itemID); err != nil {
+		h.logger.Error("api: failed to mark item unread", "item_id", itemID, "error", err)
+		jsonError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) handleMarkAllItemsRead(w http.ResponseWriter, r *http.Request) {
+	u, _ := reqctx.User(r.Context())
+
+	if err := h.feedItemStore.MarkAllItemsRead(r.Context(), u.ID); err != nil {
+		h.logger.Error("api: failed to mark all items read", "error", err)
+		jsonError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) handleMarkFeedItemsRead(w http.ResponseWriter, r *http.Request) {
+	u, _ := reqctx.User(r.Context())
+
+	feedID, err := uuid.Parse(r.PathValue("feedID"))
+	if err != nil {
+		jsonError(w, "invalid feed id", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.feedItemStore.MarkFeedItemsRead(r.Context(), u.ID, feedID); err != nil {
+		h.logger.Error("api: failed to mark feed items read", "feed_id", feedID, "error", err)
+		jsonError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func jsonError(w http.ResponseWriter, msg string, code int) {

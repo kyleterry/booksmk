@@ -107,6 +107,60 @@ func (q *Queries) GetFeedByID(ctx context.Context, id uuid.UUID) (Feed, error) {
 	return i, err
 }
 
+const getTimelineItem = `-- name: GetTimelineItem :one
+select fi.id, fi.feed_id,
+       coalesce(nullif(uf.custom_name, ''), f.title) as feed_title,
+       f.image_url as feed_image_url,
+       fi.guid, fi.url, fi.title as item_title,
+       fi.summary, fi.author, fi.published_at, fi.created_at,
+       (fir.user_id is not null) as is_read
+from feed_items fi
+join feeds f on f.id = fi.feed_id
+join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
+left join feed_item_reads fir on fir.item_id = fi.id and fir.user_id = $1
+where fi.id = $2
+`
+
+type GetTimelineItemParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	ID     uuid.UUID `json:"id"`
+}
+
+type GetTimelineItemRow struct {
+	ID           uuid.UUID          `json:"id"`
+	FeedID       uuid.UUID          `json:"feed_id"`
+	FeedTitle    string             `json:"feed_title"`
+	FeedImageUrl string             `json:"feed_image_url"`
+	Guid         string             `json:"guid"`
+	Url          string             `json:"url"`
+	ItemTitle    string             `json:"item_title"`
+	Summary      string             `json:"summary"`
+	Author       string             `json:"author"`
+	PublishedAt  pgtype.Timestamptz `json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	IsRead       interface{}        `json:"is_read"`
+}
+
+func (q *Queries) GetTimelineItem(ctx context.Context, arg GetTimelineItemParams) (GetTimelineItemRow, error) {
+	row := q.db.QueryRow(ctx, getTimelineItem, arg.UserID, arg.ID)
+	var i GetTimelineItemRow
+	err := row.Scan(
+		&i.ID,
+		&i.FeedID,
+		&i.FeedTitle,
+		&i.FeedImageUrl,
+		&i.Guid,
+		&i.Url,
+		&i.ItemTitle,
+		&i.Summary,
+		&i.Author,
+		&i.PublishedAt,
+		&i.CreatedAt,
+		&i.IsRead,
+	)
+	return i, err
+}
+
 const getUserFeed = `-- name: GetUserFeed :one
 select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
 from feeds f
@@ -476,6 +530,38 @@ func (q *Queries) ListUserFeeds(ctx context.Context, userID uuid.UUID) ([]ListUs
 		return nil, err
 	}
 	return items, nil
+}
+
+const markAllItemsRead = `-- name: MarkAllItemsRead :exec
+insert into feed_item_reads (user_id, item_id)
+select $1, fi.id
+from feed_items fi
+join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
+on conflict do nothing
+`
+
+func (q *Queries) MarkAllItemsRead(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markAllItemsRead, userID)
+	return err
+}
+
+const markFeedItemsRead = `-- name: MarkFeedItemsRead :exec
+insert into feed_item_reads (user_id, item_id)
+select $1, fi.id
+from feed_items fi
+join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
+where fi.feed_id = $2
+on conflict do nothing
+`
+
+type MarkFeedItemsReadParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	FeedID uuid.UUID `json:"feed_id"`
+}
+
+func (q *Queries) MarkFeedItemsRead(ctx context.Context, arg MarkFeedItemsReadParams) error {
+	_, err := q.db.Exec(ctx, markFeedItemsRead, arg.UserID, arg.FeedID)
+	return err
 }
 
 const markItemRead = `-- name: MarkItemRead :exec

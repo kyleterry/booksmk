@@ -11,7 +11,10 @@ import (
 templ TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, hasMore bool) {
 	<div class="page-header">
 		<h1>feeds</h1>
-		<a href="/feed/new" class="btn btn-primary">+ subscribe</a>
+		<div style="display:flex;gap:0.5rem">
+			<button class="btn btn-sm" hx-post="/feed/items/read-all" hx-disabled-elt="this">mark all read</button>
+			<a href="/feed/new" class="btn btn-primary">+ subscribe</a>
+		</div>
 	</div>
 	if len(feeds) > 0 {
 		<div class="feed-nav">
@@ -27,7 +30,7 @@ templ TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, h
 			<div class="date-group">
 				<div class="date-group-label">{ g.Label }</div>
 				for _, item := range g.Items {
-					@timelineItemCard(item)
+					@TimelineItemCard(item)
 				}
 			</div>
 		}
@@ -42,8 +45,8 @@ templ TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, h
 	}
 }
 
-templ timelineItemCard(item store.TimelineItem) {
-	<div class={ cardClass(item.IsRead) }>
+templ TimelineItemCard(item store.TimelineItem) {
+	<div id={ "item-" + item.ID.String() } class={ cardClass(item.IsRead) }>
 		<div class="card-title">
 			if item.FeedImageURL != "" {
 				<img src={ item.FeedImageURL } alt="" class="feed-icon" loading="lazy"/>
@@ -59,14 +62,19 @@ templ timelineItemCard(item store.TimelineItem) {
 		}
 		<div class="card-footer">
 			if item.IsRead {
-				<form method="POST" action={ templ.SafeURL("/feed/items/" + item.ID.String() + "/read") } style="margin:0">
-					<input type="hidden" name="_method" value="DELETE"/>
-					<button type="submit" class="btn btn-sm">mark unread</button>
-				</form>
+				<button
+					class="btn btn-sm"
+					hx-delete={ "/feed/items/" + item.ID.String() + "/read" }
+					hx-target={ "#item-" + item.ID.String() }
+					hx-swap="outerHTML"
+				>mark unread</button>
 			} else {
-				<form method="POST" action={ templ.SafeURL("/feed/items/" + item.ID.String() + "/read") } style="margin:0">
-					<button type="submit" class="btn btn-sm">mark read</button>
-				</form>
+				<button
+					class="btn btn-sm"
+					hx-post={ "/feed/items/" + item.ID.String() + "/read" }
+					hx-target={ "#item-" + item.ID.String() }
+					hx-swap="outerHTML"
+				>mark read</button>
 			}
 		</div>
 	</div>
@@ -84,6 +92,7 @@ templ FeedDetailPage(feed store.Feed, groups []store.FeedItemGroup) {
 			if feed.SiteURL != "" {
 				<a href={ templ.SafeURL(feed.SiteURL) } target="_blank" rel="noopener noreferrer" class="btn btn-sm">site ↗</a>
 			}
+			<button class="btn btn-sm" hx-post={ "/feed/" + feed.ID.String() + "/read-all" } hx-disabled-elt="this">mark all read</button>
 			<a href={ templ.SafeURL("/feed/" + feed.ID.String() + "/edit") } class="btn btn-sm">edit</a>
 			<form method="POST" action={ templ.SafeURL("/feed/" + feed.ID.String()) } style="margin:0">
 				<input type="hidden" name="_method" value="DELETE"/>
@@ -109,15 +118,15 @@ templ FeedDetailPage(feed store.Feed, groups []store.FeedItemGroup) {
 			<div class="date-group">
 				<div class="date-group-label">{ g.Label }</div>
 				for _, item := range g.Items {
-					@feedItemCard(feed.ImageURL, item)
+					@FeedItemCard(feed.ImageURL, item)
 				}
 			</div>
 		}
 	}
 }
 
-templ feedItemCard(feedImageURL string, item store.FeedItem) {
-	<div class={ cardClass(item.IsRead) }>
+templ FeedItemCard(feedImageURL string, item store.FeedItem) {
+	<div id={ "item-" + item.ID.String() } class={ cardClass(item.IsRead) }>
 		<div class="card-title">
 			if feedImageURL != "" {
 				<img src={ feedImageURL } alt="" class="feed-icon" loading="lazy"/>
@@ -135,14 +144,19 @@ templ feedItemCard(feedImageURL string, item store.FeedItem) {
 		}
 		<div class="card-footer">
 			if item.IsRead {
-				<form method="POST" action={ templ.SafeURL("/feed/items/" + item.ID.String() + "/read") } style="margin:0">
-					<input type="hidden" name="_method" value="DELETE"/>
-					<button type="submit" class="btn btn-sm">mark unread</button>
-				</form>
+				<button
+					class="btn btn-sm"
+					hx-delete={ "/feed/items/" + item.ID.String() + "/read" }
+					hx-target={ "#item-" + item.ID.String() }
+					hx-swap="outerHTML"
+				>mark unread</button>
 			} else {
-				<form method="POST" action={ templ.SafeURL("/feed/items/" + item.ID.String() + "/read") } style="margin:0">
-					<button type="submit" class="btn btn-sm">mark read</button>
-				</form>
+				<button
+					class="btn btn-sm"
+					hx-post={ "/feed/items/" + item.ID.String() + "/read" }
+					hx-target={ "#item-" + item.ID.String() }
+					hx-swap="outerHTML"
+				>mark read</button>
 			}
 		</div>
 	</div>
