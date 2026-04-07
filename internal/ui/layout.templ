@@ -94,6 +94,8 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					border-radius: 3px;
 					user-select: none;
 					transition: all 0.1s;
+					display: flex;
+					align-items: center;
 				}
 				.nav-user summary::-webkit-details-marker { display: none; }
 				.nav-user summary:hover { color: var(--fg2); border-color: var(--bg2); background: var(--bg1); }
@@ -361,6 +363,13 @@ templ Base(title string, user *NavUser, content templ.Component) {
 				.date-group { margin-bottom: 2rem; }
 				.date-group-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg4); border-bottom: 1px solid var(--bg2); padding-bottom: 0.3rem; margin-bottom: 0.75rem; }
 				.pagination { display: flex; gap: 0.5rem; justify-content: center; padding: 1.5rem 0 0.5rem; }
+				.nav-user-icon { display: none; }
+				@media (max-width: 540px) {
+					nav { gap: 1rem; padding: 0 1rem; }
+					.nav-links { gap: 1rem; }
+					.nav-user-label { display: none; }
+					.nav-user-icon { display: block; }
+				}
 			</style>
 		</head>
 		<body>
@@ -374,7 +383,14 @@ templ Base(title string, user *NavUser, content templ.Component) {
 				</div>
 				if user != nil {
 					<details class="nav-user">
-						<summary>{ user.Email }</summary>
+						<summary>
+							<span class="nav-user-label">{ user.Email }</span>
+							<svg class="nav-user-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+								<line x1="3" y1="7" x2="21" y2="7"/>
+								<line x1="3" y1="12" x2="21" y2="12"/>
+								<line x1="3" y1="17" x2="21" y2="17"/>
+							</svg>
+						</summary>
 						<div class="nav-dropdown">
 							<a href={ templ.SafeURL("/user/" + user.ID) }>settings</a>
 							if user.IsAdmin {
