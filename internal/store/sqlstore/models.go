@@ -138,6 +138,8 @@ type User struct {
 	Email          string             `json:"email"`
 	PasswordDigest string             `json:"password_digest"`
 	IsAdmin        bool               `json:"is_admin"`
+	Theme          string             `json:"theme"`
+	FontSize       string             `json:"font_size"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }

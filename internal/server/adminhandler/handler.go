@@ -67,7 +67,7 @@ func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 	if !ok {
 		return nil
 	}
-	return &ui.NavUser{ID: u.ID.String(), Email: u.Email, IsAdmin: u.IsAdmin}
+	return &ui.NavUser{ID: u.ID.String(), Email: u.Email, IsAdmin: u.IsAdmin, Theme: u.Theme, FontSize: u.FontSize}
 }
 
 func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {

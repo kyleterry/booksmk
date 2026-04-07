@@ -18,6 +18,8 @@ type User struct {
 	Email          string
 	PasswordDigest string
 	IsAdmin        bool
+	Theme          string
+	FontSize       string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -28,6 +30,8 @@ func userFromSQL(u sqlstore.User) User {
 		Email:          u.Email,
 		PasswordDigest: u.PasswordDigest,
 		IsAdmin:        u.IsAdmin,
+		Theme:          u.Theme,
+		FontSize:       u.FontSize,
 		CreatedAt:      u.CreatedAt.Time,
 		UpdatedAt:      u.UpdatedAt.Time,
 	}
@@ -94,6 +98,36 @@ func (s *Store) UpdateUser(ctx context.Context, id uuid.UUID, email string) (Use
 	if err != nil {
 		return User{}, err
 	}
+	return userFromSQL(u), nil
+}
+
+func (s *Store) UpdateUserFontSize(ctx context.Context, id uuid.UUID, fontSize string) (User, error) {
+	u, err := s.queries.UpdateUserFontSize(ctx, sqlstore.UpdateUserFontSizeParams{
+		ID:       id,
+		FontSize: fontSize,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return User{}, ErrNotFound
+	}
+	if err != nil {
+		return User{}, err
+	}
+
+	return userFromSQL(u), nil
+}
+
+func (s *Store) UpdateUserTheme(ctx context.Context, id uuid.UUID, theme string) (User, error) {
+	u, err := s.queries.UpdateUserTheme(ctx, sqlstore.UpdateUserThemeParams{
+		ID:    id,
+		Theme: theme,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return User{}, ErrNotFound
+	}
+	if err != nil {
+		return User{}, err
+	}
+
 	return userFromSQL(u), nil
 }
 

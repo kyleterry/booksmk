@@ -23,6 +23,8 @@ type userStore interface {
 	ListUsers(ctx context.Context) ([]store.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, email string) (store.User, error)
 	UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordDigest string) (store.User, error)
+	UpdateUserTheme(ctx context.Context, id uuid.UUID, theme string) (store.User, error)
+	UpdateUserFontSize(ctx context.Context, id uuid.UUID, fontSize string) (store.User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetInviteCodeByCode(ctx context.Context, code string) (store.InviteCode, error)
 	UseInviteCode(ctx context.Context, id, usedBy uuid.UUID) error
@@ -59,6 +61,8 @@ func (h *Handler) registerRoutes() {
 	h.mux.HandleFunc("DELETE /user/{id}", h.handleDelete)
 	h.mux.HandleFunc("GET /user/{id}/change-password", h.handleChangePasswordForm)
 	h.mux.HandleFunc("POST /user/{id}/change-password", h.handleChangePassword)
+	h.mux.HandleFunc("POST /user/{id}/theme", h.handleUpdateTheme)
+	h.mux.HandleFunc("POST /user/{id}/font-size", h.handleUpdateFontSize)
 }
 
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Component) {
@@ -72,7 +76,7 @@ func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 	if !ok {
 		return nil
 	}
-	return &ui.NavUser{ID: u.ID.String(), Email: u.Email, IsAdmin: u.IsAdmin}
+	return &ui.NavUser{ID: u.ID.String(), Email: u.Email, IsAdmin: u.IsAdmin, Theme: u.Theme, FontSize: u.FontSize}
 }
 
 func (h *Handler) requireInviteCode(ctx context.Context) bool {
@@ -306,6 +310,94 @@ func (h *Handler) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := h.store.UpdateUserPassword(r.Context(), id, string(digest)); err != nil {
 		h.logger.Error("failed to update password", "id", id, "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/user/"+id.String(), http.StatusSeeOther)
+}
+
+func (h *Handler) handleUpdateTheme(w http.ResponseWriter, r *http.Request) {
+	authedUser, ok := reqctx.User(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	id, err := pathUUID(r)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	if id != authedUser.ID {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	theme := r.FormValue("theme")
+
+	switch theme {
+	case "dark", "light", "auto":
+	default:
+		http.Error(w, "invalid theme", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := h.store.UpdateUserTheme(r.Context(), id, theme); errors.Is(err, store.ErrNotFound) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		h.logger.Error("failed to update theme", "id", id, "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/user/"+id.String(), http.StatusSeeOther)
+}
+
+func (h *Handler) handleUpdateFontSize(w http.ResponseWriter, r *http.Request) {
+	authedUser, ok := reqctx.User(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	id, err := pathUUID(r)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	if id != authedUser.ID {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	fontSize := r.FormValue("font_size")
+
+	switch fontSize {
+	case "small", "medium", "large":
+	default:
+		http.Error(w, "invalid font size", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := h.store.UpdateUserFontSize(r.Context(), id, fontSize); errors.Is(err, store.ErrNotFound) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		h.logger.Error("failed to update font size", "id", id, "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
