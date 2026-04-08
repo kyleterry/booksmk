@@ -17,6 +17,9 @@ func (s *Server) registerRoutes() {
 	s.mux.Handle("/url", s.requireAuth(s.urlHandler))
 	s.mux.Handle("/url/", s.requireAuth(s.urlHandler))
 
+	s.mux.Handle("/category/", s.requireAuth(s.categoryHandler))
+	s.mux.Handle("/category", s.requireAuth(s.categoryHandler))
+
 	s.mux.Handle("/feed", s.requireAuth(s.feedHandler))
 	s.mux.Handle("/feed/", s.requireAuth(s.feedHandler))
 

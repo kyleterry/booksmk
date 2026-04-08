@@ -24,7 +24,7 @@ templ TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, h
 		</div>
 	}
 	if len(groups) == 0 {
-		<div class="empty">no items yet — <a href="/feed/new">subscribe to a feed</a></div>
+		<div class="empty">no items yet - <a href="/feed/new">subscribe to a feed</a></div>
 	} else {
 		for _, g := range groups {
 			<div class="date-group">
@@ -114,7 +114,7 @@ templ FeedDetailPage(feed store.Feed, groups []store.FeedItemGroup) {
 		</div>
 	}
 	if len(groups) == 0 {
-		<div class="empty">no items yet — check back soon</div>
+		<div class="empty">no items yet - check back soon</div>
 	} else {
 		for _, g := range groups {
 			<div class="date-group">

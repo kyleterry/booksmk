@@ -76,7 +76,7 @@ templ UserDetailPage(user store.User, keys []store.APIKey) {
 		}
 	</div>
 	if len(keys) >= 5 {
-		<div class="error" style="border-color:var(--bg3);background:#252020;color:var(--fg3);margin-bottom:1rem">limit of 5 keys reached — delete one to create another</div>
+		<div class="error" style="border-color:var(--bg3);background:#252020;color:var(--fg3);margin-bottom:1rem">limit of 5 keys reached - delete one to create another</div>
 	}
 	if len(keys) == 0 {
 		<div class="empty">no api keys yet</div>

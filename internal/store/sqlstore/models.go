@@ -19,6 +19,21 @@ type APIKey struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type Category struct {
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	Name      string             `json:"name"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type CategoryMember struct {
+	ID         uuid.UUID `json:"id"`
+	CategoryID uuid.UUID `json:"category_id"`
+	Kind       string    `json:"kind"`
+	Value      string    `json:"value"`
+}
+
 type DiscussionRun struct {
 	ID          int32              `json:"id"`
 	ScheduledAt pgtype.Timestamptz `json:"scheduled_at"`

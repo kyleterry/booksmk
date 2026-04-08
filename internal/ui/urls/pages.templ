@@ -8,13 +8,19 @@ import (
 	"go.e64ec.com/booksmk/internal/store"
 )
 
-templ ListPage(urls []store.URL) {
+templ ListPage(urls []store.URL, categories []store.Category) {
 	<div class="page-header">
 		<h1>urls <span class="count">({ itoa(len(urls)) })</span></h1>
-		<a href="/url/new" class="btn btn-primary">+ add</a>
+		<div style="display:flex;gap:0.5rem">
+			<a href="/category/new" class="btn btn-sm">+ category</a>
+			<a href="/url/new" class="btn btn-primary">+ add</a>
+		</div>
 	</div>
+	if len(categories) > 0 {
+		@categoryNav(categories, "")
+	}
 	if len(urls) == 0 {
-		<div class="empty">no bookmarks yet — <a href="/url/new">add one</a></div>
+		<div class="empty">no bookmarks yet - <a href="/url/new">add one</a></div>
 	} else {
 		<input type="search" class="filter-input" placeholder="filter…" id="url-filter"/>
 		for _, u := range urls {
@@ -158,16 +164,58 @@ templ DetailPage(u store.URL, discussions []store.Discussion, subscribedFeed *st
 	}
 }
 
-templ TagPage(tag string, urls []store.URL) {
+templ TagPage(tag string, urls []store.URL, categories []store.Category) {
 	<div class="page-header">
-		<h1>tag: <span style="color:var(--aqua)">{ tag }</span> <span class="count">({ itoa(len(urls)) })</span></h1>
+		<h1>tag: <span style="color:var(--accent)">{ tag }</span> <span class="count">({ itoa(len(urls)) })</span></h1>
+		<a href="/url/new" class="btn btn-primary">+ add</a>
 	</div>
+	if len(categories) > 0 {
+		@categoryNav(categories, "")
+	}
 	if len(urls) == 0 {
 		<div class="empty">no bookmarks with this tag</div>
 	}
 	for _, u := range urls {
 		@urlCard(u)
 	}
+}
+
+templ CategoryPage(cat *store.Category, urls []store.URL, categories []store.Category) {
+	<div class="page-header">
+		if cat != nil {
+			<h1>{ cat.Name } <span class="count">({ itoa(len(urls)) })</span></h1>
+			<a href={ templ.SafeURL("/category/" + cat.ID.String() + "/edit") } class="btn btn-sm">edit</a>
+		} else {
+			<h1>category <span class="count">({ itoa(len(urls)) })</span></h1>
+		}
+	</div>
+	if len(categories) > 0 {
+		@categoryNav(categories, activeCategoryID(cat))
+	}
+	if len(urls) == 0 {
+		<div class="empty">no bookmarks match this category</div>
+	}
+	for _, u := range urls {
+		@urlCard(u)
+	}
+}
+
+templ categoryNav(categories []store.Category, activeID string) {
+	<div class="feed-nav">
+		for _, c := range categories {
+			<a
+				href={ templ.SafeURL("/url?category=" + c.ID.String()) }
+				class={ "feed-nav-link", templ.KV("feed-nav-link-active", c.ID.String() == activeID) }
+			>{ c.Name }</a>
+		}
+	</div>
+}
+
+func activeCategoryID(cat *store.Category) string {
+	if cat == nil {
+		return ""
+	}
+	return cat.ID.String()
 }
 
 templ NewPage(errMsg string) {

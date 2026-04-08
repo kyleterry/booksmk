@@ -21,11 +21,13 @@ type urlStore interface {
 	GetURL(ctx context.Context, id, userID uuid.UUID) (store.URL, error)
 	ListURLs(ctx context.Context, userID uuid.UUID) ([]store.URL, error)
 	ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string) ([]store.URL, error)
+	ListURLsByCategory(ctx context.Context, userID, categoryID uuid.UUID) ([]store.URL, error)
 	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error)
 	UpdateURL(ctx context.Context, id, userID uuid.UUID, title, description string, tags []string) (store.URL, error)
 	DeleteURL(ctx context.Context, id, userID uuid.UUID) error
 	ListDiscussionsForURL(ctx context.Context, urlID uuid.UUID) ([]store.Discussion, error)
 	SetURLFeedURL(ctx context.Context, id uuid.UUID, feedURL string) error
+	ListCategories(ctx context.Context, userID uuid.UUID) ([]store.Category, error)
 }
 
 type feedQueryStore interface {
@@ -131,6 +133,13 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	categories, err := h.store.ListCategories(r.Context(), user.ID)
+	if err != nil {
+		h.logger.Error("failed to list categories", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	if tag := r.URL.Query().Get("tag"); tag != "" {
 		urls, err := h.store.ListURLsByTag(r.Context(), user.ID, tag)
 		if err != nil {
@@ -138,7 +147,32 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
-		h.render(w, r, ui.Base("tag: "+tag, h.navUser(r), urlpages.TagPage(tag, urls)))
+		h.render(w, r, ui.Base("tag: "+tag, h.navUser(r), urlpages.TagPage(tag, urls, categories)))
+		return
+	}
+
+	if catID := r.URL.Query().Get("category"); catID != "" {
+		id, err := uuid.Parse(catID)
+		if err != nil {
+			http.Error(w, "invalid category id", http.StatusBadRequest)
+			return
+		}
+		urls, err := h.store.ListURLsByCategory(r.Context(), user.ID, id)
+		if err != nil {
+			h.logger.Error("failed to list urls by category", "category_id", id, "error", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+		var cat *store.Category
+
+		for i := range categories {
+			if categories[i].ID == id {
+				cat = &categories[i]
+				break
+			}
+		}
+
+		h.render(w, r, ui.Base("category: "+catID, h.navUser(r), urlpages.CategoryPage(cat, urls, categories)))
 		return
 	}
 
@@ -149,7 +183,7 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, r, ui.Base("urls", h.navUser(r), urlpages.ListPage(urls)))
+	h.render(w, r, ui.Base("urls", h.navUser(r), urlpages.ListPage(urls, categories)))
 }
 
 func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {

@@ -202,7 +202,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	parsed, err := h.parser.ParseURLWithContext(feedURL, ctx)
 	if err != nil {
 		h.logger.Info("could not parse feed", "url", feedURL, "error", err)
-		h.render(w, r, ui.Base("add feed", h.navUser(r), feedpages.NewFeedPage("could not fetch or parse feed — check the url", feedURL)))
+		h.render(w, r, ui.Base("add feed", h.navUser(r), feedpages.NewFeedPage("could not fetch or parse feed - check the url", feedURL)))
 		return
 	}
 

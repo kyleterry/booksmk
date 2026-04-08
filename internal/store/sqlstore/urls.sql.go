@@ -118,6 +118,70 @@ func (q *Queries) ListURLs(ctx context.Context, userID uuid.UUID) ([]ListURLsRow
 	return items, nil
 }
 
+const listURLsByCategory = `-- name: ListURLsByCategory :many
+select distinct u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+from urls u
+join user_urls uu on uu.url_id = u.id
+where uu.user_id = $1
+  and (
+    exists (
+      select 1 from url_tags ut
+      join tags t on t.id = ut.tag_id
+      join category_members cm on cm.kind = 'tag' and cm.value = t.name
+      where ut.user_id = $1 and ut.url_id = u.id and cm.category_id = $2
+    )
+    or exists (
+      select 1 from category_members cm
+      where cm.category_id = $2 and cm.kind = 'domain'
+        and regexp_replace(u.url, '^https?://([^/?#]+).*$', '\1', 'i') = cm.value
+    )
+  )
+order by uu.created_at desc
+`
+
+type ListURLsByCategoryParams struct {
+	UserID     uuid.UUID `json:"user_id"`
+	CategoryID uuid.UUID `json:"category_id"`
+}
+
+type ListURLsByCategoryRow struct {
+	ID          uuid.UUID          `json:"id"`
+	Url         string             `json:"url"`
+	FeedUrl     string             `json:"feed_url"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) ListURLsByCategory(ctx context.Context, arg ListURLsByCategoryParams) ([]ListURLsByCategoryRow, error) {
+	rows, err := q.db.Query(ctx, listURLsByCategory, arg.UserID, arg.CategoryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListURLsByCategoryRow
+	for rows.Next() {
+		var i ListURLsByCategoryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Url,
+			&i.FeedUrl,
+			&i.Title,
+			&i.Description,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listURLsByTag = `-- name: ListURLsByTag :many
 select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 from urls u

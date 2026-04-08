@@ -160,3 +160,20 @@ create table feed_poll_jobs (
 
 create index on feed_items (feed_id, published_at desc);
 create index on feed_poll_jobs (scheduled_at);
+
+create table categories (
+	id         uuid        primary key default gen_random_uuid(),
+	user_id    uuid        not null references users(id) on delete cascade,
+	name       text        not null,
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now(),
+	unique (user_id, name)
+);
+
+create table category_members (
+	id          uuid primary key default gen_random_uuid(),
+	category_id uuid not null references categories(id) on delete cascade,
+	kind        text not null check (kind in ('tag', 'domain')),
+	value       text not null,
+	unique (category_id, kind, value)
+);

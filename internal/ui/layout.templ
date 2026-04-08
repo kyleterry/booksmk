@@ -28,7 +28,7 @@ templ Base(title string, user *NavUser, content templ.Component) {
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<title>{ title } — booksmk</title>
+			<title>{ title } - booksmk</title>
 			<link rel="preconnect" href="https://fonts.googleapis.com"/>
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 			<link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300;400;600&display=swap" rel="stylesheet"/>
@@ -428,6 +428,7 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					transition: all 0.1s;
 				}
 				.feed-nav-link:hover { border-color: var(--bg3); color: var(--fg1); background: var(--bg1); text-decoration: none; }
+				.feed-nav-link-active { border-color: var(--accent-d); color: var(--accent); }
 				.feed-item-unread { border-left-color: var(--accent-d); }
 				.feed-item-read { opacity: 0.55; }
 				.feed-item-read:hover { opacity: 1; }
