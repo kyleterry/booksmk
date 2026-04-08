@@ -67,7 +67,7 @@ func ListPage(keys []store.APIKey, atLimit bool) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if atLimit {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"error\" style=\"border-color:var(--bg3);background:#252020;color:var(--fg3)\">limit of 5 keys reached — delete one to create another</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"error\" style=\"border-color:var(--bg3);background:#252020;color:var(--fg3)\">limit of 5 keys reached - delete one to create another</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -296,7 +296,7 @@ func CreatedPage(k store.APIKey, token string, userID string) templ.Component {
 			templ_7745c5c3_Var13 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<div class=\"page-header\"><h1>api key created</h1></div><div class=\"error\" style=\"border-color:var(--aqua-d);background:#1a261a;color:var(--aqua)\">copy this token now — it will not be shown again</div><div class=\"card\" style=\"margin-bottom:1.5rem\"><div class=\"detail-field\"><div class=\"detail-label\">name</div><div class=\"detail-value\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<div class=\"page-header\"><h1>api key created</h1></div><div class=\"error\" style=\"border-color:var(--aqua-d);background:#1a261a;color:var(--aqua)\">copy this token now - it will not be shown again</div><div class=\"card\" style=\"margin-bottom:1.5rem\"><div class=\"detail-field\"><div class=\"detail-label\">name</div><div class=\"detail-value\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

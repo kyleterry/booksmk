@@ -255,7 +255,7 @@ func UserDetailPage(user store.User, keys []store.APIKey) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if len(keys) >= 5 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<div class=\"error\" style=\"border-color:var(--bg3);background:#252020;color:var(--fg3);margin-bottom:1rem\">limit of 5 keys reached — delete one to create another</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<div class=\"error\" style=\"border-color:var(--bg3);background:#252020;color:var(--fg3);margin-bottom:1rem\">limit of 5 keys reached - delete one to create another</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -84,7 +84,7 @@ func TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, ha
 			}
 		}
 		if len(groups) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div class=\"empty\">no items yet — <a href=\"/feed/new\">subscribe to a feed</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div class=\"empty\">no items yet - <a href=\"/feed/new\">subscribe to a feed</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -632,7 +632,7 @@ func FeedDetailPage(feed store.Feed, groups []store.FeedItemGroup) templ.Compone
 			}
 		}
 		if len(groups) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "<div class=\"empty\">no items yet — check back soon</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "<div class=\"empty\">no items yet - check back soon</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

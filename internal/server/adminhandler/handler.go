@@ -132,7 +132,7 @@ func (h *Handler) handleListUsers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	h.render(w, r, ui.Base("admin — users", h.navUser(r), adminpages.UsersPage(users)))
+	h.render(w, r, ui.Base("admin - users", h.navUser(r), adminpages.UsersPage(users)))
 }
 
 func (h *Handler) handleResetPasswordForm(w http.ResponseWriter, r *http.Request) {

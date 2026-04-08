@@ -14,7 +14,7 @@ templ ListPage(urls []store.URL) {
 		<a href="/url/new" class="btn btn-primary">+ add</a>
 	</div>
 	if len(urls) == 0 {
-		<div class="empty">no bookmarks yet — <a href="/url/new">add one</a></div>
+		<div class="empty">no bookmarks yet - <a href="/url/new">add one</a></div>
 	} else {
 		<input type="search" class="filter-input" placeholder="filter…" id="url-filter"/>
 		for _, u := range urls {

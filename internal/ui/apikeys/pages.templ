@@ -15,7 +15,7 @@ templ ListPage(keys []store.APIKey, atLimit bool) {
 		}
 	</div>
 	if atLimit {
-		<div class="error" style="border-color:var(--bg3);background:#252020;color:var(--fg3)">limit of 5 keys reached — delete one to create another</div>
+		<div class="error" style="border-color:var(--bg3);background:#252020;color:var(--fg3)">limit of 5 keys reached - delete one to create another</div>
 	}
 	if len(keys) == 0 {
 		<div class="empty">no api keys yet</div>
@@ -77,7 +77,7 @@ templ CreatedPage(k store.APIKey, token string, userID string) {
 		<h1>api key created</h1>
 	</div>
 	<div class="error" style="border-color:var(--aqua-d);background:#1a261a;color:var(--aqua)">
-		copy this token now — it will not be shown again
+		copy this token now - it will not be shown again
 	</div>
 	<div class="card" style="margin-bottom:1.5rem">
 		<div class="detail-field">
