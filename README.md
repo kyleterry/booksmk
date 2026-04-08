@@ -2,6 +2,10 @@
 
 A personal URL bookmarking service. Spiritual successor to [sufr](https://github.com/kyleterry/sufr).
 
+## Screenshots
+
+See [docs/screenshots.md](docs/screenshots.md) for what you're gonna get.
+
 ## Features
 
 - Save and organize URLs with titles, descriptions, and tags
