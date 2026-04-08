@@ -91,9 +91,9 @@ templ UserDetailPage(user store.User, keys []store.APIKey) {
 				if k.ExpiresAt == nil {
 					<span>expires: never</span>
 				} else {
-					<span>expires: { k.ExpiresAt.Format("2006-01-02") }</span>
+					<span>expires: <time datetime={ k.ExpiresAt.UTC().Format("2006-01-02T15:04:05Z07:00") }>{ k.ExpiresAt.Format("Jan 2, 2006") }</time></span>
 				}
-				<span style="margin-left:1rem;color:var(--bg3)">created: { k.CreatedAt.Format("2006-01-02") }</span>
+				<span style="margin-left:1rem;color:var(--bg3)">created: <time datetime={ k.CreatedAt.UTC().Format("2006-01-02T15:04:05Z07:00") }>{ k.CreatedAt.Format("Jan 2, 2006") }</time></span>
 			</div>
 			<div class="card-footer">
 				<form method="POST" action={ templ.SafeURL("/apikey/" + k.ID.String()) } style="margin:0">

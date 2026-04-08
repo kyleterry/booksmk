@@ -23,11 +23,11 @@ templ inviteCard(c store.InviteCode) {
 		<div style="font-size:0.75rem;color:var(--fg4);margin-top:0.35rem">
 			if c.UsedBy != nil {
 				<span style="color:var(--aqua)">used</span>
-				<span style="margin-left:0.5rem">{ c.UsedAt.Format("2006-01-02") }</span>
+				<time style="margin-left:0.5rem" datetime={ c.UsedAt.UTC().Format("2006-01-02T15:04:05Z07:00") }>{ c.UsedAt.Format("Jan 2, 2006") }</time>
 			} else {
 				<span style="color:var(--yellow)">available</span>
 			}
-			<span style="margin-left:1rem;color:var(--bg3)">created: { c.CreatedAt.Format("2006-01-02") }</span>
+			<span style="margin-left:1rem;color:var(--bg3)">created: <time datetime={ c.CreatedAt.UTC().Format("2006-01-02T15:04:05Z07:00") }>{ c.CreatedAt.Format("Jan 2, 2006") }</time></span>
 		</div>
 		if c.UsedBy == nil {
 			<div class="card-footer">

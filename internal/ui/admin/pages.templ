@@ -35,7 +35,7 @@ templ UsersPage(users []store.User) {
 									<span>user</span>
 								}
 							</td>
-							<td style="padding:0.55rem 0.75rem;color:var(--fg4)">{ u.CreatedAt.Format("2006-01-02") }</td>
+							<td style="padding:0.55rem 0.75rem;color:var(--fg4)"><time datetime={ u.CreatedAt.UTC().Format("2006-01-02T15:04:05Z07:00") }>{ u.CreatedAt.Format("Jan 2, 2006") }</time></td>
 							<td style="padding:0.55rem 0 0.55rem 0.75rem;text-align:right">
 								<a href={ templ.SafeURL("/admin/users/" + u.ID.String() + "/reset-password") } class="btn btn-sm">reset password</a>
 							</td>
@@ -103,7 +103,7 @@ templ AdminPage(runs []store.BatchRunSummary, nextAt time.Time, codes []store.In
 				<tbody>
 					for _, r := range runs {
 						<tr style="border-bottom:1px solid var(--bg1)">
-							<td style="padding:0.55rem 0.75rem 0.55rem 0;color:var(--fg2);white-space:nowrap">{ r.StartedAt.Format("Jan 2 15:04") }</td>
+							<td style="padding:0.55rem 0.75rem 0.55rem 0;color:var(--fg2);white-space:nowrap"><time datetime={ r.StartedAt.UTC().Format("2006-01-02T15:04:05Z07:00") } data-fmt="datetime">{ r.StartedAt.Format("Jan 2 15:04") }</time></td>
 							<td style="padding:0.55rem 0.75rem;color:var(--fg3);white-space:nowrap">{ formatDuration(r.CompletedAt.Sub(r.StartedAt)) }</td>
 							<td style="padding:0.55rem 0.75rem;text-align:right;color:var(--fg3)">{ fmt.Sprintf("%d", r.URLCount) }</td>
 							<td style="padding:0.55rem 0 0.55rem 0.75rem;text-align:right">
@@ -139,11 +139,11 @@ templ inviteCard(c store.InviteCode) {
 		<div style="font-size:0.75rem;color:var(--fg4);margin-top:0.35rem">
 			if c.UsedBy != nil {
 				<span style="color:var(--green)">used</span>
-				<span style="margin-left:0.5rem">{ c.UsedAt.Format("2006-01-02") }</span>
+				<time style="margin-left:0.5rem" datetime={ c.UsedAt.UTC().Format("2006-01-02T15:04:05Z07:00") }>{ c.UsedAt.Format("Jan 2, 2006") }</time>
 			} else {
 				<span style="color:var(--accent)">available</span>
 			}
-			<span style="margin-left:1rem;color:var(--bg3)">created: { c.CreatedAt.Format("2006-01-02") }</span>
+			<span style="margin-left:1rem;color:var(--bg3)">created: <time datetime={ c.CreatedAt.UTC().Format("2006-01-02T15:04:05Z07:00") }>{ c.CreatedAt.Format("Jan 2, 2006") }</time></span>
 		</div>
 		if c.UsedBy == nil {
 			<div class="card-footer">
@@ -160,7 +160,7 @@ templ nextRunLabel(t time.Time) {
 	if t.Before(time.Now()) {
 		<span style="color:var(--accent)">now</span>
 	} else {
-		<span style="color:var(--fg3)">{ t.Format("Jan 2 15:04") }</span>
+		<time style="color:var(--fg3)" datetime={ t.UTC().Format("2006-01-02T15:04:05Z07:00") } data-fmt="datetime">{ t.Format("Jan 2 15:04") }</time>
 	}
 }
 

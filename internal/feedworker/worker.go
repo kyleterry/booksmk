@@ -93,7 +93,9 @@ func (w *Worker) processJob(ctx context.Context, job store.FeedPollJob) {
 		return
 	}
 
-	siteURL := feed.Link
+	// feed.Link (channel <link>) can be a relative URL (e.g. pjrc.com uses "/").
+	// Resolve it against the feed URL so we always have an absolute site URL.
+	siteURL := resolveURL(job.FeedURL, feed.Link)
 	title := feed.Title
 	description := feed.Description
 	imageURL := ""
@@ -106,8 +108,8 @@ func (w *Worker) processJob(ctx context.Context, job store.FeedPollJob) {
 		w.logger.Warn("update feed meta", "feed_id", job.FeedID, "error", err)
 	}
 
-	// base URL for resolving relative item links: prefer feed.Link (site URL), fall back to feed URL
-	baseURL := feed.Link
+	// base URL for resolving relative item links: prefer resolved site URL, fall back to feed URL.
+	baseURL := siteURL
 	if baseURL == "" {
 		baseURL = job.FeedURL
 	}
@@ -193,8 +195,9 @@ func truncateSummary(s string) string {
 		}
 	}
 	result := strings.TrimSpace(b.String())
-	if len(result) > 500 {
-		result = result[:500]
+	runes := []rune(result)
+	if len(runes) > 500 {
+		result = string(runes[:500])
 	}
 	return result
 }
