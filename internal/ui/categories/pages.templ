@@ -1,0 +1,59 @@
+package categories
+
+import (
+	"strings"
+
+	"go.e64ec.com/booksmk/internal/store"
+)
+
+templ NewPage(errMsg string) {
+	<div class="page-header">
+		<h1>new category</h1>
+	</div>
+	if errMsg != "" {
+		<div class="error">{ errMsg }</div>
+	}
+	<form method="POST" action="/category">
+		<label for="name">name <span style="color:var(--red)">*</span></label>
+		<input type="text" id="name" name="name" required autofocus placeholder="e.g. Tech"/>
+		<label for="members">members <span style="color:var(--red)">*</span></label>
+		<input type="text" id="members" name="members" placeholder="tag:linux, tag:raspberry-pi, domain:github.com"/>
+		<p class="form-hint">comma-separated list of tag:name or domain:hostname filters</p>
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">save</button>
+			<a href="/url" class="btn">cancel</a>
+		</div>
+	</form>
+}
+
+templ EditPage(cat store.Category, errMsg string) {
+	<div class="page-header">
+		<h1>edit category</h1>
+	</div>
+	if errMsg != "" {
+		<div class="error">{ errMsg }</div>
+	}
+	<form method="POST" action={ templ.SafeURL("/category/" + cat.ID.String()) }>
+		<label for="name">name <span style="color:var(--red)">*</span></label>
+		<input type="text" id="name" name="name" value={ cat.Name } required autofocus/>
+		<label for="members">members</label>
+		<input type="text" id="members" name="members" value={ membersString(cat.Members) }/>
+		<p class="form-hint">comma-separated list of tag:name or domain:hostname filters</p>
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">save</button>
+			<a href={ templ.SafeURL("/url?category=" + cat.ID.String()) } class="btn">cancel</a>
+			<form method="POST" action={ templ.SafeURL("/category/" + cat.ID.String()) } style="margin:0">
+				<input type="hidden" name="_method" value="DELETE"/>
+				<button type="submit" class="btn btn-danger">delete</button>
+			</form>
+		</div>
+	</form>
+}
+
+func membersString(members []store.CategoryMember) string {
+	parts := make([]string, len(members))
+	for i, m := range members {
+		parts[i] = string(m.Kind) + ":" + m.Value
+	}
+	return strings.Join(parts, ", ")
+}

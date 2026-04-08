@@ -33,11 +33,13 @@ type mockURLStore struct {
 	GetURLFn                func(context.Context, uuid.UUID, uuid.UUID) (store.URL, error)
 	ListURLsFn              func(context.Context, uuid.UUID) ([]store.URL, error)
 	ListURLsByTagFn         func(context.Context, uuid.UUID, string) ([]store.URL, error)
+	ListURLsByCategoryFn    func(context.Context, uuid.UUID, uuid.UUID) ([]store.URL, error)
 	CreateURLFn             func(context.Context, uuid.UUID, string, string, string, []string) (store.URL, error)
 	UpdateURLFn             func(context.Context, uuid.UUID, uuid.UUID, string, string, []string) (store.URL, error)
 	DeleteURLFn             func(context.Context, uuid.UUID, uuid.UUID) error
 	ListDiscussionsForURLFn func(context.Context, uuid.UUID) ([]store.Discussion, error)
 	SetURLFeedURLFn         func(context.Context, uuid.UUID, string) error
+	ListCategoriesFn        func(context.Context, uuid.UUID) ([]store.Category, error)
 }
 
 type mockFeedStore struct{}
@@ -63,6 +65,20 @@ func (m *mockURLStore) ListURLs(ctx context.Context, userID uuid.UUID) ([]store.
 func (m *mockURLStore) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string) ([]store.URL, error) {
 	if m.ListURLsByTagFn != nil {
 		return m.ListURLsByTagFn(ctx, userID, tag)
+	}
+	return nil, nil
+}
+
+func (m *mockURLStore) ListURLsByCategory(ctx context.Context, userID, categoryID uuid.UUID) ([]store.URL, error) {
+	if m.ListURLsByCategoryFn != nil {
+		return m.ListURLsByCategoryFn(ctx, userID, categoryID)
+	}
+	return nil, nil
+}
+
+func (m *mockURLStore) ListCategories(ctx context.Context, userID uuid.UUID) ([]store.Category, error) {
+	if m.ListCategoriesFn != nil {
+		return m.ListCategoriesFn(ctx, userID)
 	}
 	return nil, nil
 }

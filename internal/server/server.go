@@ -13,6 +13,7 @@ import (
 	"go.e64ec.com/booksmk/internal/server/adminhandler"
 	"go.e64ec.com/booksmk/internal/server/apihandler"
 	"go.e64ec.com/booksmk/internal/server/apikeyhandler"
+	"go.e64ec.com/booksmk/internal/server/categoryhandler"
 	"go.e64ec.com/booksmk/internal/server/feedhandler"
 	"go.e64ec.com/booksmk/internal/server/urlhandler"
 	"go.e64ec.com/booksmk/internal/server/userhandler"
@@ -38,6 +39,7 @@ type Server struct {
 	apiHandler       *apihandler.Handler
 	adminHandler     *adminhandler.Handler
 	feedHandler      *feedhandler.Handler
+	categoryHandler  *categoryhandler.Handler
 	discussionWorker *discuss.Worker
 	feedWorker       *feedworker.Worker
 }
@@ -56,6 +58,7 @@ func New(cfg Config) (*Server, error) {
 		apiHandler:       apihandler.New(st, st, cfg.Logger),
 		adminHandler:     adminhandler.New(st, cfg.Logger),
 		feedHandler:      feedhandler.New(st, cfg.Logger),
+		categoryHandler:  categoryhandler.New(st, cfg.Logger),
 		discussionWorker: discuss.New(st, cfg.Logger),
 		feedWorker:       feedworker.New(st, cfg.Logger),
 	}
