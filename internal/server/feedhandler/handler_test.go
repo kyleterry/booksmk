@@ -725,4 +725,32 @@ func TestDateLabel(t *testing.T) {
 			}
 		})
 	}
+
+	// Verify timezone boundaries: now is UTC-8 evening (local Apr 7),
+	// item published at 04:00 UTC (= Apr 7 20:00 local) — same local day.
+	t.Run("timezone: same local day despite different UTC date", func(t *testing.T) {
+		utcMinus8 := time.FixedZone("UTC-8", -8*60*60)
+		// now: 2024-03-08 20:00 UTC-8 = 2024-03-09 04:00 UTC
+		nowLocal := time.Date(2024, 3, 8, 20, 0, 0, 0, utcMinus8)
+		// item published at 2024-03-09 02:00 UTC = 2024-03-08 18:00 UTC-8 → local today
+		itemUTC := time.Date(2024, 3, 9, 2, 0, 0, 0, time.UTC)
+		got := dateLabel(&itemUTC, nowLocal)
+		if got != "today" {
+			t.Errorf("dateLabel = %q, want %q", got, "today")
+		}
+	})
+
+	// Verify timezone boundaries: now is UTC+8 morning (local Apr 8),
+	// item published at 21:00 UTC previous day (= Apr 8 05:00 local) — local today.
+	t.Run("timezone: local today despite previous UTC date", func(t *testing.T) {
+		utcPlus8 := time.FixedZone("UTC+8", 8*60*60)
+		// now: 2024-03-08 12:00 UTC+8 = 2024-03-08 04:00 UTC
+		nowLocal := time.Date(2024, 3, 8, 12, 0, 0, 0, utcPlus8)
+		// item published at 2024-03-07 21:00 UTC = 2024-03-08 05:00 UTC+8 → local today
+		itemUTC := time.Date(2024, 3, 7, 21, 0, 0, 0, time.UTC)
+		got := dateLabel(&itemUTC, nowLocal)
+		if got != "today" {
+			t.Errorf("dateLabel = %q, want %q", got, "today")
+		}
+	})
 }

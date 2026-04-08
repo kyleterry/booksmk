@@ -9,7 +9,7 @@ import (
 
 // dateLabel returns the display label for a published timestamp relative to now.
 //
-// Rules (all computed in UTC):
+// Rules (computed in now's timezone):
 //   - nil             → "older"
 //   - 0 days ago      → "today"
 //   - 1 day ago       → "yesterday"
@@ -21,16 +21,18 @@ func dateLabel(t *time.Time, now time.Time) string {
 	if t == nil {
 		return "older"
 	}
-	todayUTC := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	tUTC := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
-	days := int(todayUTC.Sub(tUTC).Hours() / 24)
+	loc := now.Location()
+	tLocal := t.In(loc)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	tDay := time.Date(tLocal.Year(), tLocal.Month(), tLocal.Day(), 0, 0, 0, 0, loc)
+	days := int(today.Sub(tDay).Hours() / 24)
 	switch {
 	case days <= 0:
 		return "today"
 	case days == 1:
 		return "yesterday"
 	case days < 7:
-		return strings.ToLower(t.Weekday().String())
+		return strings.ToLower(tLocal.Weekday().String())
 	case days < 14:
 		return "last week"
 	case days < 60:
