@@ -10,10 +10,10 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/kyleterry/booksmk/internal/reqctx"
-	"github.com/kyleterry/booksmk/internal/store"
-	"github.com/kyleterry/booksmk/internal/ui"
-	userpages "github.com/kyleterry/booksmk/internal/ui/users"
+	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/ui"
+	userpages "go.e64ec.com/booksmk/internal/ui/users"
 )
 
 type userStore interface {

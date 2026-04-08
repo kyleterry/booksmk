@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/kyleterry/booksmk/internal/store/sqlstore"
+	"go.e64ec.com/booksmk/internal/store/sqlstore"
 )
 
 // Store wraps the sqlc-generated sqlstore package with domain-level operations.

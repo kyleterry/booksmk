@@ -8,10 +8,10 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/kyleterry/booksmk/internal/migrate"
-	"github.com/kyleterry/booksmk/internal/store"
-	"github.com/kyleterry/booksmk/internal/testdb"
-	"github.com/kyleterry/booksmk/sql/migrations"
+	"go.e64ec.com/booksmk/internal/migrate"
+	"go.e64ec.com/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/testdb"
+	"go.e64ec.com/booksmk/sql/migrations"
 )
 
 var silentLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))

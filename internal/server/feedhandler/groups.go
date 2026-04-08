@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kyleterry/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/store"
 )
 
 // dateLabel returns the display label for a published timestamp relative to now.

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kyleterry/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/store"
 )
 
 // mustCreateUser is a test helper that creates a user and fails the test on error.

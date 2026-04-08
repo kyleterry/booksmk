@@ -8,15 +8,15 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/kyleterry/booksmk/internal/discuss"
-	"github.com/kyleterry/booksmk/internal/feedworker"
-	"github.com/kyleterry/booksmk/internal/server/adminhandler"
-	"github.com/kyleterry/booksmk/internal/server/apihandler"
-	"github.com/kyleterry/booksmk/internal/server/apikeyhandler"
-	"github.com/kyleterry/booksmk/internal/server/feedhandler"
-	"github.com/kyleterry/booksmk/internal/server/urlhandler"
-	"github.com/kyleterry/booksmk/internal/server/userhandler"
-	"github.com/kyleterry/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/discuss"
+	"go.e64ec.com/booksmk/internal/feedworker"
+	"go.e64ec.com/booksmk/internal/server/adminhandler"
+	"go.e64ec.com/booksmk/internal/server/apihandler"
+	"go.e64ec.com/booksmk/internal/server/apikeyhandler"
+	"go.e64ec.com/booksmk/internal/server/feedhandler"
+	"go.e64ec.com/booksmk/internal/server/urlhandler"
+	"go.e64ec.com/booksmk/internal/server/userhandler"
+	"go.e64ec.com/booksmk/internal/store"
 )
 
 // Config holds server configuration.

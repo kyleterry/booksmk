@@ -8,10 +8,10 @@ import (
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
 
-	"github.com/kyleterry/booksmk/internal/reqctx"
-	"github.com/kyleterry/booksmk/internal/store"
-	"github.com/kyleterry/booksmk/internal/ui"
-	invitepages "github.com/kyleterry/booksmk/internal/ui/invites"
+	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/ui"
+	invitepages "go.e64ec.com/booksmk/internal/ui/invites"
 )
 
 type inviteStore interface {

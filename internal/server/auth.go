@@ -7,9 +7,9 @@ import (
 	"github.com/a-h/templ"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/kyleterry/booksmk/internal/store"
-	"github.com/kyleterry/booksmk/internal/ui"
-	"github.com/kyleterry/booksmk/internal/ui/auth"
+	"go.e64ec.com/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/ui"
+	"go.e64ec.com/booksmk/internal/ui/auth"
 )
 
 func (s *Server) render(w http.ResponseWriter, r *http.Request, c templ.Component) {

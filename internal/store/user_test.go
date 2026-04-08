@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kyleterry/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/store"
 )
 
 func TestCreateUser(t *testing.T) {

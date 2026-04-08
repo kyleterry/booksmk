@@ -9,9 +9,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/kyleterry/booksmk/internal/migrate"
-	"github.com/kyleterry/booksmk/internal/server"
-	"github.com/kyleterry/booksmk/sql/migrations"
+	"go.e64ec.com/booksmk/internal/migrate"
+	"go.e64ec.com/booksmk/internal/server"
+	"go.e64ec.com/booksmk/sql/migrations"
 )
 
 func main() {

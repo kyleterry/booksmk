@@ -13,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/kyleterry/booksmk/internal/store/sqlstore"
+	"go.e64ec.com/booksmk/internal/store/sqlstore"
 )
 
 const maxAPIKeys = 5

@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/mmcdole/gofeed"
 
-	"github.com/kyleterry/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/store"
 )
 
 // feedStore is the subset of store.Store the worker needs.

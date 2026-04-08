@@ -1,4 +1,4 @@
-module github.com/kyleterry/booksmk
+module go.e64ec.com/booksmk
 
 go 1.26.1
 

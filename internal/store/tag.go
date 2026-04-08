@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/kyleterry/booksmk/internal/store/sqlstore"
+	"go.e64ec.com/booksmk/internal/store/sqlstore"
 )
 
 // setURLTags replaces all tags for a user's URL with the given tag names.

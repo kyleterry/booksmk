@@ -11,10 +11,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/kyleterry/booksmk/internal/migrate"
-	"github.com/kyleterry/booksmk/internal/store"
-	"github.com/kyleterry/booksmk/internal/urlfetch"
-	"github.com/kyleterry/booksmk/sql/migrations"
+	"go.e64ec.com/booksmk/internal/migrate"
+	"go.e64ec.com/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/urlfetch"
+	"go.e64ec.com/booksmk/sql/migrations"
 )
 
 func main() {

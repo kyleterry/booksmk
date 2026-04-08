@@ -11,10 +11,10 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/kyleterry/booksmk/internal/reqctx"
-	"github.com/kyleterry/booksmk/internal/store"
-	"github.com/kyleterry/booksmk/internal/ui"
-	adminpages "github.com/kyleterry/booksmk/internal/ui/admin"
+	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/ui"
+	adminpages "go.e64ec.com/booksmk/internal/ui/admin"
 )
 
 type adminStore interface {

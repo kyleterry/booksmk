@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/kyleterry/booksmk/internal/store/sqlstore"
+	"go.e64ec.com/booksmk/internal/store/sqlstore"
 )
 
 var ErrNotFound = errors.New("not found")
