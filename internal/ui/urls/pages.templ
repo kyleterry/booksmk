@@ -231,7 +231,7 @@ func activeCategoryID(cat *store.Category) string {
 	return cat.ID.String()
 }
 
-templ NewPage(errMsg string) {
+templ NewPage(prefillURL, prefillTitle, errMsg string) {
 	<div class="page-header">
 		<h1>add url</h1>
 	</div>
@@ -240,9 +240,9 @@ templ NewPage(errMsg string) {
 	}
 	<form method="POST" action="/url">
 		<label for="url">url <span style="color:var(--red)">*</span></label>
-		<input type="url" id="url" name="url" required autofocus placeholder="https://"/>
+		<input type="url" id="url" name="url" required autofocus?={ prefillURL == "" } autofocus value={ prefillURL } placeholder="https://"/>
 		<label for="title">title</label>
-		<input type="text" id="title" name="title" placeholder="optional"/>
+		<input type="text" id="title" name="title" autofocus?={ prefillURL != "" } value={ prefillTitle } placeholder="optional"/>
 		<label for="description">description</label>
 		<textarea id="description" name="description" placeholder="optional"></textarea>
 		<label for="tags">tags</label>

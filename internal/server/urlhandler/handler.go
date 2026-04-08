@@ -187,7 +187,9 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage("")))
+	prefillURL := r.URL.Query().Get("url")
+	prefillTitle := r.URL.Query().Get("title")
+	h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage(prefillURL, prefillTitle, "")))
 }
 
 func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -204,7 +206,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 	rawURL := r.FormValue("url")
 	if rawURL == "" {
-		h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage("url is required")))
+		h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage("", "", "url is required")))
 		return
 	}
 
@@ -222,7 +224,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	u, err := h.store.CreateURL(r.Context(), user.ID, rawURL, title, r.FormValue("description"), tags)
 	if err != nil {
 		h.logger.Error("failed to create url", "error", err)
-		h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage("failed to save url")))
+		h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage(rawURL, r.FormValue("title"), "failed to save url")))
 		return
 	}
 

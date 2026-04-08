@@ -173,7 +173,13 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, r, ui.Base("settings", h.navUser(r), userpages.UserDetailPage(user, keys)))
+	scheme := "https"
+	if r.TLS == nil {
+		scheme = "http"
+	}
+	baseURL := scheme + "://" + r.Host
+
+	h.render(w, r, ui.Base("settings", h.navUser(r), userpages.UserDetailPage(user, keys, baseURL)))
 }
 
 func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {

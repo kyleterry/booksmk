@@ -6,6 +6,16 @@ import (
 	"go.e64ec.com/booksmk/internal/store"
 )
 
+func bookmarkletHref(baseURL string) templ.SafeURL {
+	js := `javascript:(function(){` +
+		`var u=encodeURIComponent(location.href);` +
+		`var t=encodeURIComponent(document.title);` +
+		`window.open('` + baseURL + `/url/new?url='+u+'&title='+t,` +
+		`'booksmk','width=640,height=520,toolbar=0,menubar=0,location=0,scrollbars=1');` +
+		`})();`
+	return templ.SafeURL(js)
+}
+
 templ RegisterPage(errMsg string, requireInvite bool) {
 	<div style="max-width:360px;margin:4rem auto">
 		<h1>create account</h1>
@@ -29,7 +39,7 @@ templ RegisterPage(errMsg string, requireInvite bool) {
 	</div>
 }
 
-templ UserDetailPage(user store.User, keys []store.APIKey) {
+templ UserDetailPage(user store.User, keys []store.APIKey, baseURL string) {
 	<div class="page-header">
 		<h1>settings</h1>
 	</div>
@@ -66,6 +76,13 @@ templ UserDetailPage(user store.User, keys []store.APIKey) {
 				<option value="large" selected?={ user.FontSize == "large" }>large</option>
 			</select>
 		</form>
+	</div>
+	<div class="card" style="margin-bottom:2rem">
+		<div class="detail-field">
+			<div class="detail-label">bookmarklet</div>
+			<div class="detail-value" style="font-size:0.78rem;color:var(--fg2);margin-bottom:0.75rem">drag the button below to your bookmarks bar, then click it on any page to save it to booksmk</div>
+		</div>
+		<a href={ bookmarkletHref(baseURL) } class="btn btn-primary" onclick="return false;" ondragstart="" style="cursor:grab">save to booksmk</a>
 	</div>
 	<div class="page-header">
 		<h2>api keys <span class="count">({ fmt.Sprintf("%d", len(keys)) }/5)</span></h2>
