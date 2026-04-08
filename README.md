@@ -5,11 +5,14 @@ A personal URL bookmarking service. Spiritual successor to [sufr](https://github
 ## Features
 
 - Save and organize URLs with titles, descriptions, and tags
-- Automatic page title fetching when no title is provided
+- Automatic page title fetching
+- Feed discovery and tracking for saved URLs
+- Multi-user with invite-based registration
+- API key authentication for programmatic access
 
 ## Requirements
 
-- Go 1.23+
+- Go 1.26+
 - PostgreSQL 14+
 
 ## Development
@@ -25,7 +28,13 @@ This sets `PGDATA`, `PGHOST`, and `BOOKSMK_DATABASE_URL`. PostgreSQL is managed 
 ### Building
 
 ```
-go build ./cmd/booksmk
+go build ./cmd/booksmk ./cmd/booksmkctl
+```
+
+### Running
+
+```
+go run ./cmd/booksmk
 ```
 
 ### Testing

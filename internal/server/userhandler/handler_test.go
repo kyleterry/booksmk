@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 
 	"go.e64ec.com/booksmk/internal/reqctx"
 	"go.e64ec.com/booksmk/internal/store"
@@ -169,6 +170,15 @@ func assertRedirect(t *testing.T, w *httptest.ResponseRecorder, loc string) {
 		t.Errorf("Location = %q, want %q", got, loc)
 	}
 }
+
+// fixturePasswordDigest is a bcrypt hash of "currentpass" at MinCost for test speed.
+var fixturePasswordDigest = func() string {
+	h, err := bcrypt.GenerateFromPassword([]byte("currentpass"), bcrypt.MinCost)
+	if err != nil {
+		panic(err)
+	}
+	return string(h)
+}()
 
 func TestHandleNew(t *testing.T) {
 	w := serve(t, newHandler(&mockUserStore{}), req(http.MethodGet, "/user/new", ""))
@@ -336,6 +346,321 @@ func TestHandleUpdate(t *testing.T) {
 			}
 			if tt.wantBody != "" {
 				assertContains(t, w, tt.wantBody)
+			}
+		})
+	}
+}
+
+func TestHandleEdit(t *testing.T) {
+	tests := []struct {
+		name       string
+		userID     string
+		setup      func(*mockUserStore)
+		wantStatus int
+		wantBody   string
+	}{
+		{
+			name:   "renders edit form",
+			userID: fixtureUserID.String(),
+			setup: func(m *mockUserStore) {
+				m.GetUserFn = func(_ context.Context, _ uuid.UUID) (store.User, error) { return fixtureUser, nil }
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   fixtureUser.Email,
+		},
+		{
+			name:   "not found returns 404",
+			userID: fixtureUserID.String(),
+			setup: func(m *mockUserStore) {
+				m.GetUserFn = func(_ context.Context, _ uuid.UUID) (store.User, error) {
+					return store.User{}, store.ErrNotFound
+				}
+			},
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name:       "invalid uuid returns 400",
+			userID:     "not-a-uuid",
+			setup:      func(m *mockUserStore) {},
+			wantStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &mockUserStore{}
+			tt.setup(ms)
+			w := serve(t, newHandler(ms), authReq(http.MethodGet, "/user/"+tt.userID+"/edit", ""))
+			assertStatus(t, w, tt.wantStatus)
+			if tt.wantBody != "" {
+				assertContains(t, w, tt.wantBody)
+			}
+		})
+	}
+}
+
+func TestHandleDelete(t *testing.T) {
+	tests := []struct {
+		name       string
+		setup      func(*mockUserStore)
+		wantStatus int
+		wantLoc    string
+	}{
+		{
+			name:       "success redirects to /user",
+			setup:      func(m *mockUserStore) {},
+			wantStatus: http.StatusSeeOther,
+			wantLoc:    "/user",
+		},
+		{
+			name: "store error returns 500",
+			setup: func(m *mockUserStore) {
+				m.DeleteUserFn = func(_ context.Context, _ uuid.UUID) error {
+					return errors.New("db error")
+				}
+			},
+			wantStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &mockUserStore{}
+			tt.setup(ms)
+			path := "/user/" + fixtureUserID.String()
+			w := serve(t, newHandler(ms), authReq(http.MethodDelete, path, ""))
+			assertStatus(t, w, tt.wantStatus)
+			if tt.wantLoc != "" {
+				assertRedirect(t, w, tt.wantLoc)
+			}
+		})
+	}
+}
+
+func TestHandleChangePasswordForm(t *testing.T) {
+	tests := []struct {
+		name       string
+		userID     string
+		setup      func(*mockUserStore)
+		wantStatus int
+	}{
+		{
+			name:   "renders form",
+			userID: fixtureUserID.String(),
+			setup: func(m *mockUserStore) {
+				m.GetUserFn = func(_ context.Context, _ uuid.UUID) (store.User, error) { return fixtureUser, nil }
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:   "not found returns 404",
+			userID: fixtureUserID.String(),
+			setup: func(m *mockUserStore) {
+				m.GetUserFn = func(_ context.Context, _ uuid.UUID) (store.User, error) {
+					return store.User{}, store.ErrNotFound
+				}
+			},
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name:       "invalid uuid returns 400",
+			userID:     "bad-uuid",
+			setup:      func(m *mockUserStore) {},
+			wantStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &mockUserStore{}
+			tt.setup(ms)
+			w := serve(t, newHandler(ms), authReq(http.MethodGet, "/user/"+tt.userID+"/change-password", ""))
+			assertStatus(t, w, tt.wantStatus)
+		})
+	}
+}
+
+func TestHandleChangePassword(t *testing.T) {
+	userWithPassword := store.User{
+		ID:             fixtureUserID,
+		Email:          "test@example.com",
+		PasswordDigest: fixturePasswordDigest,
+	}
+
+	tests := []struct {
+		name       string
+		body       string
+		setup      func(*mockUserStore)
+		wantStatus int
+		wantLoc    string
+		wantBody   string
+	}{
+		{
+			name: "valid change redirects to profile",
+			body: "current_password=currentpass&password=newpass",
+			setup: func(m *mockUserStore) {
+				m.GetUserFn = func(_ context.Context, _ uuid.UUID) (store.User, error) {
+					return userWithPassword, nil
+				}
+				m.UpdateUserPasswordFn = func(_ context.Context, _ uuid.UUID, _ string) (store.User, error) {
+					return userWithPassword, nil
+				}
+			},
+			wantStatus: http.StatusSeeOther,
+			wantLoc:    "/user/" + fixtureUserID.String(),
+		},
+		{
+			name: "wrong current password shows error",
+			body: "current_password=wrongpass&password=newpass",
+			setup: func(m *mockUserStore) {
+				m.GetUserFn = func(_ context.Context, _ uuid.UUID) (store.User, error) {
+					return userWithPassword, nil
+				}
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   "current password is incorrect",
+		},
+		{
+			name: "missing passwords shows error",
+			body: "current_password=&password=",
+			setup: func(m *mockUserStore) {
+				m.GetUserFn = func(_ context.Context, _ uuid.UUID) (store.User, error) {
+					return userWithPassword, nil
+				}
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   "current and new password are required",
+		},
+		{
+			name: "user not found returns 404",
+			body: "current_password=currentpass&password=newpass",
+			setup: func(m *mockUserStore) {
+				m.GetUserFn = func(_ context.Context, _ uuid.UUID) (store.User, error) {
+					return store.User{}, store.ErrNotFound
+				}
+			},
+			wantStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &mockUserStore{}
+			tt.setup(ms)
+			path := "/user/" + fixtureUserID.String() + "/change-password"
+			w := serve(t, newHandler(ms), authReq(http.MethodPost, path, tt.body))
+			assertStatus(t, w, tt.wantStatus)
+			if tt.wantLoc != "" {
+				assertRedirect(t, w, tt.wantLoc)
+			}
+			if tt.wantBody != "" {
+				assertContains(t, w, tt.wantBody)
+			}
+		})
+	}
+}
+
+func TestHandleUpdateTheme(t *testing.T) {
+	otherUserID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+
+	tests := []struct {
+		name       string
+		userID     string
+		body       string
+		setup      func(*mockUserStore)
+		wantStatus int
+		wantLoc    string
+	}{
+		{
+			name:   "valid theme redirects to profile",
+			userID: fixtureUserID.String(),
+			body:   "theme=dark",
+			setup: func(m *mockUserStore) {
+				m.UpdateUserThemeFn = func(_ context.Context, _ uuid.UUID, _ string) (store.User, error) {
+					return fixtureUser, nil
+				}
+			},
+			wantStatus: http.StatusSeeOther,
+			wantLoc:    "/user/" + fixtureUserID.String(),
+		},
+		{
+			name:       "invalid theme returns 400",
+			userID:     fixtureUserID.String(),
+			body:       "theme=neon",
+			setup:      func(m *mockUserStore) {},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "updating another user's theme returns 403",
+			userID:     otherUserID.String(),
+			body:       "theme=dark",
+			setup:      func(m *mockUserStore) {},
+			wantStatus: http.StatusForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &mockUserStore{}
+			tt.setup(ms)
+			path := "/user/" + tt.userID + "/theme"
+			w := serve(t, newHandler(ms), authReq(http.MethodPost, path, tt.body))
+			assertStatus(t, w, tt.wantStatus)
+			if tt.wantLoc != "" {
+				assertRedirect(t, w, tt.wantLoc)
+			}
+		})
+	}
+}
+
+func TestHandleUpdateFontSize(t *testing.T) {
+	otherUserID := uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
+
+	tests := []struct {
+		name       string
+		userID     string
+		body       string
+		setup      func(*mockUserStore)
+		wantStatus int
+		wantLoc    string
+	}{
+		{
+			name:   "valid font size redirects to profile",
+			userID: fixtureUserID.String(),
+			body:   "font_size=large",
+			setup: func(m *mockUserStore) {
+				m.UpdateUserFontSizeFn = func(_ context.Context, _ uuid.UUID, _ string) (store.User, error) {
+					return fixtureUser, nil
+				}
+			},
+			wantStatus: http.StatusSeeOther,
+			wantLoc:    "/user/" + fixtureUserID.String(),
+		},
+		{
+			name:       "invalid font size returns 400",
+			userID:     fixtureUserID.String(),
+			body:       "font_size=huge",
+			setup:      func(m *mockUserStore) {},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "updating another user's font size returns 403",
+			userID:     otherUserID.String(),
+			body:       "font_size=medium",
+			setup:      func(m *mockUserStore) {},
+			wantStatus: http.StatusForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &mockUserStore{}
+			tt.setup(ms)
+			path := "/user/" + tt.userID + "/font-size"
+			w := serve(t, newHandler(ms), authReq(http.MethodPost, path, tt.body))
+			assertStatus(t, w, tt.wantStatus)
+			if tt.wantLoc != "" {
+				assertRedirect(t, w, tt.wantLoc)
 			}
 		})
 	}

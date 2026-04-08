@@ -188,3 +188,123 @@ func TestDeleteUser(t *testing.T) {
 		t.Errorf("after delete: GetUser error = %v, want ErrNotFound", err)
 	}
 }
+
+func TestListUsers(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+
+	t.Run("empty list", func(t *testing.T) {
+		users, err := s.ListUsers(ctx)
+		if err != nil {
+			t.Fatalf("ListUsers: %v", err)
+		}
+		if len(users) != 0 {
+			t.Errorf("len = %d, want 0", len(users))
+		}
+	})
+
+	t.Run("returns all users", func(t *testing.T) {
+		if _, err := s.CreateUser(ctx, "list-a@example.com", mustHashPassword(t, "pass"), false); err != nil {
+			t.Fatalf("setup CreateUser: %v", err)
+		}
+		if _, err := s.CreateUser(ctx, "list-b@example.com", mustHashPassword(t, "pass"), false); err != nil {
+			t.Fatalf("setup CreateUser: %v", err)
+		}
+
+		users, err := s.ListUsers(ctx)
+		if err != nil {
+			t.Fatalf("ListUsers: %v", err)
+		}
+		if len(users) != 2 {
+			t.Errorf("len = %d, want 2", len(users))
+		}
+	})
+}
+
+func TestCountUsers(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+
+	count, err := s.CountUsers(ctx)
+	if err != nil {
+		t.Fatalf("CountUsers: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("count = %d, want 0", count)
+	}
+
+	if _, err := s.CreateUser(ctx, "count-a@example.com", mustHashPassword(t, "pass"), false); err != nil {
+		t.Fatalf("setup CreateUser: %v", err)
+	}
+	if _, err := s.CreateUser(ctx, "count-b@example.com", mustHashPassword(t, "pass"), false); err != nil {
+		t.Fatalf("setup CreateUser: %v", err)
+	}
+
+	count, err = s.CountUsers(ctx)
+	if err != nil {
+		t.Fatalf("CountUsers after creates: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("count = %d, want 2", count)
+	}
+}
+
+func TestUpdateUserTheme(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+
+	u, err := s.CreateUser(ctx, "theme@example.com", mustHashPassword(t, "pass"), false)
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	tests := []struct {
+		theme string
+	}{
+		{"dark"},
+		{"light"},
+		{"auto"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.theme, func(t *testing.T) {
+			updated, err := s.UpdateUserTheme(ctx, u.ID, tt.theme)
+			if err != nil {
+				t.Fatalf("UpdateUserTheme(%q): %v", tt.theme, err)
+			}
+			if updated.Theme != tt.theme {
+				t.Errorf("Theme = %q, want %q", updated.Theme, tt.theme)
+			}
+		})
+	}
+}
+
+func TestUpdateUserFontSize(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+
+	u, err := s.CreateUser(ctx, "fontsize@example.com", mustHashPassword(t, "pass"), false)
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	tests := []struct {
+		fontSize string
+	}{
+		{"small"},
+		{"medium"},
+		{"large"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.fontSize, func(t *testing.T) {
+			updated, err := s.UpdateUserFontSize(ctx, u.ID, tt.fontSize)
+			if err != nil {
+				t.Fatalf("UpdateUserFontSize(%q): %v", tt.fontSize, err)
+			}
+			if updated.FontSize != tt.fontSize {
+				t.Errorf("FontSize = %q, want %q", updated.FontSize, tt.fontSize)
+			}
+		})
+	}
+}
