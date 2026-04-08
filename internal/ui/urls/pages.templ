@@ -183,7 +183,12 @@ templ TagPage(tag string, urls []store.URL, categories []store.Category) {
 templ CategoryPage(cat *store.Category, urls []store.URL, categories []store.Category) {
 	<div class="page-header">
 		if cat != nil {
-			<h1>{ cat.Name } <span class="count">({ itoa(len(urls)) })</span></h1>
+			<div>
+				<h1>{ cat.Name } <span class="count">({ itoa(len(urls)) })</span></h1>
+				if len(cat.Members) > 0 {
+					<p class="page-subtitle">{ categoryMembersString(cat.Members) }</p>
+				}
+			</div>
 			<a href={ templ.SafeURL("/category/" + cat.ID.String() + "/edit") } class="btn btn-sm">edit</a>
 		} else {
 			<h1>category <span class="count">({ itoa(len(urls)) })</span></h1>
@@ -209,6 +214,14 @@ templ categoryNav(categories []store.Category, activeID string) {
 			>{ c.Name }</a>
 		}
 	</div>
+}
+
+func categoryMembersString(members []store.CategoryMember) string {
+	parts := make([]string, len(members))
+	for i, m := range members {
+		parts[i] = string(m.Kind) + ":" + m.Value
+	}
+	return strings.Join(parts, ", ")
 }
 
 func activeCategoryID(cat *store.Category) string {

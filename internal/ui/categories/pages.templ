@@ -42,10 +42,7 @@ templ EditPage(cat store.Category, errMsg string) {
 		<div class="form-actions">
 			<button type="submit" class="btn btn-primary">save</button>
 			<a href={ templ.SafeURL("/url?category=" + cat.ID.String()) } class="btn">cancel</a>
-			<form method="POST" action={ templ.SafeURL("/category/" + cat.ID.String()) } style="margin:0">
-				<input type="hidden" name="_method" value="DELETE"/>
-				<button type="submit" class="btn btn-danger">delete</button>
-			</form>
+			<button type="submit" name="_method" value="DELETE" class="btn btn-danger">delete</button>
 		</div>
 	</form>
 }
