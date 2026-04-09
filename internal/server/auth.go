@@ -63,6 +63,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		Value:    session.Token,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   s.cfg.SecureCookies,
 		SameSite: http.SameSiteLaxMode,
 	})
 	http.Redirect(w, r, "/url", http.StatusSeeOther)
