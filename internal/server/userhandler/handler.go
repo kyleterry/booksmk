@@ -16,6 +16,10 @@ import (
 	userpages "go.e64ec.com/booksmk/internal/ui/users"
 )
 
+type urlCreator interface {
+	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error)
+}
+
 type userStore interface {
 	CountUsers(ctx context.Context) (int64, error)
 	CreateUser(ctx context.Context, email, passwordDigest string, isAdmin bool) (store.User, error)
@@ -33,16 +37,18 @@ type userStore interface {
 
 // Handler handles all requests under the /user prefix.
 type Handler struct {
-	store  userStore
-	logger *slog.Logger
-	mux    *http.ServeMux
+	store    userStore
+	urlStore urlCreator
+	logger   *slog.Logger
+	mux      *http.ServeMux
 }
 
-func New(s userStore, logger *slog.Logger) *Handler {
+func New(s userStore, us urlCreator, logger *slog.Logger) *Handler {
 	h := &Handler{
-		store:  s,
-		logger: logger,
-		mux:    http.NewServeMux(),
+		store:    s,
+		urlStore: us,
+		logger:   logger,
+		mux:      http.NewServeMux(),
 	}
 	h.registerRoutes()
 	return h
@@ -63,6 +69,7 @@ func (h *Handler) registerRoutes() {
 	h.mux.HandleFunc("POST /user/{id}/change-password", h.handleChangePassword)
 	h.mux.HandleFunc("POST /user/{id}/theme", h.handleUpdateTheme)
 	h.mux.HandleFunc("POST /user/{id}/font-size", h.handleUpdateFontSize)
+	h.mux.HandleFunc("POST /user/{id}/import", h.handleImport)
 }
 
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Component) {
@@ -179,7 +186,7 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	}
 	baseURL := scheme + "://" + r.Host
 
-	h.render(w, r, ui.Base("settings", h.navUser(r), userpages.UserDetailPage(user, keys, baseURL)))
+	h.render(w, r, ui.Base("settings", h.navUser(r), userpages.UserDetailPage(user, keys, baseURL, "")))
 }
 
 func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {

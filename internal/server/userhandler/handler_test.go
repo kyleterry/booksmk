@@ -122,7 +122,7 @@ func (m *mockUserStore) ListAPIKeys(ctx context.Context, userID uuid.UUID) ([]st
 }
 
 func newHandler(ms *mockUserStore) *Handler {
-	return New(ms, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	return New(ms, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
 }
 
 func serve(t *testing.T, h *Handler, r *http.Request) *httptest.ResponseRecorder {
