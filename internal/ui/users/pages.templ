@@ -39,7 +39,7 @@ templ RegisterPage(errMsg string, requireInvite bool) {
 	</div>
 }
 
-templ UserDetailPage(user store.User, keys []store.APIKey, baseURL string) {
+templ UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg string) {
 	<div class="page-header">
 		<h1>settings</h1>
 	</div>
@@ -75,6 +75,21 @@ templ UserDetailPage(user store.User, keys []store.APIKey, baseURL string) {
 				<option value="medium" selected?={ user.FontSize == "medium" || user.FontSize == "" }>medium</option>
 				<option value="large" selected?={ user.FontSize == "large" }>large</option>
 			</select>
+		</form>
+	</div>
+	<div class="card" style="margin-bottom:2rem">
+		<div class="detail-field">
+			<div class="detail-label">import bookmarks</div>
+			<div class="detail-value" style="font-size:0.78rem;color:var(--fg2);margin-bottom:0.75rem">upload a browser bookmark export (.html) or a Pinboard / Delicious export (.csv)</div>
+		</div>
+		if importErrMsg != "" {
+			<div class="error">{ importErrMsg }</div>
+		}
+		<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/import") } enctype="multipart/form-data" style="margin:0">
+			<div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+				<input type="file" id="bookmarks_file" name="bookmarks_file" accept=".html,.htm,.csv" required style="flex:1;min-width:0"/>
+				<button type="submit" class="btn btn-sm btn-primary">import</button>
+			</div>
 		</form>
 	</div>
 	<div class="card" style="margin-bottom:2rem">
@@ -156,4 +171,26 @@ templ ChangePasswordPage(user store.User, errMsg string) {
 			<a href={ templ.SafeURL("/user/" + user.ID.String()) } class="btn">cancel</a>
 		</div>
 	</form>
+}
+
+templ ImportResultPage(userID string, imported int, failures []ImportFailure) {
+	<div class="page-header">
+		<h1>import complete</h1>
+	</div>
+	<p>{ fmt.Sprintf("%d", imported) } bookmark(s) imported successfully.</p>
+	if len(failures) > 0 {
+		<h2>{ fmt.Sprintf("%d", len(failures)) } failed</h2>
+		<ul>
+			for _, f := range failures {
+				<li>
+					<code>{ f.URL }</code>
+					<span class="form-hint"> — { f.Reason }</span>
+				</li>
+			}
+		</ul>
+	}
+	<div class="form-actions">
+		<a href="/url" class="btn btn-primary">view bookmarks</a>
+		<a href={ templ.SafeURL("/user/" + userID) } class="btn">back to settings</a>
+	</div>
 }
