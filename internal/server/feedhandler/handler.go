@@ -162,7 +162,7 @@ func (h *Handler) handleTimeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groups := groupTimeline(items, time.Now())
+	groups := groupTimeline(items, nowInRequestTZ(r))
 	h.render(w, r, ui.Base("feeds", h.navUser(r), feedpages.TimelinePage(feeds, groups, page, hasMore)))
 }
 
@@ -235,7 +235,7 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groups := groupFeedItems(items, time.Now())
+	groups := groupFeedItems(items, nowInRequestTZ(r))
 	h.render(w, r, ui.Base(f.Title, h.navUser(r), feedpages.FeedDetailPage(f, groups)))
 }
 

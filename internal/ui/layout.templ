@@ -495,6 +495,12 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					if (!d.contains(e.target)) d.removeAttribute("open");
 				});
 			});
+			(function() {
+				var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+				if (tz) {
+					document.cookie = "tz=" + encodeURIComponent(tz) + "; path=/; SameSite=Lax";
+				}
+			})();
 			function localizeTime() {
 				document.querySelectorAll("time[datetime]").forEach(function(el) {
 					var d = new Date(el.getAttribute("datetime"));
