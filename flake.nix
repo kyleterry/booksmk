@@ -31,6 +31,7 @@
 
           shellHook = ''
             export BOOKSMK_DATABASE_URL="postgres://postgres@localhost:5432/booksmk"
+            export BOOKSMK_SECURE_COOKIES=false
           '';
         };
       }

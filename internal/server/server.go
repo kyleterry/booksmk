@@ -22,9 +22,10 @@ import (
 
 // Config holds server configuration.
 type Config struct {
-	Addr   string
-	Pool   *pgxpool.Pool
-	Logger *slog.Logger
+	Addr          string
+	Pool          *pgxpool.Pool
+	Logger        *slog.Logger
+	SecureCookies bool
 }
 
 // Server is the booksmk HTTP server.

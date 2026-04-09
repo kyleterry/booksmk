@@ -754,3 +754,63 @@ func TestDateLabel(t *testing.T) {
 		}
 	})
 }
+
+// TestGroupFeedItemsPDT verifies that groupFeedItems uses the client timezone
+// (PDT, UTC-7) rather than UTC when grouping items. The key scenario: items
+// published in the early hours UTC on "today" are already yesterday in PDT.
+//
+// Server wall clock: UTC noon on 2026-04-09.
+// Client timezone:   America/Los_Angeles (PDT = UTC-7).
+// "now" passed to groupFeedItems: 2026-04-09 05:00 PDT (= 2026-04-09 12:00 UTC).
+//
+// Items and expected PDT labels:
+//
+//	2026-04-09 15:00 UTC = 2026-04-09 08:00 PDT today
+//	2026-04-09 04:01 UTC = 2026-04-08 21:01 PDT yesterday  (was mislabelled "today" when server used UTC)
+//	2026-04-08 21:45 UTC = 2026-04-08 14:45 PDT yesterday
+//	2026-04-07 23:00 UTC = 2026-04-07 16:00 PDT tuesday
+func TestGroupFeedItemsPDT(t *testing.T) {
+	pdt := time.FixedZone("PDT", -7*60*60)
+
+	// now is 2026-04-09 12:00 UTC, expressed in PDT as 05:00.
+	now := time.Date(2026, 4, 9, 12, 0, 0, 0, time.UTC).In(pdt)
+
+	pt := func(year int, month time.Month, day, hour, min int) *time.Time {
+		t := time.Date(year, month, day, hour, min, 0, 0, time.UTC)
+		return &t
+	}
+
+	items := []store.FeedItem{
+		{PublishedAt: pt(2026, 4, 9, 15, 0)},  // 08:00 PDT today
+		{PublishedAt: pt(2026, 4, 9, 4, 1)},   // 21:01 PDT Apr 8 yesterday
+		{PublishedAt: pt(2026, 4, 8, 21, 45)}, // 14:45 PDT Apr 8 yesterday
+		{PublishedAt: pt(2026, 4, 7, 23, 0)},  // 16:00 PDT Apr 7 tuesday
+	}
+
+	groups := groupFeedItems(items, now)
+
+	type wantGroup struct {
+		label string
+		count int
+	}
+
+	want := []wantGroup{
+		{"today", 1},
+		{"yesterday", 2},
+		{"tuesday", 1},
+	}
+
+	if len(groups) != len(want) {
+		t.Fatalf("got %d groups, want %d: %v", len(groups), len(want), groups)
+	}
+
+	for i, w := range want {
+		g := groups[i]
+		if g.Label != w.label {
+			t.Errorf("group[%d].Label = %q, want %q", i, g.Label, w.label)
+		}
+		if len(g.Items) != w.count {
+			t.Errorf("group[%d] (%q) has %d items, want %d", i, g.Label, len(g.Items), w.count)
+		}
+	}
+}

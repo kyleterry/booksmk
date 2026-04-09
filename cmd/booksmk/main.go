@@ -32,9 +32,10 @@ func main() {
 	}
 
 	srv, err := server.New(server.Config{
-		Addr:   envOrDefault("BOOKSMK_ADDR", ":8080"),
-		Pool:   pool,
-		Logger: logger,
+		Addr:          envOrDefault("BOOKSMK_ADDR", ":8080"),
+		Pool:          pool,
+		Logger:        logger,
+		SecureCookies: os.Getenv("BOOKSMK_SECURE_COOKIES") != "false",
 	})
 	if err != nil {
 		logger.Error("failed to create server", "error", err)
