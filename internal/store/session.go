@@ -40,7 +40,7 @@ func (s *Store) CreateSession(ctx context.Context, userID uuid.UUID) (Session, e
 	sess, err := s.queries.CreateSession(ctx, sqlstore.CreateSessionParams{
 		Token:     token,
 		UserID:    userID,
-		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(sessionDuration), Valid: true},
+		ExpiresAt: pgtype.Timestamptz{Time: time.Now().UTC().Add(sessionDuration), Valid: true},
 	})
 	if err != nil {
 		return Session{}, err

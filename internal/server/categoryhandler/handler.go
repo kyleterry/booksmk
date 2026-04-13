@@ -10,7 +10,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
 
-	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
 	"go.e64ec.com/booksmk/internal/ui"
 	catpages "go.e64ec.com/booksmk/internal/ui/categories"
@@ -49,7 +49,7 @@ func (h *Handler) registerRoutes() {
 	h.mux.HandleFunc("GET /category/new", h.handleNew)
 	h.mux.HandleFunc("POST /category", h.handleCreate)
 	h.mux.HandleFunc("GET /category/{id}/edit", h.handleEdit)
-	h.mux.HandleFunc("POST /category/{id}", h.handleUpdate)
+	h.mux.HandleFunc("PUT /category/{id}", h.handleUpdate)
 	h.mux.HandleFunc("DELETE /category/{id}", h.handleDelete)
 }
 
@@ -60,7 +60,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Compone
 }
 
 func (h *Handler) navUser(r *http.Request) *ui.NavUser {
-	u, ok := reqctx.User(r.Context())
+	u, ok := auth.UserFromContext(r.Context())
 	if !ok {
 		return nil
 	}
@@ -72,11 +72,7 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
-	user, ok := reqctx.User(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	user, _ := auth.UserFromContext(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -101,11 +97,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
-	user, ok := reqctx.User(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	user, _ := auth.UserFromContext(r.Context())
 
 	id, err := pathUUID(r)
 	if err != nil {
@@ -128,11 +120,7 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
-	user, ok := reqctx.User(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	user, _ := auth.UserFromContext(r.Context())
 
 	id, err := pathUUID(r)
 	if err != nil {
@@ -171,11 +159,7 @@ func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
-	user, ok := reqctx.User(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	user, _ := auth.UserFromContext(r.Context())
 
 	id, err := pathUUID(r)
 	if err != nil {
@@ -198,6 +182,7 @@ func pathUUID(r *http.Request) (uuid.UUID, error) {
 
 // parseMembers parses a comma-separated string of member specs like
 // "tag:linux, tag:raspberry-pi, domain:github.com" into CategoryMember slices.
+// Bare words and tag: prefixed values are slugified; domain: values are kept as-is.
 func parseMembers(raw string) []store.CategoryMember {
 	if raw == "" {
 		return []store.CategoryMember{}
@@ -215,14 +200,13 @@ func parseMembers(raw string) []store.CategoryMember {
 		switch {
 		case strings.HasPrefix(p, "tag:"):
 			kind = store.CategoryMemberKindTag
-			value = strings.TrimSpace(strings.TrimPrefix(p, "tag:"))
+			value = store.Slug(strings.TrimSpace(strings.TrimPrefix(p, "tag:")))
 		case strings.HasPrefix(p, "domain:"):
 			kind = store.CategoryMemberKindDomain
 			value = strings.TrimSpace(strings.TrimPrefix(p, "domain:"))
 		default:
-			// bare value defaults to tag
 			kind = store.CategoryMemberKindTag
-			value = p
+			value = store.Slug(p)
 		}
 		if value != "" {
 			members = append(members, store.CategoryMember{Kind: kind, Value: value})
@@ -230,3 +214,4 @@ func parseMembers(raw string) []store.CategoryMember {
 	}
 	return members
 }
+

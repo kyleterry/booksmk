@@ -10,7 +10,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
 
-	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
 	"go.e64ec.com/booksmk/internal/ui"
 	apikeypages "go.e64ec.com/booksmk/internal/ui/apikeys"
@@ -57,7 +57,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Compone
 }
 
 func (h *Handler) navUser(r *http.Request) *ui.NavUser {
-	u, ok := reqctx.User(r.Context())
+	u, ok := auth.UserFromContext(r.Context())
 	if !ok {
 		return nil
 	}
@@ -65,7 +65,7 @@ func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 }
 
 func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
-	u, _ := reqctx.User(r.Context())
+	u, _ := auth.UserFromContext(r.Context())
 	keys, err := h.store.ListAPIKeys(r.Context(), u.ID)
 	if err != nil {
 		h.logger.Error("failed to list api keys", "error", err)
@@ -93,7 +93,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 	expiresAt := parseExpiresIn(r.FormValue("expires_in"))
 
-	u, _ := reqctx.User(r.Context())
+	u, _ := auth.UserFromContext(r.Context())
 	result, err := h.store.CreateAPIKey(r.Context(), u.ID, name, expiresAt)
 	if errors.Is(err, store.ErrAPIKeyLimitReached) {
 		h.render(w, r, ui.Base("new api key", h.navUser(r), apikeypages.NewPage("api key limit reached (max 5)")))
@@ -115,7 +115,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, _ := reqctx.User(r.Context())
+	u, _ := auth.UserFromContext(r.Context())
 	if err := h.store.DeleteAPIKey(r.Context(), id, u.ID); err != nil {
 		h.logger.Error("failed to delete api key", "id", id, "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)

@@ -1047,14 +1047,14 @@ func EditFeedPage(feed store.Feed, errMsg string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "\"><label for=\"feed_url\">feed url</label> <input type=\"url\" id=\"feed_url\" name=\"feed_url\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "\"><input type=\"hidden\" name=\"_method\" value=\"PUT\"> <label for=\"feed_url\">feed url</label> <input type=\"url\" id=\"feed_url\" name=\"feed_url\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var56 string
 		templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinStringErrs(feed.FeedURL)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/feeds/pages.templ`, Line: 198, Col: 70}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/feeds/pages.templ`, Line: 199, Col: 70}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 		if templ_7745c5c3_Err != nil {
@@ -1067,7 +1067,7 @@ func EditFeedPage(feed store.Feed, errMsg string) templ.Component {
 		var templ_7745c5c3_Var57 string
 		templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(feed.CustomName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/feeds/pages.templ`, Line: 201, Col: 80}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/feeds/pages.templ`, Line: 202, Col: 80}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 		if templ_7745c5c3_Err != nil {
@@ -1080,7 +1080,7 @@ func EditFeedPage(feed store.Feed, errMsg string) templ.Component {
 		var templ_7745c5c3_Var58 string
 		templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(feed.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/feeds/pages.templ`, Line: 201, Col: 117}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/feeds/pages.templ`, Line: 202, Col: 117}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 		if templ_7745c5c3_Err != nil {
@@ -1093,7 +1093,7 @@ func EditFeedPage(feed store.Feed, errMsg string) templ.Component {
 		var templ_7745c5c3_Var59 string
 		templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(feed.Tags, ", "))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/feeds/pages.templ`, Line: 204, Col: 80}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/feeds/pages.templ`, Line: 205, Col: 80}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 		if templ_7745c5c3_Err != nil {
@@ -1106,7 +1106,7 @@ func EditFeedPage(feed store.Feed, errMsg string) templ.Component {
 		var templ_7745c5c3_Var60 templ.SafeURL
 		templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/feed/" + feed.ID.String()))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/feeds/pages.templ`, Line: 207, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/feeds/pages.templ`, Line: 208, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 		if templ_7745c5c3_Err != nil {

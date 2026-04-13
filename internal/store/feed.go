@@ -350,7 +350,7 @@ func (s *Store) ListDueFeedPollJobs(ctx context.Context) ([]FeedPollJob, error) 
 func (s *Store) CompleteFeedPollJob(ctx context.Context, jobID uuid.UUID, nextAt time.Time, fetchCount, errorCount int32, lastError string) error {
 	return s.queries.CompleteFeedPollJob(ctx, sqlstore.CompleteFeedPollJobParams{
 		ID:          jobID,
-		ScheduledAt: pgtype.Timestamptz{Time: nextAt, Valid: true},
+		ScheduledAt: pgtype.Timestamptz{Time: nextAt.UTC(), Valid: true},
 		FetchCount:  fetchCount,
 		ErrorCount:  errorCount,
 		LastError:   lastError,
@@ -373,7 +373,7 @@ func (s *Store) UpdateFeedMeta(ctx context.Context, feedID uuid.UUID, siteURL, t
 func (s *Store) UpsertFeedItem(ctx context.Context, p UpsertFeedItemParams) (uuid.UUID, error) {
 	var publishedAt pgtype.Timestamptz
 	if p.PublishedAt != nil {
-		publishedAt = pgtype.Timestamptz{Time: *p.PublishedAt, Valid: true}
+		publishedAt = pgtype.Timestamptz{Time: p.PublishedAt.UTC(), Valid: true}
 	}
 	return s.queries.UpsertFeedItem(ctx, sqlstore.UpsertFeedItemParams{
 		FeedID:      p.FeedID,

@@ -194,6 +194,7 @@ templ EditFeedPage(feed store.Feed, errMsg string) {
 		<div class="error">{ errMsg }</div>
 	}
 	<form method="POST" action={ templ.SafeURL("/feed/" + feed.ID.String()) }>
+		<input type="hidden" name="_method" value="PUT"/>
 		<label for="feed_url">feed url</label>
 		<input type="url" id="feed_url" name="feed_url" value={ feed.FeedURL } disabled/>
 		<p class="form-hint">feed url cannot be changed</p>

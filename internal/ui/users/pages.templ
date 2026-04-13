@@ -145,6 +145,7 @@ templ UserEditPage(user store.User, errMsg string) {
 		<div class="error">{ errMsg }</div>
 	}
 	<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String()) }>
+		<input type="hidden" name="_method" value="PUT"/>
 		<label for="email">email</label>
 		<input type="email" id="email" name="email" value={ user.Email } required/>
 		<div class="form-actions">

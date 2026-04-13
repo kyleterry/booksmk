@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
 )
 
@@ -33,7 +33,7 @@ func (s *Server) requireAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r.WithContext(reqctx.WithUser(r.Context(), user)))
+		next.ServeHTTP(w, r.WithContext(auth.NewContextWithUser(r.Context(), user)))
 	})
 }
 
@@ -65,14 +65,14 @@ func (s *Server) requireAPIKeyAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r.WithContext(reqctx.WithUser(r.Context(), user)))
+		next.ServeHTTP(w, r.WithContext(auth.NewContextWithUser(r.Context(), user)))
 	})
 }
 
 // requireAdmin wraps requireAuth and additionally checks that the user is an admin.
 func (s *Server) requireAdmin(next http.Handler) http.Handler {
 	return s.requireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, ok := reqctx.User(r.Context())
+		u, ok := auth.UserFromContext(r.Context())
 		if !ok || !u.IsAdmin {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return

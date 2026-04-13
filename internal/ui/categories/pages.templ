@@ -34,6 +34,7 @@ templ EditPage(cat store.Category, errMsg string) {
 		<div class="error">{ errMsg }</div>
 	}
 	<form method="POST" action={ templ.SafeURL("/category/" + cat.ID.String()) }>
+		<input type="hidden" name="_method" value="PUT"/>
 		<label for="name">name <span style="color:var(--red)">*</span></label>
 		<input type="text" id="name" name="name" value={ cat.Name } required autofocus/>
 		<label for="members">members</label>
@@ -42,8 +43,11 @@ templ EditPage(cat store.Category, errMsg string) {
 		<div class="form-actions">
 			<button type="submit" class="btn btn-primary">save</button>
 			<a href={ templ.SafeURL("/url?category=" + cat.ID.String()) } class="btn">cancel</a>
-			<button type="submit" name="_method" value="DELETE" class="btn btn-danger">delete</button>
 		</div>
+	</form>
+	<form method="POST" action={ templ.SafeURL("/category/" + cat.ID.String()) } style="margin-top:1rem">
+		<input type="hidden" name="_method" value="DELETE"/>
+		<button type="submit" class="btn btn-danger">delete</button>
 	</form>
 }
 

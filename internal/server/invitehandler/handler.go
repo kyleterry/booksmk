@@ -8,7 +8,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
 
-	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
 	"go.e64ec.com/booksmk/internal/ui"
 	invitepages "go.e64ec.com/booksmk/internal/ui/invites"
@@ -54,7 +54,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Compone
 }
 
 func (h *Handler) navUser(r *http.Request) *ui.NavUser {
-	u, ok := reqctx.User(r.Context())
+	u, ok := auth.UserFromContext(r.Context())
 	if !ok {
 		return nil
 	}
@@ -72,7 +72,7 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
-	u, _ := reqctx.User(r.Context())
+	u, _ := auth.UserFromContext(r.Context())
 	if _, err := h.store.CreateInviteCode(r.Context(), u.ID); err != nil {
 		h.logger.Error("failed to create invite code", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)

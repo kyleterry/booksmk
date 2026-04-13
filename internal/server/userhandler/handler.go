@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
 	"go.e64ec.com/booksmk/internal/ui"
 	userpages "go.e64ec.com/booksmk/internal/ui/users"
@@ -63,7 +63,7 @@ func (h *Handler) registerRoutes() {
 	h.mux.HandleFunc("POST /user", h.handleCreate)
 	h.mux.HandleFunc("GET /user/{id}", h.handleGet)
 	h.mux.HandleFunc("GET /user/{id}/edit", h.handleEdit)
-	h.mux.HandleFunc("POST /user/{id}", h.handleUpdate)
+	h.mux.HandleFunc("PUT /user/{id}", h.handleUpdate)
 	h.mux.HandleFunc("DELETE /user/{id}", h.handleDelete)
 	h.mux.HandleFunc("GET /user/{id}/change-password", h.handleChangePasswordForm)
 	h.mux.HandleFunc("POST /user/{id}/change-password", h.handleChangePassword)
@@ -79,7 +79,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Compone
 }
 
 func (h *Handler) navUser(r *http.Request) *ui.NavUser {
-	u, ok := reqctx.User(r.Context())
+	u, ok := auth.UserFromContext(r.Context())
 	if !ok {
 		return nil
 	}
@@ -331,11 +331,7 @@ func (h *Handler) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleUpdateTheme(w http.ResponseWriter, r *http.Request) {
-	authedUser, ok := reqctx.User(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	authedUser, _ := auth.UserFromContext(r.Context())
 
 	id, err := pathUUID(r)
 	if err != nil {
@@ -375,11 +371,7 @@ func (h *Handler) handleUpdateTheme(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleUpdateFontSize(w http.ResponseWriter, r *http.Request) {
-	authedUser, ok := reqctx.User(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	authedUser, _ := auth.UserFromContext(r.Context())
 
 	id, err := pathUUID(r)
 	if err != nil {

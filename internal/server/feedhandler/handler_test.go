@@ -13,7 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
 )
 
@@ -155,7 +155,7 @@ func req(method, target, body string) *http.Request {
 
 func authReq(method, target, body string) *http.Request {
 	r := req(method, target, body)
-	return r.WithContext(reqctx.WithUser(r.Context(), fixtureUser))
+	return r.WithContext(auth.NewContextWithUser(r.Context(), fixtureUser))
 }
 
 func assertStatus(t *testing.T, w *httptest.ResponseRecorder, want int) {
@@ -304,13 +304,6 @@ func TestRequireFeedOwner(t *testing.T) {
 			wantStatus: http.StatusOK,
 		},
 		{
-			name:       "unauthenticated returns 401",
-			feedID:     fixtureFeedID.String(),
-			setup:      func(m *mockFeedStore) {},
-			authed:     false,
-			wantStatus: http.StatusUnauthorized,
-		},
-		{
 			name:       "invalid uuid returns 400",
 			feedID:     "not-a-uuid",
 			setup:      func(m *mockFeedStore) {},
@@ -412,7 +405,7 @@ func TestHandleUpdate(t *testing.T) {
 				},
 			}
 			tt.setup(ms)
-			w := serve(t, newHandler(ms), authReq(http.MethodPost, "/feed/"+fixtureFeedID.String(), tt.body))
+			w := serve(t, newHandler(ms), authReq(http.MethodPut, "/feed/"+fixtureFeedID.String(), tt.body))
 			assertStatus(t, w, tt.wantStatus)
 			if tt.wantLoc != "" {
 				assertRedirect(t, w, tt.wantLoc)
@@ -643,29 +636,6 @@ func TestParseTags(t *testing.T) {
 	}
 }
 
-func TestToSlug(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"Go", "go"},
-		{"hello world", "hello-world"},
-		{"hello--world", "hello-world"},
-		{"  hello  ", "hello"},
-		{"foo_bar", "foo-bar"},
-		{"café", "caf"},
-		{"123abc", "123abc"},
-		{"---", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			if got := toSlug(tt.input); got != tt.want {
-				t.Errorf("toSlug(%q) = %q, want %q", tt.input, got, tt.want)
-			}
-		})
-	}
-}
 
 func TestSafeReferer(t *testing.T) {
 	tests := []struct {

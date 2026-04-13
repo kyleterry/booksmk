@@ -262,6 +262,7 @@ templ EditPage(u store.URL, errMsg string) {
 		<div class="error">{ errMsg }</div>
 	}
 	<form method="POST" action={ templ.SafeURL("/url/" + u.ID.String()) }>
+		<input type="hidden" name="_method" value="PUT"/>
 		<label for="url">url</label>
 		<input type="url" id="url" name="url" value={ u.URL } disabled/>
 		<p class="form-hint">url cannot be changed after creation</p>

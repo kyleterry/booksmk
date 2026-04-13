@@ -89,7 +89,7 @@ func (s *Store) ListDueURLs(ctx context.Context) ([]DiscussionURLJob, error) {
 func (s *Store) CompleteDiscussionJob(ctx context.Context, id uuid.UUID, nextAt time.Time, checkCount, emptyCount int32) error {
 	return s.queries.CompleteDiscussionJob(ctx, sqlstore.CompleteDiscussionJobParams{
 		ID:          id,
-		ScheduledAt: pgtype.Timestamptz{Time: nextAt, Valid: true},
+		ScheduledAt: pgtype.Timestamptz{Time: nextAt.UTC(), Valid: true},
 		CheckCount:  checkCount,
 		EmptyCount:  emptyCount,
 	})
@@ -108,7 +108,7 @@ func (s *Store) SaveDiscussion(ctx context.Context, p SaveDiscussionParams) erro
 
 func (s *Store) RecordBatchRun(ctx context.Context, startedAt time.Time, urlCount, foundCount int32) error {
 	return s.queries.RecordBatchRun(ctx, sqlstore.RecordBatchRunParams{
-		StartedAt:  pgtype.Timestamptz{Time: startedAt, Valid: true},
+		StartedAt:  pgtype.Timestamptz{Time: startedAt.UTC(), Valid: true},
 		UrlCount:   urlCount,
 		FoundCount: foundCount,
 	})

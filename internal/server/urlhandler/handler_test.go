@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
 )
 
@@ -139,7 +139,7 @@ func req(method, target, body string) *http.Request {
 	if body != "" {
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
-	return r.WithContext(reqctx.WithUser(r.Context(), fixtureUser))
+	return r.WithContext(auth.NewContextWithUser(r.Context(), fixtureUser))
 }
 
 func assertStatus(t *testing.T, w *httptest.ResponseRecorder, want int) {
@@ -399,7 +399,7 @@ func TestHandleUpdate(t *testing.T) {
 			ms := &mockURLStore{}
 			tt.setup(ms)
 			path := "/url/" + fixtureURLID.String()
-			w := serve(t, newHandler(ms), req(http.MethodPost, path, tt.body))
+			w := serve(t, newHandler(ms), req(http.MethodPut, path, tt.body))
 			assertStatus(t, w, tt.wantStatus)
 			if tt.wantLoc != "" {
 				assertRedirect(t, w, tt.wantLoc)

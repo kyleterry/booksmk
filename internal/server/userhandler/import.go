@@ -5,42 +5,18 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
-	"strings"
 
-	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/auth"
+	"go.e64ec.com/booksmk/internal/store"
 	"go.e64ec.com/booksmk/internal/ui"
 	userpages "go.e64ec.com/booksmk/internal/ui/users"
 	"go.e64ec.com/booksmk/internal/importer"
 )
 
-// toSlug lowercases s and converts it to a URL-safe slug.
-func toSlug(s string) string {
-	s = strings.ToLower(s)
-	var b strings.Builder
-	prevHyphen := false
-	for _, r := range s {
-		switch {
-		case r >= 'a' && r <= 'z' || r >= '0' && r <= '9':
-			b.WriteRune(r)
-			prevHyphen = false
-		case r == ' ' || r == '-' || r == '_':
-			if !prevHyphen {
-				b.WriteRune('-')
-				prevHyphen = true
-			}
-		}
-	}
-	return strings.Trim(b.String(), "-")
-}
-
 const maxImportSize = 10 << 20 // 10 MB
 
 func (h *Handler) handleImport(w http.ResponseWriter, r *http.Request) {
-	authedUser, ok := reqctx.User(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	authedUser, _ := auth.UserFromContext(r.Context())
 
 	id, err := pathUUID(r)
 	if err != nil {
@@ -123,7 +99,7 @@ func (h *Handler) handleImport(w http.ResponseWriter, r *http.Request) {
 
 		tags := make([]string, 0, len(bm.Tags))
 		for _, t := range bm.Tags {
-			if s := toSlug(t); s != "" {
+			if s := store.Slug(t); s != "" {
 				tags = append(tags, s)
 			}
 		}

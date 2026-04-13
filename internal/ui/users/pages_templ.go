@@ -498,14 +498,14 @@ func UserEditPage(user store.User, errMsg string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "\"><label for=\"email\">email</label> <input type=\"email\" id=\"email\" name=\"email\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "\"><input type=\"hidden\" name=\"_method\" value=\"PUT\"> <label for=\"email\">email</label> <input type=\"email\" id=\"email\" name=\"email\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(user.Email)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 149, Col: 64}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 150, Col: 64}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -518,7 +518,7 @@ func UserEditPage(user store.User, errMsg string) templ.Component {
 		var templ_7745c5c3_Var24 templ.SafeURL
 		templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/user/" + user.ID.String()))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 152, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 153, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 		if templ_7745c5c3_Err != nil {
@@ -565,7 +565,7 @@ func ChangePasswordPage(user store.User, errMsg string) templ.Component {
 			var templ_7745c5c3_Var26 string
 			templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 162, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 163, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 			if templ_7745c5c3_Err != nil {
@@ -583,7 +583,7 @@ func ChangePasswordPage(user store.User, errMsg string) templ.Component {
 		var templ_7745c5c3_Var27 templ.SafeURL
 		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/user/" + user.ID.String() + "/change-password"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 164, Col: 93}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 165, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 		if templ_7745c5c3_Err != nil {
@@ -596,7 +596,7 @@ func ChangePasswordPage(user store.User, errMsg string) templ.Component {
 		var templ_7745c5c3_Var28 templ.SafeURL
 		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/user/" + user.ID.String()))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 171, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 172, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {
@@ -638,7 +638,7 @@ func ImportResultPage(userID string, imported int, failures []ImportFailure) tem
 		var templ_7745c5c3_Var30 string
 		templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", imported))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 180, Col: 33}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 181, Col: 33}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 		if templ_7745c5c3_Err != nil {
@@ -656,7 +656,7 @@ func ImportResultPage(userID string, imported int, failures []ImportFailure) tem
 			var templ_7745c5c3_Var31 string
 			templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", len(failures)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 182, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 183, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 			if templ_7745c5c3_Err != nil {
@@ -674,7 +674,7 @@ func ImportResultPage(userID string, imported int, failures []ImportFailure) tem
 				var templ_7745c5c3_Var32 string
 				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(f.URL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 186, Col: 18}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 187, Col: 18}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 				if templ_7745c5c3_Err != nil {
@@ -687,7 +687,7 @@ func ImportResultPage(userID string, imported int, failures []ImportFailure) tem
 				var templ_7745c5c3_Var33 string
 				templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(f.Reason)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 187, Col: 44}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 188, Col: 44}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 				if templ_7745c5c3_Err != nil {
@@ -710,7 +710,7 @@ func ImportResultPage(userID string, imported int, failures []ImportFailure) tem
 		var templ_7745c5c3_Var34 templ.SafeURL
 		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/user/" + userID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 194, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/users/pages.templ`, Line: 195, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 		if templ_7745c5c3_Err != nil {

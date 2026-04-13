@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
 )
 
@@ -146,7 +146,7 @@ func req(method, target, body string) *http.Request {
 
 func authReq(method, target, body string) *http.Request {
 	r := req(method, target, body)
-	return r.WithContext(reqctx.WithUser(r.Context(), fixtureUser))
+	return r.WithContext(auth.NewContextWithUser(r.Context(), fixtureUser))
 }
 
 func assertStatus(t *testing.T, w *httptest.ResponseRecorder, want int) {
@@ -339,7 +339,7 @@ func TestHandleUpdate(t *testing.T) {
 			ms := &mockUserStore{}
 			tt.setup(ms)
 			path := "/user/" + fixtureUserID.String()
-			w := serve(t, newHandler(ms), authReq(http.MethodPost, path, tt.body))
+			w := serve(t, newHandler(ms), authReq(http.MethodPut, path, tt.body))
 			assertStatus(t, w, tt.wantStatus)
 			if tt.wantLoc != "" {
 				assertRedirect(t, w, tt.wantLoc)

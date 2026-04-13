@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
 	"go.e64ec.com/booksmk/internal/urlfetch"
 )
@@ -97,7 +97,7 @@ func (h *Handler) handleCreateURL(w http.ResponseWriter, r *http.Request) {
 		body.Tags = []string{}
 	}
 
-	u, _ := reqctx.User(r.Context())
+	u, _ := auth.UserFromContext(r.Context())
 	created, err := h.store.CreateURL(r.Context(), u.ID, body.URL, body.Title, body.Description, body.Tags)
 	if err != nil {
 		h.logger.Error("api: failed to create url", "error", err)
@@ -119,7 +119,7 @@ func (h *Handler) handleCreateURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleMarkItemRead(w http.ResponseWriter, r *http.Request) {
-	u, _ := reqctx.User(r.Context())
+	u, _ := auth.UserFromContext(r.Context())
 
 	itemID, err := uuid.Parse(r.PathValue("itemID"))
 	if err != nil {
@@ -137,7 +137,7 @@ func (h *Handler) handleMarkItemRead(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleMarkItemUnread(w http.ResponseWriter, r *http.Request) {
-	u, _ := reqctx.User(r.Context())
+	u, _ := auth.UserFromContext(r.Context())
 
 	itemID, err := uuid.Parse(r.PathValue("itemID"))
 	if err != nil {
@@ -155,7 +155,7 @@ func (h *Handler) handleMarkItemUnread(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleMarkAllItemsRead(w http.ResponseWriter, r *http.Request) {
-	u, _ := reqctx.User(r.Context())
+	u, _ := auth.UserFromContext(r.Context())
 
 	if err := h.feedItemStore.MarkAllItemsRead(r.Context(), u.ID); err != nil {
 		h.logger.Error("api: failed to mark all items read", "error", err)
@@ -167,7 +167,7 @@ func (h *Handler) handleMarkAllItemsRead(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handler) handleMarkFeedItemsRead(w http.ResponseWriter, r *http.Request) {
-	u, _ := reqctx.User(r.Context())
+	u, _ := auth.UserFromContext(r.Context())
 
 	feedID, err := uuid.Parse(r.PathValue("feedID"))
 	if err != nil {

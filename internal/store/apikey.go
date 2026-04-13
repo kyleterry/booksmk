@@ -72,7 +72,7 @@ func (s *Store) CreateAPIKey(ctx context.Context, userID uuid.UUID, name string,
 
 	var pgExpiresAt pgtype.Timestamptz
 	if expiresAt != nil {
-		pgExpiresAt = pgtype.Timestamptz{Time: *expiresAt, Valid: true}
+		pgExpiresAt = pgtype.Timestamptz{Time: expiresAt.UTC(), Valid: true}
 	}
 	k, err := s.queries.CreateAPIKey(ctx, sqlstore.CreateAPIKeyParams{
 		UserID:      userID,

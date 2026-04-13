@@ -10,7 +10,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
 
-	"go.e64ec.com/booksmk/internal/reqctx"
+	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
 	"go.e64ec.com/booksmk/internal/ui"
 	urlpages "go.e64ec.com/booksmk/internal/ui/urls"
@@ -76,7 +76,7 @@ func (h *Handler) registerRoutes() {
 	h.mux.HandleFunc("POST /url", h.handleCreate)
 	h.mux.Handle("GET /url/{id}", h.requireURLOwner(http.HandlerFunc(h.handleGet)))
 	h.mux.Handle("GET /url/{id}/edit", h.requireURLOwner(http.HandlerFunc(h.handleEdit)))
-	h.mux.Handle("POST /url/{id}", h.requireURLOwner(http.HandlerFunc(h.handleUpdate)))
+	h.mux.Handle("PUT /url/{id}", h.requireURLOwner(http.HandlerFunc(h.handleUpdate)))
 	h.mux.Handle("DELETE /url/{id}", h.requireURLOwner(http.HandlerFunc(h.handleDelete)))
 }
 
@@ -85,11 +85,7 @@ func (h *Handler) registerRoutes() {
 // don't need to re-fetch it. Returns 404 for both missing and unowned URLs.
 func (h *Handler) requireURLOwner(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, ok := reqctx.User(r.Context())
-		if !ok {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
+		user, _ := auth.UserFromContext(r.Context())
 
 		id, err := pathUUID(r)
 		if err != nil {
@@ -119,7 +115,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Compone
 }
 
 func (h *Handler) navUser(r *http.Request) *ui.NavUser {
-	u, ok := reqctx.User(r.Context())
+	u, ok := auth.UserFromContext(r.Context())
 	if !ok {
 		return nil
 	}
@@ -127,11 +123,7 @@ func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 }
 
 func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
-	user, ok := reqctx.User(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	user, _ := auth.UserFromContext(r.Context())
 
 	categories, err := h.store.ListCategories(r.Context(), user.ID)
 	if err != nil {
@@ -193,11 +185,7 @@ func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
-	user, ok := reqctx.User(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	user, _ := auth.UserFromContext(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -239,7 +227,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	u := urlFromContext(r.Context())
-	user, _ := reqctx.User(r.Context())
+	user, _ := auth.UserFromContext(r.Context())
 
 	discussions, err := h.store.ListDiscussionsForURL(r.Context(), u.ID)
 	if err != nil {
@@ -265,7 +253,7 @@ func (h *Handler) handleEdit(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	u := urlFromContext(r.Context())
-	user, _ := reqctx.User(r.Context())
+	user, _ := auth.UserFromContext(r.Context())
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -283,7 +271,7 @@ func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	u := urlFromContext(r.Context())
-	user, _ := reqctx.User(r.Context())
+	user, _ := auth.UserFromContext(r.Context())
 
 	if err := h.store.DeleteURL(r.Context(), u.ID, user.ID); err != nil {
 		h.logger.Error("failed to delete url", "id", u.ID, "error", err)
@@ -306,30 +294,10 @@ func parseTags(raw string) []string {
 	parts := strings.Split(raw, ",")
 	tags := make([]string, 0, len(parts))
 	for _, p := range parts {
-		if t := toSlug(strings.TrimSpace(p)); t != "" {
+		if t := store.Slug(strings.TrimSpace(p)); t != "" {
 			tags = append(tags, t)
 		}
 	}
 	return tags
 }
 
-// toSlug lowercases s and converts it to a URL-safe slug, replacing spaces and
-// non-alphanumeric characters with hyphens and collapsing consecutive hyphens.
-func toSlug(s string) string {
-	s = strings.ToLower(s)
-	var b strings.Builder
-	prevHyphen := false
-	for _, r := range s {
-		switch {
-		case r >= 'a' && r <= 'z' || r >= '0' && r <= '9':
-			b.WriteRune(r)
-			prevHyphen = false
-		case r == ' ' || r == '-' || r == '_':
-			if !prevHyphen {
-				b.WriteRune('-')
-				prevHyphen = true
-			}
-		}
-	}
-	return strings.Trim(b.String(), "-")
-}
