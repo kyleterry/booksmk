@@ -23,7 +23,7 @@ import (
 const pageSize = 50
 
 type feedStore interface {
-	SubscribeToFeed(ctx context.Context, userID uuid.UUID, feedURL string, tags []string) (store.Feed, error)
+	SubscribeToFeed(ctx context.Context, userID uuid.UUID, feedURL string, tags []string, isBlockedBypass bool) (store.Feed, error)
 	GetFeed(ctx context.Context, id, userID uuid.UUID) (store.Feed, error)
 	ListFeeds(ctx context.Context, userID uuid.UUID) ([]store.Feed, error)
 	UnsubscribeFromFeed(ctx context.Context, userID, feedID uuid.UUID) error
@@ -35,6 +35,7 @@ type feedStore interface {
 	MarkItemUnread(ctx context.Context, userID, itemID uuid.UUID) error
 	MarkAllItemsRead(ctx context.Context, userID uuid.UUID) error
 	MarkFeedItemsRead(ctx context.Context, userID, feedID uuid.UUID) error
+	IsBlocked(ctx context.Context, rawURL string) (bool, error)
 }
 
 type contextKey int
@@ -183,6 +184,16 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isBlocked, err := h.store.IsBlocked(r.Context(), feedURL)
+	if err != nil {
+		h.logger.Error("failed to check blocklist", "error", err)
+	}
+
+	if isBlocked && !user.IsAdmin {
+		h.render(w, r, ui.Base("add feed", h.navUser(r), feedpages.NewFeedPage("this URL or domain is blocked", feedURL)))
+		return
+	}
+
 	// Attempt to parse the feed to confirm it's valid before subscribing.
 	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
@@ -202,7 +213,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	f, err := h.store.SubscribeToFeed(r.Context(), user.ID, feedURL, tags)
+	f, err := h.store.SubscribeToFeed(r.Context(), user.ID, feedURL, tags, isBlocked)
 	if err != nil {
 		h.logger.Error("failed to subscribe to feed", "url", feedURL, "error", err)
 		h.render(w, r, ui.Base("add feed", h.navUser(r), feedpages.NewFeedPage("failed to subscribe to feed", feedURL)))

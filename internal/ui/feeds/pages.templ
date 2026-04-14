@@ -102,6 +102,11 @@ templ FeedDetailPage(feed store.Feed, groups []store.FeedItemGroup) {
 			</form>
 		</div>
 	</div>
+	if feed.IsBlockedBypass {
+		<div class="warning" style="margin-bottom: 1rem">
+			⚠️ This feed was added by an admin despite being on the blocklist.
+		</div>
+	}
 	if feed.Description != "" {
 		<p style="color:var(--fg3);font-size:0.8rem;margin-bottom:0.5rem">{ feed.Description }</p>
 	}

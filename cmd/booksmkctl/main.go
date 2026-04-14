@@ -1,10 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -24,6 +29,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "usage: booksmkctl <command>")
 		fmt.Fprintln(os.Stderr, "commands:")
 		fmt.Fprintln(os.Stderr, "  backfill-feed-urls    scan existing bookmarks for feed URLs")
+		fmt.Fprintln(os.Stderr, "  import-blocklist      import a list of domains from a URL or file")
 		os.Exit(1)
 	}
 
@@ -31,6 +37,15 @@ func main() {
 	case "backfill-feed-urls":
 		if err := runBackfillFeedURLs(logger); err != nil {
 			logger.Error("backfill failed", "error", err)
+			os.Exit(1)
+		}
+	case "import-blocklist":
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: booksmkctl import-blocklist <url_or_path>")
+			os.Exit(1)
+		}
+		if err := runImportBlocklist(logger, os.Args[2]); err != nil {
+			logger.Error("import failed", "error", err)
 			os.Exit(1)
 		}
 	default:
@@ -105,4 +120,80 @@ func mustEnv(key string) string {
 		os.Exit(1)
 	}
 	return v
+}
+
+func runImportBlocklist(logger *slog.Logger, source string) error {
+	dbURL := mustEnv("BOOKSMK_DATABASE_URL")
+
+	pool, err := pgxpool.New(context.Background(), dbURL)
+	if err != nil {
+		return fmt.Errorf("connect: %w", err)
+	}
+	defer pool.Close()
+
+	st := store.New(pool)
+
+	var r io.Reader
+	if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
+		resp, err := http.Get(source)
+		if err != nil {
+			return fmt.Errorf("fetch: %w", err)
+		}
+		defer resp.Body.Close()
+		r = resp.Body
+	} else {
+		f, err := os.Open(source)
+		if err != nil {
+			return fmt.Errorf("open file: %w", err)
+		}
+		defer f.Close()
+		r = f
+	}
+
+	scanner := bufio.NewScanner(r)
+	var (
+		added   atomic.Int64
+		skipped atomic.Int64
+	)
+
+	logger.Info("importing blocklist domains", "source", source)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Handle hosts file format (e.g. "0.0.0.0 domain.com")
+		fields := strings.Fields(line)
+		if len(fields) > 1 {
+			if net.ParseIP(fields[0]) != nil {
+				line = fields[1]
+			}
+		}
+
+		// Basic validation
+		if strings.Contains(line, "/") || strings.Contains(line, ":") {
+			skipped.Add(1)
+			continue
+		}
+
+		_, err := st.CreateBlocklistEntry(context.Background(), line, "domain")
+		if err != nil {
+			skipped.Add(1)
+			continue
+		}
+
+		added.Add(1)
+		if added.Load()%1000 == 0 {
+			logger.Info("progress", "added", added.Load())
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("scan: %w", err)
+	}
+
+	logger.Info("import complete", "added", added.Load(), "skipped", skipped.Load())
+	return nil
 }

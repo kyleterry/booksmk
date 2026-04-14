@@ -1,11 +1,12 @@
 -- name: UpsertFeed :one
-insert into feeds (feed_url)
-values ($1)
-on conflict (feed_url) do update set feed_url = excluded.feed_url
-returning id, feed_url, site_url, title, description, image_url, last_fetched_at, created_at, updated_at;
+insert into feeds (feed_url, is_blocked_bypass)
+values ($1, $2)
+on conflict (feed_url) do update set 
+    is_blocked_bypass = excluded.is_blocked_bypass or feeds.is_blocked_bypass
+returning id, feed_url, site_url, title, description, image_url, is_blocked_bypass, last_fetched_at, created_at, updated_at;
 
 -- name: GetFeedByID :one
-select id, feed_url, site_url, title, description, image_url, last_fetched_at, created_at, updated_at
+select id, feed_url, site_url, title, description, image_url, is_blocked_bypass, last_fetched_at, created_at, updated_at
 from feeds
 where id = $1;
 
@@ -31,19 +32,19 @@ delete from user_feeds where user_id = $1 and feed_id = $2;
 update user_feeds set custom_name = $3 where user_id = $1 and feed_id = $2;
 
 -- name: GetUserFeed :one
-select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
+select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.is_blocked_bypass, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
 from feeds f
 join user_feeds uf on uf.feed_id = f.id
 where f.id = $1 and uf.user_id = $2;
 
 -- name: GetUserFeedByFeedURL :one
-select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
+select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.is_blocked_bypass, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
 from feeds f
 join user_feeds uf on uf.feed_id = f.id
 where f.feed_url = $1 and uf.user_id = $2;
 
 -- name: ListUserFeeds :many
-select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
+select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.is_blocked_bypass, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
 from feeds f
 join user_feeds uf on uf.feed_id = f.id
 where uf.user_id = $1
@@ -184,7 +185,7 @@ set scheduled_at    = $2,
 where id = $1;
 
 -- name: SearchFeeds :many
-select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
+select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.is_blocked_bypass, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
 from feeds f
 join user_feeds uf on uf.feed_id = f.id
 where uf.user_id = $1

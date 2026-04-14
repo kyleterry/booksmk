@@ -13,6 +13,7 @@ import (
 
 	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/store/sqlstore"
 	"go.e64ec.com/booksmk/internal/ui"
 	adminpages "go.e64ec.com/booksmk/internal/ui/admin"
 )
@@ -27,6 +28,9 @@ type adminStore interface {
 	ListUsers(ctx context.Context) ([]store.User, error)
 	GetUser(ctx context.Context, id uuid.UUID) (store.User, error)
 	UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordDigest string) (store.User, error)
+	ListBlocklistEntries(ctx context.Context) ([]sqlstore.Blocklist, error)
+	CreateBlocklistEntry(ctx context.Context, pattern, kind string) (sqlstore.Blocklist, error)
+	DeleteBlocklistEntry(ctx context.Context, id uuid.UUID) error
 }
 
 // Handler handles requests under the /admin prefix.
@@ -49,6 +53,10 @@ func New(s adminStore, logger *slog.Logger) *Handler {
 	h.mux.HandleFunc("GET /admin/users", h.handleListUsers)
 	h.mux.HandleFunc("GET /admin/users/{id}/reset-password", h.handleResetPasswordForm)
 	h.mux.HandleFunc("POST /admin/users/{id}/reset-password", h.handleResetPassword)
+	h.mux.HandleFunc("GET /admin/blocklist", h.handleListBlocklist)
+	h.mux.HandleFunc("GET /admin/blocklist/new", h.handleNewBlocklistForm)
+	h.mux.HandleFunc("POST /admin/blocklist", h.handleCreateBlocklistEntry)
+	h.mux.HandleFunc("DELETE /admin/blocklist/{id}", h.handleDeleteBlocklistEntry)
 	return h
 }
 
@@ -196,4 +204,51 @@ func (h *Handler) handleResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
+}
+
+func (h *Handler) handleListBlocklist(w http.ResponseWriter, r *http.Request) {
+	entries, err := h.store.ListBlocklistEntries(r.Context())
+	if err != nil {
+		h.logger.Error("failed to list blocklist entries", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	h.render(w, r, ui.Base("admin - blocklist", h.navUser(r), adminpages.BlocklistPage(entries, "")))
+}
+
+func (h *Handler) handleNewBlocklistForm(w http.ResponseWriter, r *http.Request) {
+	h.render(w, r, ui.Base("admin - block new entry", h.navUser(r), adminpages.NewBlocklistEntryPage("")))
+}
+
+func (h *Handler) handleCreateBlocklistEntry(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	pattern := r.FormValue("pattern")
+	kind := r.FormValue("kind")
+	if pattern == "" {
+		h.render(w, r, ui.Base("admin - block new entry", h.navUser(r), adminpages.NewBlocklistEntryPage("pattern is required")))
+		return
+	}
+	if _, err := h.store.CreateBlocklistEntry(r.Context(), pattern, kind); err != nil {
+		h.logger.Error("failed to create blocklist entry", "error", err)
+		h.render(w, r, ui.Base("admin - block new entry", h.navUser(r), adminpages.NewBlocklistEntryPage("failed to block entry")))
+		return
+	}
+	http.Redirect(w, r, "/admin/blocklist", http.StatusSeeOther)
+}
+
+func (h *Handler) handleDeleteBlocklistEntry(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	if err := h.store.DeleteBlocklistEntry(r.Context(), id); err != nil {
+		h.logger.Error("failed to delete blocklist entry", "id", id, "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/admin/blocklist", http.StatusSeeOther)
 }

@@ -12,29 +12,31 @@ import (
 )
 
 type URL struct {
-	ID          uuid.UUID
-	URL         string
-	FeedURL     string
-	Title       string
-	Description string
-	Tags        []string
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	ID              uuid.UUID
+	URL             string
+	FeedURL         string
+	IsBlockedBypass bool
+	Title           string
+	Description     string
+	Tags            []string
+	CreatedAt       pgtype.Timestamptz
+	UpdatedAt       pgtype.Timestamptz
 }
 
-func newURL(id uuid.UUID, rawURL, feedURL, title, description string, tags []string, createdAt, updatedAt pgtype.Timestamptz) URL {
+func newURL(id uuid.UUID, rawURL, feedURL string, isBlockedBypass bool, title, description string, tags []string, createdAt, updatedAt pgtype.Timestamptz) URL {
 	if tags == nil {
 		tags = []string{}
 	}
 	return URL{
-		ID:          id,
-		URL:         rawURL,
-		FeedURL:     feedURL,
-		Title:       title,
-		Description: description,
-		Tags:        tags,
-		CreatedAt:   createdAt,
-		UpdatedAt:   updatedAt,
+		ID:              id,
+		URL:             rawURL,
+		FeedURL:         feedURL,
+		IsBlockedBypass: isBlockedBypass,
+		Title:           title,
+		Description:     description,
+		Tags:            tags,
+		CreatedAt:       createdAt,
+		UpdatedAt:       updatedAt,
 	}
 }
 
@@ -46,7 +48,7 @@ func (s *Store) GetURL(ctx context.Context, id, userID uuid.UUID) (URL, error) {
 	if err != nil {
 		return URL{}, err
 	}
-	return newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt), nil
+	return newURL(u.ID, u.Url, u.FeedUrl, u.IsBlockedBypass, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt), nil
 }
 
 func (s *Store) ListURLs(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]URL, error) {
@@ -60,7 +62,7 @@ func (s *Store) ListURLs(ctx context.Context, userID uuid.UUID, limit, offset in
 	}
 	urls := make([]URL, len(rows))
 	for i, u := range rows {
-		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
+		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.IsBlockedBypass, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
 	}
 	return urls, nil
 }
@@ -75,7 +77,7 @@ func (s *Store) SearchURLs(ctx context.Context, userID uuid.UUID, query string) 
 	}
 	urls := make([]URL, len(rows))
 	for i, u := range rows {
-		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
+		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.IsBlockedBypass, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
 	}
 	return urls, nil
 }
@@ -92,7 +94,7 @@ func (s *Store) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string,
 	}
 	urls := make([]URL, len(rows))
 	for i, u := range rows {
-		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
+		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.IsBlockedBypass, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
 	}
 	return urls, nil
 }
@@ -110,7 +112,7 @@ func (s *Store) ListURLsByCategory(ctx context.Context, userID, categoryID uuid.
 
 	urls := make([]URL, len(rows))
 	for i, u := range rows {
-		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
+		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.IsBlockedBypass, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
 	}
 
 	return urls, nil
@@ -118,8 +120,11 @@ func (s *Store) ListURLsByCategory(ctx context.Context, userID, categoryID uuid.
 
 // CreateURL upserts the URL string (deduplicating across users), links it to the
 // user with per-user title, description, and tags, then returns the full URL record.
-func (s *Store) CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (URL, error) {
-	urlID, err := s.queries.UpsertURL(ctx, rawURL)
+func (s *Store) CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string, isBlockedBypass bool) (URL, error) {
+	urlID, err := s.queries.UpsertURL(ctx, sqlstore.UpsertURLParams{
+		Url:             rawURL,
+		IsBlockedBypass: isBlockedBypass,
+	})
 	if err != nil {
 		return URL{}, err
 	}

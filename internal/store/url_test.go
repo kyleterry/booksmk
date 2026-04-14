@@ -53,7 +53,7 @@ func TestCreateURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			created, err := s.CreateURL(ctx, u.ID, tt.rawURL, tt.title, tt.description, tt.tags)
+			created, err := s.CreateURL(ctx, u.ID, tt.rawURL, tt.title, tt.description, tt.tags, false)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("CreateURL() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -75,7 +75,7 @@ func TestGetURL(t *testing.T) {
 	ctx := context.Background()
 	u := setupUser(t, s, "urlget@example.com")
 
-	created, err := s.CreateURL(ctx, u.ID, "https://gettest.example.com", "Get Test", "desc", []string{"a", "b"})
+	created, err := s.CreateURL(ctx, u.ID, "https://gettest.example.com", "Get Test", "desc", []string{"a", "b"}, false)
 	if err != nil {
 		t.Fatalf("setup CreateURL: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestGetURL_OtherUserCannotAccess(t *testing.T) {
 	owner := setupUser(t, s, "owner-access@example.com")
 	other := setupUser(t, s, "other-access@example.com")
 
-	created, err := s.CreateURL(ctx, owner.ID, "https://private.example.com", "Private", "", []string{})
+	created, err := s.CreateURL(ctx, owner.ID, "https://private.example.com", "Private", "", []string{}, false)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestListURLs(t *testing.T) {
 	}
 
 	for _, c := range urlsToCreate {
-		if _, err := s.CreateURL(ctx, u.ID, c.url, c.title, "", c.tags); err != nil {
+		if _, err := s.CreateURL(ctx, u.ID, c.url, c.title, "", c.tags, false); err != nil {
 			t.Fatalf("setup CreateURL(%q): %v", c.url, err)
 		}
 	}
@@ -171,12 +171,13 @@ func TestListURLs_IsolatedByUser(t *testing.T) {
 	alice := setupUser(t, s, "alice-isolated@example.com")
 	bob := setupUser(t, s, "bob-isolated@example.com")
 
-	if _, err := s.CreateURL(ctx, alice.ID, "https://alice.example.com", "Alice's URL", "", []string{}); err != nil {
+	if _, err := s.CreateURL(ctx, alice.ID, "https://alice.example.com", "Alice's URL", "", []string{}, false); err != nil {
 		t.Fatalf("setup alice: %v", err)
 	}
 
 	// Bob's list should be empty.
 	urls, err := s.ListURLs(ctx, bob.ID, 10, 0)
+
 	if err != nil {
 		t.Fatalf("ListURLs(bob): %v", err)
 	}
@@ -190,7 +191,7 @@ func TestUpdateURL(t *testing.T) {
 	ctx := context.Background()
 	u := setupUser(t, s, "update@example.com")
 
-	created, err := s.CreateURL(ctx, u.ID, "https://update.example.com", "Original", "original desc", []string{"old"})
+	created, err := s.CreateURL(ctx, u.ID, "https://update.example.com", "Original", "original desc", []string{"old"}, false)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -256,7 +257,7 @@ func TestDeleteURL(t *testing.T) {
 	ctx := context.Background()
 	u := setupUser(t, s, "delete@example.com")
 
-	created, err := s.CreateURL(ctx, u.ID, "https://delete.example.com", "To Delete", "", []string{})
+	created, err := s.CreateURL(ctx, u.ID, "https://delete.example.com", "To Delete", "", []string{}, false)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -282,12 +283,12 @@ func TestURLDeduplication(t *testing.T) {
 
 	const rawURL = "https://shared.example.com"
 
-	aliceURL, err := s.CreateURL(ctx, alice.ID, rawURL, "Alice's title", "", []string{"alice-tag"})
+	aliceURL, err := s.CreateURL(ctx, alice.ID, rawURL, "Alice's title", "", []string{"alice-tag"}, false)
 	if err != nil {
 		t.Fatalf("alice CreateURL: %v", err)
 	}
 
-	bobURL, err := s.CreateURL(ctx, bob.ID, rawURL, "Bob's title", "", []string{"bob-tag"})
+	bobURL, err := s.CreateURL(ctx, bob.ID, rawURL, "Bob's title", "", []string{"bob-tag"}, false)
 	if err != nil {
 		t.Fatalf("bob CreateURL: %v", err)
 	}
@@ -326,10 +327,10 @@ func TestListURLsByTag(t *testing.T) {
 	ctx := context.Background()
 	u := setupUser(t, s, "listbytag@example.com")
 
-	if _, err := s.CreateURL(ctx, u.ID, "https://go.dev", "Go", "", []string{"programming", "go"}); err != nil {
+	if _, err := s.CreateURL(ctx, u.ID, "https://go.dev", "Go", "", []string{"programming", "go"}, false); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
-	if _, err := s.CreateURL(ctx, u.ID, "https://rust-lang.org", "Rust", "", []string{"programming", "rust"}); err != nil {
+	if _, err := s.CreateURL(ctx, u.ID, "https://rust-lang.org", "Rust", "", []string{"programming", "rust"}, false); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 
@@ -362,15 +363,15 @@ func TestListURLsByCategory(t *testing.T) {
 	u := setupUser(t, s, "listbycat@example.com")
 
 	// URL 1: Matches by tag
-	if _, err := s.CreateURL(ctx, u.ID, "https://blog.golang.org", "Go Blog", "", []string{"go"}); err != nil {
+	if _, err := s.CreateURL(ctx, u.ID, "https://blog.golang.org", "Go Blog", "", []string{"go"}, false); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 	// URL 2: Matches by domain
-	if _, err := s.CreateURL(ctx, u.ID, "https://news.ycombinator.com/item?id=1", "HN", "", []string{}); err != nil {
+	if _, err := s.CreateURL(ctx, u.ID, "https://news.ycombinator.com/item?id=1", "HN", "", []string{}, false); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 	// URL 3: No match
-	if _, err := s.CreateURL(ctx, u.ID, "https://example.com", "Example", "", []string{"other"}); err != nil {
+	if _, err := s.CreateURL(ctx, u.ID, "https://example.com", "Example", "", []string{"other"}, false); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 
@@ -383,6 +384,7 @@ func TestListURLsByCategory(t *testing.T) {
 	}
 
 	urls, err := s.ListURLsByCategory(ctx, u.ID, cat.ID, 10, 0)
+
 	if err != nil {
 		t.Fatalf("ListURLsByCategory: %v", err)
 	}
@@ -397,10 +399,10 @@ func TestSearchURLs(t *testing.T) {
 	ctx := context.Background()
 	u := setupUser(t, s, "search@example.com")
 
-	if _, err := s.CreateURL(ctx, u.ID, "https://google.com", "Search Engine", "Google search", []string{}); err != nil {
+	if _, err := s.CreateURL(ctx, u.ID, "https://google.com", "Search Engine", "Google search", []string{}, false); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
-	if _, err := s.CreateURL(ctx, u.ID, "https://bing.com", "Bing", "Microsoft search", []string{}); err != nil {
+	if _, err := s.CreateURL(ctx, u.ID, "https://bing.com", "Bing", "Microsoft search", []string{}, false); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 

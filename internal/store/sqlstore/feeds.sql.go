@@ -85,7 +85,7 @@ func (q *Queries) EnqueueFeedPollJob(ctx context.Context, feedID uuid.UUID) erro
 }
 
 const getFeedByID = `-- name: GetFeedByID :one
-select id, feed_url, site_url, title, description, image_url, last_fetched_at, created_at, updated_at
+select id, feed_url, site_url, title, description, image_url, is_blocked_bypass, last_fetched_at, created_at, updated_at
 from feeds
 where id = $1
 `
@@ -100,6 +100,7 @@ func (q *Queries) GetFeedByID(ctx context.Context, id uuid.UUID) (Feed, error) {
 		&i.Title,
 		&i.Description,
 		&i.ImageUrl,
+		&i.IsBlockedBypass,
 		&i.LastFetchedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -173,7 +174,7 @@ func (q *Queries) GetTimelineItem(ctx context.Context, arg GetTimelineItemParams
 }
 
 const getUserFeed = `-- name: GetUserFeed :one
-select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
+select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.is_blocked_bypass, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
 from feeds f
 join user_feeds uf on uf.feed_id = f.id
 where f.id = $1 and uf.user_id = $2
@@ -185,16 +186,17 @@ type GetUserFeedParams struct {
 }
 
 type GetUserFeedRow struct {
-	ID            uuid.UUID          `json:"id"`
-	FeedUrl       string             `json:"feed_url"`
-	SiteUrl       string             `json:"site_url"`
-	Title         string             `json:"title"`
-	Description   string             `json:"description"`
-	ImageUrl      string             `json:"image_url"`
-	LastFetchedAt pgtype.Timestamptz `json:"last_fetched_at"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
-	CustomName    string             `json:"custom_name"`
+	ID              uuid.UUID          `json:"id"`
+	FeedUrl         string             `json:"feed_url"`
+	SiteUrl         string             `json:"site_url"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	ImageUrl        string             `json:"image_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	LastFetchedAt   pgtype.Timestamptz `json:"last_fetched_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	CustomName      string             `json:"custom_name"`
 }
 
 func (q *Queries) GetUserFeed(ctx context.Context, arg GetUserFeedParams) (GetUserFeedRow, error) {
@@ -207,6 +209,7 @@ func (q *Queries) GetUserFeed(ctx context.Context, arg GetUserFeedParams) (GetUs
 		&i.Title,
 		&i.Description,
 		&i.ImageUrl,
+		&i.IsBlockedBypass,
 		&i.LastFetchedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -216,7 +219,7 @@ func (q *Queries) GetUserFeed(ctx context.Context, arg GetUserFeedParams) (GetUs
 }
 
 const getUserFeedByFeedURL = `-- name: GetUserFeedByFeedURL :one
-select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
+select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.is_blocked_bypass, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
 from feeds f
 join user_feeds uf on uf.feed_id = f.id
 where f.feed_url = $1 and uf.user_id = $2
@@ -228,16 +231,17 @@ type GetUserFeedByFeedURLParams struct {
 }
 
 type GetUserFeedByFeedURLRow struct {
-	ID            uuid.UUID          `json:"id"`
-	FeedUrl       string             `json:"feed_url"`
-	SiteUrl       string             `json:"site_url"`
-	Title         string             `json:"title"`
-	Description   string             `json:"description"`
-	ImageUrl      string             `json:"image_url"`
-	LastFetchedAt pgtype.Timestamptz `json:"last_fetched_at"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
-	CustomName    string             `json:"custom_name"`
+	ID              uuid.UUID          `json:"id"`
+	FeedUrl         string             `json:"feed_url"`
+	SiteUrl         string             `json:"site_url"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	ImageUrl        string             `json:"image_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	LastFetchedAt   pgtype.Timestamptz `json:"last_fetched_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	CustomName      string             `json:"custom_name"`
 }
 
 func (q *Queries) GetUserFeedByFeedURL(ctx context.Context, arg GetUserFeedByFeedURLParams) (GetUserFeedByFeedURLRow, error) {
@@ -250,6 +254,7 @@ func (q *Queries) GetUserFeedByFeedURL(ctx context.Context, arg GetUserFeedByFee
 		&i.Title,
 		&i.Description,
 		&i.ImageUrl,
+		&i.IsBlockedBypass,
 		&i.LastFetchedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -478,7 +483,7 @@ func (q *Queries) ListTimelineItems(ctx context.Context, arg ListTimelineItemsPa
 }
 
 const listUserFeeds = `-- name: ListUserFeeds :many
-select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
+select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.is_blocked_bypass, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
 from feeds f
 join user_feeds uf on uf.feed_id = f.id
 where uf.user_id = $1
@@ -486,16 +491,17 @@ order by f.title, f.created_at desc
 `
 
 type ListUserFeedsRow struct {
-	ID            uuid.UUID          `json:"id"`
-	FeedUrl       string             `json:"feed_url"`
-	SiteUrl       string             `json:"site_url"`
-	Title         string             `json:"title"`
-	Description   string             `json:"description"`
-	ImageUrl      string             `json:"image_url"`
-	LastFetchedAt pgtype.Timestamptz `json:"last_fetched_at"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
-	CustomName    string             `json:"custom_name"`
+	ID              uuid.UUID          `json:"id"`
+	FeedUrl         string             `json:"feed_url"`
+	SiteUrl         string             `json:"site_url"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	ImageUrl        string             `json:"image_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	LastFetchedAt   pgtype.Timestamptz `json:"last_fetched_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	CustomName      string             `json:"custom_name"`
 }
 
 func (q *Queries) ListUserFeeds(ctx context.Context, userID uuid.UUID) ([]ListUserFeedsRow, error) {
@@ -514,6 +520,7 @@ func (q *Queries) ListUserFeeds(ctx context.Context, userID uuid.UUID) ([]ListUs
 			&i.Title,
 			&i.Description,
 			&i.ImageUrl,
+			&i.IsBlockedBypass,
 			&i.LastFetchedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -622,7 +629,7 @@ func (q *Queries) RemoveFeedFromUser(ctx context.Context, arg RemoveFeedFromUser
 }
 
 const searchFeeds = `-- name: SearchFeeds :many
-select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
+select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.is_blocked_bypass, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
 from feeds f
 join user_feeds uf on uf.feed_id = f.id
 where uf.user_id = $1
@@ -641,16 +648,17 @@ type SearchFeedsParams struct {
 }
 
 type SearchFeedsRow struct {
-	ID            uuid.UUID          `json:"id"`
-	FeedUrl       string             `json:"feed_url"`
-	SiteUrl       string             `json:"site_url"`
-	Title         string             `json:"title"`
-	Description   string             `json:"description"`
-	ImageUrl      string             `json:"image_url"`
-	LastFetchedAt pgtype.Timestamptz `json:"last_fetched_at"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
-	CustomName    string             `json:"custom_name"`
+	ID              uuid.UUID          `json:"id"`
+	FeedUrl         string             `json:"feed_url"`
+	SiteUrl         string             `json:"site_url"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	ImageUrl        string             `json:"image_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	LastFetchedAt   pgtype.Timestamptz `json:"last_fetched_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	CustomName      string             `json:"custom_name"`
 }
 
 func (q *Queries) SearchFeeds(ctx context.Context, arg SearchFeedsParams) ([]SearchFeedsRow, error) {
@@ -669,6 +677,7 @@ func (q *Queries) SearchFeeds(ctx context.Context, arg SearchFeedsParams) ([]Sea
 			&i.Title,
 			&i.Description,
 			&i.ImageUrl,
+			&i.IsBlockedBypass,
 			&i.LastFetchedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -730,14 +739,20 @@ func (q *Queries) UpdateUserFeedCustomName(ctx context.Context, arg UpdateUserFe
 }
 
 const upsertFeed = `-- name: UpsertFeed :one
-insert into feeds (feed_url)
-values ($1)
-on conflict (feed_url) do update set feed_url = excluded.feed_url
-returning id, feed_url, site_url, title, description, image_url, last_fetched_at, created_at, updated_at
+insert into feeds (feed_url, is_blocked_bypass)
+values ($1, $2)
+on conflict (feed_url) do update set 
+    is_blocked_bypass = excluded.is_blocked_bypass or feeds.is_blocked_bypass
+returning id, feed_url, site_url, title, description, image_url, is_blocked_bypass, last_fetched_at, created_at, updated_at
 `
 
-func (q *Queries) UpsertFeed(ctx context.Context, feedUrl string) (Feed, error) {
-	row := q.db.QueryRow(ctx, upsertFeed, feedUrl)
+type UpsertFeedParams struct {
+	FeedUrl         string `json:"feed_url"`
+	IsBlockedBypass bool   `json:"is_blocked_bypass"`
+}
+
+func (q *Queries) UpsertFeed(ctx context.Context, arg UpsertFeedParams) (Feed, error) {
+	row := q.db.QueryRow(ctx, upsertFeed, arg.FeedUrl, arg.IsBlockedBypass)
 	var i Feed
 	err := row.Scan(
 		&i.ID,
@@ -746,6 +761,7 @@ func (q *Queries) UpsertFeed(ctx context.Context, feedUrl string) (Feed, error) 
 		&i.Title,
 		&i.Description,
 		&i.ImageUrl,
+		&i.IsBlockedBypass,
 		&i.LastFetchedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,

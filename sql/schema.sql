@@ -21,6 +21,7 @@ create table urls (
 	id         uuid         primary key default gen_random_uuid(),
 	url        text         not null unique,
 	feed_url   text         not null default '',
+	is_blocked_bypass boolean not null default false,
 	created_at timestamptz  not null default now()
 );
 
@@ -109,6 +110,7 @@ create table feeds (
 	title           text        not null default '',
 	description     text        not null default '',
 	image_url       text        not null default '',
+	is_blocked_bypass boolean not null default false,
 	last_fetched_at timestamptz,
 	created_at      timestamptz not null default now(),
 	updated_at      timestamptz not null default now()
@@ -177,4 +179,11 @@ create table category_members (
 	kind        text not null check (kind in ('tag', 'domain')),
 	value       text not null,
 	unique (category_id, kind, value)
+);
+
+create table blocklist (
+	id         uuid        primary key default gen_random_uuid(),
+	pattern    text        not null unique,
+	kind       text        not null check (kind in ('domain', 'url')),
+	created_at timestamptz not null default now()
 );

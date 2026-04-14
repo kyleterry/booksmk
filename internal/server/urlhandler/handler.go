@@ -25,12 +25,13 @@ type urlStore interface {
 	Search(ctx context.Context, userID uuid.UUID, query string) (store.SearchResults, error)
 	ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string, limit, offset int32) ([]store.URL, error)
 	ListURLsByCategory(ctx context.Context, userID, categoryID uuid.UUID, limit, offset int32) ([]store.URL, error)
-	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error)
+	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string, isBlockedBypass bool) (store.URL, error)
 	UpdateURL(ctx context.Context, id, userID uuid.UUID, title, description string, tags []string) (store.URL, error)
 	DeleteURL(ctx context.Context, id, userID uuid.UUID) error
 	ListDiscussionsForURL(ctx context.Context, urlID uuid.UUID) ([]store.Discussion, error)
 	SetURLFeedURL(ctx context.Context, id uuid.UUID, feedURL string) error
 	ListCategories(ctx context.Context, userID uuid.UUID) ([]store.Category, error)
+	IsBlocked(ctx context.Context, rawURL string) (bool, error)
 }
 
 type feedQueryStore interface {
@@ -237,6 +238,16 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	title := r.FormValue("title")
 	tags := parseTags(r.FormValue("tags"))
 
+	isBlocked, err := h.store.IsBlocked(r.Context(), rawURL)
+	if err != nil {
+		h.logger.Error("failed to check blocklist", "error", err)
+	}
+
+	if isBlocked && !user.IsAdmin {
+		h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage(rawURL, title, "this URL or domain is blocked")))
+		return
+	}
+
 	meta := urlfetch.Fetch(rawURL)
 	if title == "" {
 		title = meta.Title
@@ -245,7 +256,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		tags = meta.Tags
 	}
 
-	u, err := h.store.CreateURL(r.Context(), user.ID, rawURL, title, r.FormValue("description"), tags)
+	u, err := h.store.CreateURL(r.Context(), user.ID, rawURL, title, r.FormValue("description"), tags, isBlocked)
 	if err != nil {
 		h.logger.Error("failed to create url", "error", err)
 		h.render(w, r, ui.Base("add url", h.navUser(r), urlpages.NewPage(rawURL, r.FormValue("title"), "failed to save url")))

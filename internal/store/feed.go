@@ -14,17 +14,18 @@ import (
 
 // Feed is a subscribed RSS/Atom feed belonging to a user.
 type Feed struct {
-	ID            uuid.UUID
-	FeedURL       string
-	SiteURL       string
-	Title         string
-	Description   string
-	ImageURL      string
-	CustomName    string
-	Tags          []string
-	LastFetchedAt *time.Time
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID              uuid.UUID
+	FeedURL         string
+	SiteURL         string
+	Title           string
+	Description     string
+	ImageURL        string
+	IsBlockedBypass bool
+	CustomName      string
+	Tags            []string
+	LastFetchedAt   *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 // FeedItem is a single item from a feed.
@@ -89,21 +90,22 @@ type UpsertFeedItemParams struct {
 	PublishedAt *time.Time
 }
 
-func buildFeed(id uuid.UUID, feedUrl, siteUrl, title, description, imageUrl, customName string, lastFetchedAt pgtype.Timestamptz, createdAt, updatedAt pgtype.Timestamptz, tags []string) Feed {
+func buildFeed(id uuid.UUID, feedUrl, siteUrl, title, description, imageUrl string, isBlockedBypass bool, customName string, lastFetchedAt pgtype.Timestamptz, createdAt, updatedAt pgtype.Timestamptz, tags []string) Feed {
 	if tags == nil {
 		tags = []string{}
 	}
 	f := Feed{
-		ID:          id,
-		FeedURL:     feedUrl,
-		SiteURL:     siteUrl,
-		Title:       title,
-		Description: description,
-		ImageURL:    imageUrl,
-		CustomName:  customName,
-		Tags:        tags,
-		CreatedAt:   createdAt.Time,
-		UpdatedAt:   updatedAt.Time,
+		ID:              id,
+		FeedURL:         feedUrl,
+		SiteURL:         siteUrl,
+		Title:           title,
+		Description:     description,
+		ImageURL:        imageUrl,
+		IsBlockedBypass: isBlockedBypass,
+		CustomName:      customName,
+		Tags:            tags,
+		CreatedAt:       createdAt.Time,
+		UpdatedAt:       updatedAt.Time,
 	}
 	if lastFetchedAt.Valid {
 		t := lastFetchedAt.Time
@@ -136,8 +138,11 @@ func newFeedItem(id, feedID uuid.UUID, guid, url, title, summary, author string,
 // SubscribeToFeed creates or retrieves the global feed record, links it to the
 // user, sets tags, and enqueues a poll job. It is idempotent: subscribing twice
 // returns the same feed without error.
-func (s *Store) SubscribeToFeed(ctx context.Context, userID uuid.UUID, feedURL string, tags []string) (Feed, error) {
-	row, err := s.queries.UpsertFeed(ctx, feedURL)
+func (s *Store) SubscribeToFeed(ctx context.Context, userID uuid.UUID, feedURL string, tags []string, isBlockedBypass bool) (Feed, error) {
+	row, err := s.queries.UpsertFeed(ctx, sqlstore.UpsertFeedParams{
+		FeedUrl:         feedURL,
+		IsBlockedBypass: isBlockedBypass,
+	})
 	if err != nil {
 		return Feed{}, err
 	}
@@ -169,7 +174,7 @@ func (s *Store) GetFeed(ctx context.Context, id, userID uuid.UUID) (Feed, error)
 	if err != nil {
 		return Feed{}, err
 	}
-	return buildFeed(row.ID, row.FeedUrl, row.SiteUrl, row.Title, row.Description, row.ImageUrl, row.CustomName, row.LastFetchedAt, row.CreatedAt, row.UpdatedAt, tags), nil
+	return buildFeed(row.ID, row.FeedUrl, row.SiteUrl, row.Title, row.Description, row.ImageUrl, row.IsBlockedBypass, row.CustomName, row.LastFetchedAt, row.CreatedAt, row.UpdatedAt, tags), nil
 }
 
 // GetFeedByURL returns the user's subscription to the feed with the given URL.
@@ -186,7 +191,7 @@ func (s *Store) GetFeedByURL(ctx context.Context, userID uuid.UUID, feedURL stri
 	if err != nil {
 		return Feed{}, err
 	}
-	return buildFeed(row.ID, row.FeedUrl, row.SiteUrl, row.Title, row.Description, row.ImageUrl, row.CustomName, row.LastFetchedAt, row.CreatedAt, row.UpdatedAt, tags), nil
+	return buildFeed(row.ID, row.FeedUrl, row.SiteUrl, row.Title, row.Description, row.ImageUrl, row.IsBlockedBypass, row.CustomName, row.LastFetchedAt, row.CreatedAt, row.UpdatedAt, tags), nil
 }
 
 // ListFeeds returns all feeds the user is subscribed to.
@@ -201,7 +206,27 @@ func (s *Store) ListFeeds(ctx context.Context, userID uuid.UUID) ([]Feed, error)
 		if err != nil {
 			return nil, err
 		}
-		feeds[i] = buildFeed(row.ID, row.FeedUrl, row.SiteUrl, row.Title, row.Description, row.ImageUrl, row.CustomName, row.LastFetchedAt, row.CreatedAt, row.UpdatedAt, tags)
+		feeds[i] = buildFeed(row.ID, row.FeedUrl, row.SiteUrl, row.Title, row.Description, row.ImageUrl, row.IsBlockedBypass, row.CustomName, row.LastFetchedAt, row.CreatedAt, row.UpdatedAt, tags)
+	}
+	return feeds, nil
+}
+
+// SearchFeeds returns the user's feeds matching the query.
+func (s *Store) SearchFeeds(ctx context.Context, userID uuid.UUID, query string) ([]Feed, error) {
+	rows, err := s.queries.SearchFeeds(ctx, sqlstore.SearchFeedsParams{
+		UserID: userID,
+		Query:  "%" + query + "%",
+	})
+	if err != nil {
+		return nil, err
+	}
+	feeds := make([]Feed, len(rows))
+	for i, row := range rows {
+		tags, err := s.queries.ListTagNamesForFeed(ctx, sqlstore.ListTagNamesForFeedParams{UserID: userID, FeedID: row.ID})
+		if err != nil {
+			return nil, err
+		}
+		feeds[i] = buildFeed(row.ID, row.FeedUrl, row.SiteUrl, row.Title, row.Description, row.ImageUrl, row.IsBlockedBypass, row.CustomName, row.LastFetchedAt, row.CreatedAt, row.UpdatedAt, tags)
 	}
 	return feeds, nil
 }

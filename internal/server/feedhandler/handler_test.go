@@ -32,7 +32,7 @@ var (
 )
 
 type mockFeedStore struct {
-	SubscribeToFeedFn     func(context.Context, uuid.UUID, string, []string) (store.Feed, error)
+	SubscribeToFeedFn     func(context.Context, uuid.UUID, string, []string, bool) (store.Feed, error)
 	GetFeedFn             func(context.Context, uuid.UUID, uuid.UUID) (store.Feed, error)
 	ListFeedsFn           func(context.Context, uuid.UUID) ([]store.Feed, error)
 	UnsubscribeFromFeedFn func(context.Context, uuid.UUID, uuid.UUID) error
@@ -44,11 +44,19 @@ type mockFeedStore struct {
 	MarkItemUnreadFn      func(context.Context, uuid.UUID, uuid.UUID) error
 	MarkAllItemsReadFn    func(context.Context, uuid.UUID) error
 	MarkFeedItemsReadFn   func(context.Context, uuid.UUID, uuid.UUID) error
+	IsBlockedFn           func(context.Context, string) (bool, error)
 }
 
-func (m *mockFeedStore) SubscribeToFeed(ctx context.Context, userID uuid.UUID, feedURL string, tags []string) (store.Feed, error) {
+func (m *mockFeedStore) IsBlocked(ctx context.Context, rawURL string) (bool, error) {
+	if m.IsBlockedFn != nil {
+		return m.IsBlockedFn(ctx, rawURL)
+	}
+	return false, nil
+}
+
+func (m *mockFeedStore) SubscribeToFeed(ctx context.Context, userID uuid.UUID, feedURL string, tags []string, isBlockedBypass bool) (store.Feed, error) {
 	if m.SubscribeToFeedFn != nil {
-		return m.SubscribeToFeedFn(ctx, userID, feedURL, tags)
+		return m.SubscribeToFeedFn(ctx, userID, feedURL, tags, isBlockedBypass)
 	}
 	return store.Feed{}, errors.New("SubscribeToFeed not configured")
 }
