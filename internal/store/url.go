@@ -46,11 +46,7 @@ func (s *Store) GetURL(ctx context.Context, id, userID uuid.UUID) (URL, error) {
 	if err != nil {
 		return URL{}, err
 	}
-	tags, err := s.queries.ListTagNamesForURL(ctx, sqlstore.ListTagNamesForURLParams{UserID: userID, URLID: id})
-	if err != nil {
-		return URL{}, err
-	}
-	return newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt), nil
+	return newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt), nil
 }
 
 func (s *Store) ListURLs(ctx context.Context, userID uuid.UUID) ([]URL, error) {
@@ -60,11 +56,22 @@ func (s *Store) ListURLs(ctx context.Context, userID uuid.UUID) ([]URL, error) {
 	}
 	urls := make([]URL, len(rows))
 	for i, u := range rows {
-		tags, err := s.queries.ListTagNamesForURL(ctx, sqlstore.ListTagNamesForURLParams{UserID: userID, URLID: u.ID})
-		if err != nil {
-			return nil, err
-		}
-		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt)
+		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
+	}
+	return urls, nil
+}
+
+func (s *Store) SearchURLs(ctx context.Context, userID uuid.UUID, query string) ([]URL, error) {
+	rows, err := s.queries.SearchURLs(ctx, sqlstore.SearchURLsParams{
+		UserID: userID,
+		Query:  "%" + query + "%",
+	})
+	if err != nil {
+		return nil, err
+	}
+	urls := make([]URL, len(rows))
+	for i, u := range rows {
+		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
 	}
 	return urls, nil
 }
@@ -76,11 +83,7 @@ func (s *Store) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string)
 	}
 	urls := make([]URL, len(rows))
 	for i, u := range rows {
-		tags, err := s.queries.ListTagNamesForURL(ctx, sqlstore.ListTagNamesForURLParams{UserID: userID, URLID: u.ID})
-		if err != nil {
-			return nil, err
-		}
-		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt)
+		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
 	}
 	return urls, nil
 }
@@ -93,11 +96,7 @@ func (s *Store) ListURLsByCategory(ctx context.Context, userID, categoryID uuid.
 
 	urls := make([]URL, len(rows))
 	for i, u := range rows {
-		tags, err := s.queries.ListTagNamesForURL(ctx, sqlstore.ListTagNamesForURLParams{UserID: userID, URLID: u.ID})
-		if err != nil {
-			return nil, err
-		}
-		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, tags, u.CreatedAt, u.UpdatedAt)
+		urls[i] = newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt)
 	}
 
 	return urls, nil

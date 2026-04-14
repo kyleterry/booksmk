@@ -20,6 +20,7 @@ import (
 type urlStore interface {
 	GetURL(ctx context.Context, id, userID uuid.UUID) (store.URL, error)
 	ListURLs(ctx context.Context, userID uuid.UUID) ([]store.URL, error)
+	SearchURLs(ctx context.Context, userID uuid.UUID, query string) ([]store.URL, error)
 	ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string) ([]store.URL, error)
 	ListURLsByCategory(ctx context.Context, userID, categoryID uuid.UUID) ([]store.URL, error)
 	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error)
@@ -165,6 +166,17 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 		}
 
 		h.render(w, r, ui.Base("category: "+catID, h.navUser(r), urlpages.CategoryPage(cat, urls, categories)))
+		return
+	}
+
+	if q := r.URL.Query().Get("q"); q != "" {
+		urls, err := h.store.SearchURLs(r.Context(), user.ID, q)
+		if err != nil {
+			h.logger.Error("failed to search urls", "query", q, "error", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+		h.render(w, r, ui.Base("search: "+q, h.navUser(r), urlpages.ListPage(urls, categories)))
 		return
 	}
 

@@ -1,14 +1,38 @@
 -- name: GetURL :one
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
-where u.id = $1 and uu.user_id = $2;
+left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
+left join tags t on t.id = ut.tag_id
+where u.id = $1 and uu.user_id = $2
+group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at;
 
 -- name: ListURLs :many
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
+left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
+left join tags t on t.id = ut.tag_id
 where uu.user_id = $1
+group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+order by uu.created_at desc;
+
+-- name: SearchURLs :many
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
+from urls u
+join user_urls uu on uu.url_id = u.id
+left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
+left join tags t on t.id = ut.tag_id
+where uu.user_id = $1
+  and (
+    uu.title ilike @query
+    or uu.description ilike @query
+    or u.url ilike @query
+  )
+group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc;
 
 -- name: UpsertURL :one
@@ -35,25 +59,34 @@ delete from user_urls where user_id = $1 and url_id = $2;
 update urls set feed_url = $2 where id = $1;
 
 -- name: ListURLsByTag :many
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
-join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
-join tags t on t.id = ut.tag_id
-where uu.user_id = $1 and t.name = $2
+left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
+left join tags t on t.id = ut.tag_id
+where uu.user_id = $1 and u.id in (
+  select ut2.url_id from url_tags ut2
+  join tags t2 on t2.id = ut2.tag_id
+  where ut2.user_id = $1 and t2.name = $2
+)
+group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc;
 
 -- name: ListURLsByCategory :many
-select distinct u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
+left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
+left join tags t on t.id = ut.tag_id
 where uu.user_id = $1
   and (
     exists (
-      select 1 from url_tags ut
-      join tags t on t.id = ut.tag_id
-      join category_members cm on cm.kind = 'tag' and cm.value = t.name
-      where ut.user_id = $1 and ut.url_id = u.id and cm.category_id = $2
+      select 1 from url_tags ut2
+      join tags t2 on t2.id = ut2.tag_id
+      join category_members cm on cm.kind = 'tag' and cm.value = t2.name
+      where ut2.user_id = $1 and ut2.url_id = u.id and cm.category_id = $2
     )
     or exists (
       select 1 from category_members cm
@@ -61,4 +94,8 @@ where uu.user_id = $1
         and regexp_replace(u.url, '^https?://([^/?#]+).*$', '\1', 'i') = cm.value
     )
   )
+group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc;
+
+-- name: ListURLsForFeedBackfill :many
+select id, url from urls where feed_url = '' order by created_at desc;

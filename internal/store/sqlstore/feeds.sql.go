@@ -296,6 +296,7 @@ select fi.id, fi.feed_id, fi.guid, fi.url, fi.title, fi.summary, fi.author, fi.p
 from feed_items fi
 left join feed_item_reads fir on fir.item_id = fi.id and fir.user_id = $2
 where fi.feed_id = $1
+  and (fi.published_at is null or fi.published_at <= now())
 order by fi.published_at desc nulls last
 limit 100
 `
@@ -392,6 +393,7 @@ from feed_items fi
 join feeds f on f.id = fi.feed_id
 join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
 left join feed_item_reads fir on fir.item_id = fi.id and fir.user_id = $1
+where fi.published_at is null or fi.published_at <= now()
 order by fi.published_at desc nulls last
 limit $2
 offset $3
@@ -441,35 +443,6 @@ func (q *Queries) ListTimelineItems(ctx context.Context, arg ListTimelineItemsPa
 			&i.CreatedAt,
 			&i.IsRead,
 		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listURLsForFeedBackfill = `-- name: ListURLsForFeedBackfill :many
-select id, url from urls where feed_url = ''
-`
-
-type ListURLsForFeedBackfillRow struct {
-	ID  uuid.UUID `json:"id"`
-	Url string    `json:"url"`
-}
-
-func (q *Queries) ListURLsForFeedBackfill(ctx context.Context) ([]ListURLsForFeedBackfillRow, error) {
-	rows, err := q.db.Query(ctx, listURLsForFeedBackfill)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListURLsForFeedBackfillRow
-	for rows.Next() {
-		var i ListURLsForFeedBackfillRow
-		if err := rows.Scan(&i.ID, &i.Url); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -537,6 +510,7 @@ insert into feed_item_reads (user_id, item_id)
 select $1, fi.id
 from feed_items fi
 join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
+where fi.published_at is null or fi.published_at <= now()
 on conflict do nothing
 `
 
@@ -551,6 +525,7 @@ select $1, fi.id
 from feed_items fi
 join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
 where fi.feed_id = $2
+  and (fi.published_at is null or fi.published_at <= now())
 on conflict do nothing
 `
 

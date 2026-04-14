@@ -73,6 +73,29 @@ func (q *Queries) RemoveAllTagsFromURL(ctx context.Context, arg RemoveAllTagsFro
 	return err
 }
 
+const setURLTags = `-- name: SetURLTags :exec
+with new_tags as (
+  insert into tags (name)
+  select unnest($3::text[])
+  on conflict (name) do update set name = excluded.name
+  returning id
+)
+insert into url_tags (user_id, url_id, tag_id)
+select $1, $2, id from new_tags
+on conflict do nothing
+`
+
+type SetURLTagsParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	URLID  uuid.UUID `json:"url_id"`
+	Names  []string  `json:"names"`
+}
+
+func (q *Queries) SetURLTags(ctx context.Context, arg SetURLTagsParams) error {
+	_, err := q.db.Exec(ctx, setURLTags, arg.UserID, arg.URLID, arg.Names)
+	return err
+}
+
 const upsertTag = `-- name: UpsertTag :one
 insert into tags (name) values ($1)
 on conflict (name) do update set name = excluded.name

@@ -36,10 +36,14 @@ func (q *Queries) AddURLToUser(ctx context.Context, arg AddURLToUserParams) erro
 }
 
 const getURL = `-- name: GetURL :one
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
+left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
+left join tags t on t.id = ut.tag_id
 where u.id = $1 and uu.user_id = $2
+group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 `
 
 type GetURLParams struct {
@@ -55,6 +59,7 @@ type GetURLRow struct {
 	Description string             `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	Tags        []string           `json:"tags"`
 }
 
 func (q *Queries) GetURL(ctx context.Context, arg GetURLParams) (GetURLRow, error) {
@@ -68,15 +73,20 @@ func (q *Queries) GetURL(ctx context.Context, arg GetURLParams) (GetURLRow, erro
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Tags,
 	)
 	return i, err
 }
 
 const listURLs = `-- name: ListURLs :many
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
+left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
+left join tags t on t.id = ut.tag_id
 where uu.user_id = $1
+group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
 `
 
@@ -88,6 +98,7 @@ type ListURLsRow struct {
 	Description string             `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	Tags        []string           `json:"tags"`
 }
 
 func (q *Queries) ListURLs(ctx context.Context, userID uuid.UUID) ([]ListURLsRow, error) {
@@ -107,6 +118,7 @@ func (q *Queries) ListURLs(ctx context.Context, userID uuid.UUID) ([]ListURLsRow
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Tags,
 		); err != nil {
 			return nil, err
 		}
@@ -119,16 +131,19 @@ func (q *Queries) ListURLs(ctx context.Context, userID uuid.UUID) ([]ListURLsRow
 }
 
 const listURLsByCategory = `-- name: ListURLsByCategory :many
-select distinct u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
+left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
+left join tags t on t.id = ut.tag_id
 where uu.user_id = $1
   and (
     exists (
-      select 1 from url_tags ut
-      join tags t on t.id = ut.tag_id
-      join category_members cm on cm.kind = 'tag' and cm.value = t.name
-      where ut.user_id = $1 and ut.url_id = u.id and cm.category_id = $2
+      select 1 from url_tags ut2
+      join tags t2 on t2.id = ut2.tag_id
+      join category_members cm on cm.kind = 'tag' and cm.value = t2.name
+      where ut2.user_id = $1 and ut2.url_id = u.id and cm.category_id = $2
     )
     or exists (
       select 1 from category_members cm
@@ -136,6 +151,7 @@ where uu.user_id = $1
         and regexp_replace(u.url, '^https?://([^/?#]+).*$', '\1', 'i') = cm.value
     )
   )
+group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
 `
 
@@ -152,6 +168,7 @@ type ListURLsByCategoryRow struct {
 	Description string             `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	Tags        []string           `json:"tags"`
 }
 
 func (q *Queries) ListURLsByCategory(ctx context.Context, arg ListURLsByCategoryParams) ([]ListURLsByCategoryRow, error) {
@@ -171,6 +188,7 @@ func (q *Queries) ListURLsByCategory(ctx context.Context, arg ListURLsByCategory
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Tags,
 		); err != nil {
 			return nil, err
 		}
@@ -183,12 +201,18 @@ func (q *Queries) ListURLsByCategory(ctx context.Context, arg ListURLsByCategory
 }
 
 const listURLsByTag = `-- name: ListURLsByTag :many
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
-join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
-join tags t on t.id = ut.tag_id
-where uu.user_id = $1 and t.name = $2
+left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
+left join tags t on t.id = ut.tag_id
+where uu.user_id = $1 and u.id in (
+  select ut2.url_id from url_tags ut2
+  join tags t2 on t2.id = ut2.tag_id
+  where ut2.user_id = $1 and t2.name = $2
+)
+group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
 `
 
@@ -205,6 +229,7 @@ type ListURLsByTagRow struct {
 	Description string             `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	Tags        []string           `json:"tags"`
 }
 
 func (q *Queries) ListURLsByTag(ctx context.Context, arg ListURLsByTagParams) ([]ListURLsByTagRow, error) {
@@ -224,7 +249,37 @@ func (q *Queries) ListURLsByTag(ctx context.Context, arg ListURLsByTagParams) ([
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Tags,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listURLsForFeedBackfill = `-- name: ListURLsForFeedBackfill :many
+select id, url from urls where feed_url = '' order by created_at desc
+`
+
+type ListURLsForFeedBackfillRow struct {
+	ID  uuid.UUID `json:"id"`
+	Url string    `json:"url"`
+}
+
+func (q *Queries) ListURLsForFeedBackfill(ctx context.Context) ([]ListURLsForFeedBackfillRow, error) {
+	rows, err := q.db.Query(ctx, listURLsForFeedBackfill)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListURLsForFeedBackfillRow
+	for rows.Next() {
+		var i ListURLsForFeedBackfillRow
+		if err := rows.Scan(&i.ID, &i.Url); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -247,6 +302,68 @@ type RemoveURLFromUserParams struct {
 func (q *Queries) RemoveURLFromUser(ctx context.Context, arg RemoveURLFromUserParams) error {
 	_, err := q.db.Exec(ctx, removeURLFromUser, arg.UserID, arg.URLID)
 	return err
+}
+
+const searchURLs = `-- name: SearchURLs :many
+select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
+from urls u
+join user_urls uu on uu.url_id = u.id
+left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
+left join tags t on t.id = ut.tag_id
+where uu.user_id = $1
+  and (
+    uu.title ilike $2
+    or uu.description ilike $2
+    or u.url ilike $2
+  )
+group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+order by uu.created_at desc
+`
+
+type SearchURLsParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	Query  string    `json:"query"`
+}
+
+type SearchURLsRow struct {
+	ID          uuid.UUID          `json:"id"`
+	Url         string             `json:"url"`
+	FeedUrl     string             `json:"feed_url"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	Tags        []string           `json:"tags"`
+}
+
+func (q *Queries) SearchURLs(ctx context.Context, arg SearchURLsParams) ([]SearchURLsRow, error) {
+	rows, err := q.db.Query(ctx, searchURLs, arg.UserID, arg.Query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchURLsRow
+	for rows.Next() {
+		var i SearchURLsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Url,
+			&i.FeedUrl,
+			&i.Title,
+			&i.Description,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Tags,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setURLFeedURL = `-- name: SetURLFeedURL :exec

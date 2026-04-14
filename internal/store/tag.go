@@ -36,18 +36,12 @@ func (s *Store) setURLTags(ctx context.Context, userID, urlID uuid.UUID, tags []
 	if err := s.queries.RemoveAllTagsFromURL(ctx, sqlstore.RemoveAllTagsFromURLParams{UserID: userID, URLID: urlID}); err != nil {
 		return err
 	}
-	for _, name := range tags {
-		tag, err := s.queries.UpsertTag(ctx, name)
-		if err != nil {
-			return err
-		}
-		if err := s.queries.AddTagToURL(ctx, sqlstore.AddTagToURLParams{
-			UserID: userID,
-			URLID:  urlID,
-			TagID:  tag.ID,
-		}); err != nil {
-			return err
-		}
+	if len(tags) == 0 {
+		return nil
 	}
-	return nil
+	return s.queries.SetURLTags(ctx, sqlstore.SetURLTagsParams{
+		UserID: userID,
+		URLID:  urlID,
+		Names:  tags,
+	})
 }

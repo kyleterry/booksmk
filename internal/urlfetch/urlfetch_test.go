@@ -245,7 +245,7 @@ func TestExtractTitle(t *testing.T) {
 		{
 			name: "unclosed title tag",
 			src:  `<title>No closing tag`,
-			want: "",
+			want: "No closing tag",
 		},
 	}
 
@@ -254,6 +254,48 @@ func TestExtractTitle(t *testing.T) {
 			got := extractTitle(tt.src)
 			if got != tt.want {
 				t.Errorf("extractTitle() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExtractFeedLink(t *testing.T) {
+	tests := []struct {
+		name    string
+		src     string
+		baseURL string
+		want    string
+	}{
+		{
+			name:    "rss link",
+			src:     `<html><head><link rel="alternate" type="application/rss+xml" title="RSS" href="/rss.xml"></head></html>`,
+			baseURL: "https://example.com/blog",
+			want:    "https://example.com/rss.xml",
+		},
+		{
+			name:    "atom link",
+			src:     `<html><head><link rel="alternate" type="application/atom+xml" title="Atom" href="https://other.com/atom.xml"></head></html>`,
+			baseURL: "https://example.com/blog",
+			want:    "https://other.com/atom.xml",
+		},
+		{
+			name:    "no feed link",
+			src:     `<html><head><link rel="stylesheet" href="style.css"></head></html>`,
+			baseURL: "https://example.com",
+			want:    "",
+		},
+		{
+			name:    "rel without quotes",
+			src:     `<html><head><link rel=alternate type="application/rss+xml" href="/feed"></head></html>`,
+			baseURL: "https://example.com",
+			want:    "https://example.com/feed",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := extractFeedLink(tt.src, tt.baseURL)
+			if got != tt.want {
+				t.Errorf("extractFeedLink() = %q, want %q", got, tt.want)
 			}
 		})
 	}

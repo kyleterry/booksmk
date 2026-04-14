@@ -3,6 +3,7 @@ package urls
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"go.e64ec.com/booksmk/internal/store"
@@ -10,8 +11,11 @@ import (
 
 templ ListPage(urls []store.URL, categories []store.Category) {
 	<div class="page-header">
-		<h1>urls <span class="count">({ itoa(len(urls)) })</span></h1>
+		<h1>urls <span class="count">({ strconv.Itoa(len(urls)) })</span></h1>
 		<div style="display:flex;gap:0.5rem">
+			<form method="GET" action="/url" style="display:flex;gap:0.25rem">
+				<input type="search" name="q" class="btn" style="width:150px;text-align:left" placeholder="search…"/>
+			</form>
 			<a href="/category/new" class="btn btn-sm">+ category</a>
 			<a href="/url/new" class="btn btn-primary">+ add</a>
 		</div>
@@ -22,23 +26,31 @@ templ ListPage(urls []store.URL, categories []store.Category) {
 	if len(urls) == 0 {
 		<div class="empty">no bookmarks yet - <a href="/url/new">add one</a></div>
 	} else {
-		<input type="search" class="filter-input" placeholder="filter…" id="url-filter"/>
+		@filterInput()
 		for _, u := range urls {
 			@urlCard(u)
 		}
-		<script>
-			(function(){
-				var f=document.getElementById('url-filter');
-				if(!f) return;
-				f.addEventListener('input',function(){
-					var q=this.value.toLowerCase();
-					document.querySelectorAll('.card[data-q]').forEach(function(c){
-						c.style.display=c.dataset.q.includes(q)?'':'none';
-					});
-				});
-			})();
-		</script>
+		@filterScript()
 	}
+}
+
+templ filterInput() {
+	<input type="search" class="filter-input" placeholder="filter…" id="url-filter"/>
+}
+
+templ filterScript() {
+	<script>
+		(function(){
+			var f=document.getElementById('url-filter');
+			if(!f) return;
+			f.addEventListener('input',function(){
+				var q=this.value.toLowerCase();
+				document.querySelectorAll('.card[data-q]').forEach(function(c){
+					c.style.display=c.dataset.q.includes(q)?'':'none';
+				});
+			});
+		})();
+	</script>
 }
 
 templ urlCard(u store.URL) {
@@ -166,7 +178,7 @@ templ DetailPage(u store.URL, discussions []store.Discussion, subscribedFeed *st
 
 templ TagPage(tag string, urls []store.URL, categories []store.Category) {
 	<div class="page-header">
-		<h1>tag: <span style="color:var(--accent)">{ tag }</span> <span class="count">({ itoa(len(urls)) })</span></h1>
+		<h1>tag: <span style="color:var(--accent)">{ tag }</span> <span class="count">({ strconv.Itoa(len(urls)) })</span></h1>
 		<a href="/url/new" class="btn btn-primary">+ add</a>
 	</div>
 	if len(categories) > 0 {
@@ -174,9 +186,12 @@ templ TagPage(tag string, urls []store.URL, categories []store.Category) {
 	}
 	if len(urls) == 0 {
 		<div class="empty">no bookmarks with this tag</div>
-	}
-	for _, u := range urls {
-		@urlCard(u)
+	} else {
+		@filterInput()
+		for _, u := range urls {
+			@urlCard(u)
+		}
+		@filterScript()
 	}
 }
 
@@ -184,14 +199,14 @@ templ CategoryPage(cat *store.Category, urls []store.URL, categories []store.Cat
 	<div class="page-header">
 		if cat != nil {
 			<div>
-				<h1>{ cat.Name } <span class="count">({ itoa(len(urls)) })</span></h1>
+				<h1>{ cat.Name } <span class="count">({ strconv.Itoa(len(urls)) })</span></h1>
 				if len(cat.Members) > 0 {
 					<p class="page-subtitle">{ categoryMembersString(cat.Members) }</p>
 				}
 			</div>
 			<a href={ templ.SafeURL("/category/" + cat.ID.String() + "/edit") } class="btn btn-sm">edit</a>
 		} else {
-			<h1>category <span class="count">({ itoa(len(urls)) })</span></h1>
+			<h1>category <span class="count">({ strconv.Itoa(len(urls)) })</span></h1>
 		}
 	</div>
 	if len(categories) > 0 {
@@ -199,9 +214,12 @@ templ CategoryPage(cat *store.Category, urls []store.URL, categories []store.Cat
 	}
 	if len(urls) == 0 {
 		<div class="empty">no bookmarks match this category</div>
-	}
-	for _, u := range urls {
-		@urlCard(u)
+	} else {
+		@filterInput()
+		for _, u := range urls {
+			@urlCard(u)
+		}
+		@filterScript()
 	}
 }
 
@@ -310,18 +328,4 @@ func hostname(rawURL string) string {
 		return rawURL
 	}
 	return u.Hostname()
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	buf := [20]byte{}
-	pos := len(buf)
-	for n > 0 {
-		pos--
-		buf[pos] = byte(n%10) + '0'
-		n /= 10
-	}
-	return string(buf[pos:])
 }

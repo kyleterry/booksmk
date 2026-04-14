@@ -2,13 +2,13 @@ package urlfetch
 
 import (
 	"encoding/json"
-	"html"
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html"
 )
 
 var defaultTagsByHost = map[string][]string{
@@ -197,40 +197,51 @@ func fetchPageHTML(rawURL string) (body, title string) {
 	return src, extractTitle(src)
 }
 
-// reMetaProperty matches <meta property="..." content="..."> (order-insensitive).
-var reMetaProp = regexp.MustCompile(`(?i)<meta[^>]+property=["']([^"']+)["'][^>]+content=["']([^"']*)["'][^>]*>|<meta[^>]+content=["']([^"']*)["'][^>]+property=["']([^"']+)["'][^>]*>`)
-
 // extractMetaTags returns tags inferred from Open Graph / article meta tags
 // found in src. Recognised properties:
 //   - og:type mapped to a category tag (video, article, music, book)
 //   - article:tag used verbatim (one tag per occurrence)
 func extractMetaTags(src string) []string {
-	matches := reMetaProp.FindAllStringSubmatch(src, -1)
+	doc, err := html.Parse(strings.NewReader(src))
+	if err != nil {
+		return nil
+	}
 	var tags []string
-	for _, m := range matches {
-		// m[1],m[2] = property-first form; m[4],m[3] = content-first form
-		prop, content := m[1], m[2]
-		if prop == "" {
-			prop, content = m[4], m[3]
-		}
-		prop = strings.ToLower(strings.TrimSpace(prop))
-		content = strings.TrimSpace(content)
-		switch {
-		case prop == "og:type":
-			switch {
-			case strings.HasPrefix(content, "video"):
-				tags = append(tags, "video")
-			case strings.HasPrefix(content, "music"):
-				tags = append(tags, "music")
-			case content == "article":
-				tags = append(tags, "article")
-			case content == "book":
-				tags = append(tags, "book")
+	var f func(*html.Node)
+	f = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "meta" {
+			var prop, content string
+			for _, a := range n.Attr {
+				if a.Key == "property" {
+					prop = a.Val
+				}
+				if a.Key == "content" {
+					content = a.Val
+				}
 			}
-		case prop == "article:tag" && content != "":
-			tags = append(tags, content)
+			prop = strings.ToLower(strings.TrimSpace(prop))
+			content = strings.TrimSpace(content)
+			switch {
+			case prop == "og:type":
+				switch {
+				case strings.HasPrefix(content, "video"):
+					tags = append(tags, "video")
+				case strings.HasPrefix(content, "music"):
+					tags = append(tags, "music")
+				case content == "article":
+					tags = append(tags, "article")
+				case content == "book":
+					tags = append(tags, "book")
+				}
+			case prop == "article:tag" && content != "":
+				tags = append(tags, content)
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
 		}
 	}
+	f(doc)
 	return tags
 }
 
@@ -254,67 +265,80 @@ func mergeTags(base, extra []string) []string {
 	return out
 }
 
-// reFeedLink matches <link> tags that advertise an RSS or Atom feed.
-var reFeedLink = regexp.MustCompile(`(?i)<link[^>]+rel=["']alternate["'][^>]*>|<link[^>]+rel=alternate[^>]*>`)
-
-// reHref extracts the href attribute value from a tag.
-var reHref = regexp.MustCompile(`(?i)href=["']([^"']+)["']`)
-
-// reType extracts the type attribute value from a tag.
-var reType = regexp.MustCompile(`(?i)type=["']([^"']+)["']`)
-
 // extractFeedLink scans src for a <link rel="alternate" type="application/rss+xml|atom+xml">
 // and returns its href resolved against baseURL. Returns empty string if none found.
 func extractFeedLink(src, baseURL string) string {
-	matches := reFeedLink.FindAllString(src, -1)
-	for _, tag := range matches {
-		tm := reType.FindStringSubmatch(tag)
-		if len(tm) < 2 {
-			continue
-		}
-		t := strings.ToLower(tm[1])
-		if !strings.Contains(t, "rss") && !strings.Contains(t, "atom") {
-			continue
-		}
-		hm := reHref.FindStringSubmatch(tag)
-		if len(hm) < 2 || hm[1] == "" {
-			continue
-		}
-		href := hm[1]
-		// Resolve relative hrefs against the page URL.
-		base, err := url.Parse(baseURL)
-		if err != nil {
-			return href
-		}
-		ref, err := url.Parse(href)
-		if err != nil {
-			return href
-		}
-		return base.ResolveReference(ref).String()
+	doc, err := html.Parse(strings.NewReader(src))
+	if err != nil {
+		return ""
 	}
-	return ""
+	var feedURL string
+	var f func(*html.Node)
+	f = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "link" {
+			var rel, typ, href string
+			for _, a := range n.Attr {
+				switch a.Key {
+				case "rel":
+					rel = a.Val
+				case "type":
+					typ = a.Val
+				case "href":
+					href = a.Val
+				}
+			}
+			if strings.ToLower(rel) == "alternate" {
+				typ = strings.ToLower(typ)
+				if (strings.Contains(typ, "rss") || strings.Contains(typ, "atom")) && href != "" {
+					feedURL = href
+					return
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
+			if feedURL != "" {
+				return
+			}
+		}
+	}
+	f(doc)
+
+	if feedURL == "" {
+		return ""
+	}
+
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		return feedURL
+	}
+	ref, err := url.Parse(feedURL)
+	if err != nil {
+		return feedURL
+	}
+	return base.ResolveReference(ref).String()
 }
 
 // extractTitle finds the first <title>...</title> in src (case-insensitive).
 func extractTitle(src string) string {
-	lower := strings.ToLower(src)
-
-	start := strings.Index(lower, "<title")
-	if start < 0 {
+	doc, err := html.Parse(strings.NewReader(src))
+	if err != nil {
 		return ""
 	}
-	// Skip to the closing '>' of the opening tag.
-	gt := strings.Index(lower[start:], ">")
-	if gt < 0 {
-		return ""
+	var title string
+	var f func(*html.Node)
+	f = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "title" && n.FirstChild != nil {
+			title = n.FirstChild.Data
+			return
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
+			if title != "" {
+				return
+			}
+		}
 	}
-	contentStart := start + gt + 1
-
-	end := strings.Index(lower[contentStart:], "</title")
-	if end < 0 {
-		return ""
-	}
-
-	title := strings.TrimSpace(src[contentStart : contentStart+end])
-	return html.UnescapeString(title)
+	f(doc)
+	return strings.TrimSpace(title)
 }

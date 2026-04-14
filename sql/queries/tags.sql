@@ -15,3 +15,14 @@ select t.name from tags t
 join url_tags ut on ut.tag_id = t.id
 where ut.user_id = $1 and ut.url_id = $2
 order by t.name;
+
+-- name: SetURLTags :exec
+with new_tags as (
+  insert into tags (name)
+  select unnest(@names::text[])
+  on conflict (name) do update set name = excluded.name
+  returning id
+)
+insert into url_tags (user_id, url_id, tag_id)
+select $1, $2, id from new_tags
+on conflict do nothing;
