@@ -155,7 +155,7 @@ func TestListURLs(t *testing.T) {
 		}
 	}
 
-	urls, err := s.ListURLs(ctx, u.ID)
+	urls, err := s.ListURLs(ctx, u.ID, 10, 0)
 	if err != nil {
 		t.Fatalf("ListURLs: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestListURLs_IsolatedByUser(t *testing.T) {
 	}
 
 	// Bob's list should be empty.
-	urls, err := s.ListURLs(ctx, bob.ID)
+	urls, err := s.ListURLs(ctx, bob.ID, 10, 0)
 	if err != nil {
 		t.Fatalf("ListURLs(bob): %v", err)
 	}
@@ -345,7 +345,7 @@ func TestListURLsByTag(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.tag, func(t *testing.T) {
-			urls, err := s.ListURLsByTag(ctx, u.ID, tt.tag)
+			urls, err := s.ListURLsByTag(ctx, u.ID, tt.tag, 10, 0)
 			if err != nil {
 				t.Fatalf("ListURLsByTag: %v", err)
 			}
@@ -382,7 +382,7 @@ func TestListURLsByCategory(t *testing.T) {
 		t.Fatalf("CreateCategory: %v", err)
 	}
 
-	urls, err := s.ListURLsByCategory(ctx, u.ID, cat.ID)
+	urls, err := s.ListURLsByCategory(ctx, u.ID, cat.ID, 10, 0)
 	if err != nil {
 		t.Fatalf("ListURLsByCategory: %v", err)
 	}

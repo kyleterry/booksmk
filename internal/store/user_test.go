@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"go.e64ec.com/booksmk/internal/store"
@@ -249,61 +250,39 @@ func TestCountUsers(t *testing.T) {
 	}
 }
 
-func TestUpdateUserTheme(t *testing.T) {
+func TestUpdateUserSettings(t *testing.T) {
 	s := testStore(t)
 	ctx := context.Background()
 
-	u, err := s.CreateUser(ctx, "theme@example.com", mustHashPassword(t, "pass"), false)
+	u, err := s.CreateUser(ctx, "settings@example.com", mustHashPassword(t, "pass"), false)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 
 	tests := []struct {
-		theme string
+		theme          string
+		fontSize       string
+		resultsPerPage int32
 	}{
-		{"dark"},
-		{"light"},
-		{"auto"},
+		{"dark", "medium", 50},
+		{"light", "small", 25},
+		{"auto", "large", 100},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.theme, func(t *testing.T) {
-			updated, err := s.UpdateUserTheme(ctx, u.ID, tt.theme)
+		t.Run(fmt.Sprintf("%s-%s-%d", tt.theme, tt.fontSize, tt.resultsPerPage), func(t *testing.T) {
+			updated, err := s.UpdateUserSettings(ctx, u.ID, tt.theme, tt.fontSize, tt.resultsPerPage)
 			if err != nil {
-				t.Fatalf("UpdateUserTheme(%q): %v", tt.theme, err)
+				t.Fatalf("UpdateUserSettings: %v", err)
 			}
 			if updated.Theme != tt.theme {
 				t.Errorf("Theme = %q, want %q", updated.Theme, tt.theme)
 			}
-		})
-	}
-}
-
-func TestUpdateUserFontSize(t *testing.T) {
-	s := testStore(t)
-	ctx := context.Background()
-
-	u, err := s.CreateUser(ctx, "fontsize@example.com", mustHashPassword(t, "pass"), false)
-	if err != nil {
-		t.Fatalf("setup: %v", err)
-	}
-
-	tests := []struct {
-		fontSize string
-	}{
-		{"small"},
-		{"medium"},
-		{"large"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.fontSize, func(t *testing.T) {
-			updated, err := s.UpdateUserFontSize(ctx, u.ID, tt.fontSize)
-			if err != nil {
-				t.Fatalf("UpdateUserFontSize(%q): %v", tt.fontSize, err)
-			}
 			if updated.FontSize != tt.fontSize {
 				t.Errorf("FontSize = %q, want %q", updated.FontSize, tt.fontSize)
+			}
+			if updated.ResultsPerPage != tt.resultsPerPage {
+				t.Errorf("ResultsPerPage = %d, want %d", updated.ResultsPerPage, tt.resultsPerPage)
 			}
 		})
 	}

@@ -5,6 +5,7 @@ create table users (
 	is_admin        boolean      not null default false,
 	theme           text         not null default 'dark' check (theme in ('dark', 'light', 'auto')),
 	font_size       text         not null default 'medium' check (font_size in ('small', 'medium', 'large')),
+	results_per_page integer      not null default 50 check (results_per_page > 0 and results_per_page <= 500),
 	created_at      timestamptz  not null default now(),
 	updated_at      timestamptz  not null default now()
 );

@@ -88,7 +88,14 @@ left join tags t on t.id = ut.tag_id
 where uu.user_id = $1
 group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
+limit $2 offset $3
 `
+
+type ListURLsParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	Limit  int32     `json:"limit"`
+	Offset int32     `json:"offset"`
+}
 
 type ListURLsRow struct {
 	ID          uuid.UUID          `json:"id"`
@@ -101,8 +108,8 @@ type ListURLsRow struct {
 	Tags        []string           `json:"tags"`
 }
 
-func (q *Queries) ListURLs(ctx context.Context, userID uuid.UUID) ([]ListURLsRow, error) {
-	rows, err := q.db.Query(ctx, listURLs, userID)
+func (q *Queries) ListURLs(ctx context.Context, arg ListURLsParams) ([]ListURLsRow, error) {
+	rows, err := q.db.Query(ctx, listURLs, arg.UserID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -152,11 +159,14 @@ left join tags t on t.id = ut.tag_id
 where uu.user_id = $1 and u.id in (select url_id from filtered_urls)
 group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
+limit $3 offset $4
 `
 
 type ListURLsByCategoryParams struct {
 	UserID     uuid.UUID `json:"user_id"`
 	CategoryID uuid.UUID `json:"category_id"`
+	Limit      int32     `json:"limit"`
+	Offset     int32     `json:"offset"`
 }
 
 type ListURLsByCategoryRow struct {
@@ -171,7 +181,12 @@ type ListURLsByCategoryRow struct {
 }
 
 func (q *Queries) ListURLsByCategory(ctx context.Context, arg ListURLsByCategoryParams) ([]ListURLsByCategoryRow, error) {
-	rows, err := q.db.Query(ctx, listURLsByCategory, arg.UserID, arg.CategoryID)
+	rows, err := q.db.Query(ctx, listURLsByCategory,
+		arg.UserID,
+		arg.CategoryID,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -216,11 +231,14 @@ left join tags t on t.id = ut.tag_id
 where uu.user_id = $1 and u.id in (select url_id from filtered_urls)
 group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
+limit $3 offset $4
 `
 
 type ListURLsByTagParams struct {
 	UserID uuid.UUID `json:"user_id"`
 	Name   string    `json:"name"`
+	Limit  int32     `json:"limit"`
+	Offset int32     `json:"offset"`
 }
 
 type ListURLsByTagRow struct {
@@ -235,7 +253,12 @@ type ListURLsByTagRow struct {
 }
 
 func (q *Queries) ListURLsByTag(ctx context.Context, arg ListURLsByTagParams) ([]ListURLsByTagRow, error) {
-	rows, err := q.db.Query(ctx, listURLsByTag, arg.UserID, arg.Name)
+	rows, err := q.db.Query(ctx, listURLsByTag,
+		arg.UserID,
+		arg.Name,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

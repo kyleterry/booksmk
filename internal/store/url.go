@@ -49,8 +49,12 @@ func (s *Store) GetURL(ctx context.Context, id, userID uuid.UUID) (URL, error) {
 	return newURL(u.ID, u.Url, u.FeedUrl, u.Title, u.Description, u.Tags, u.CreatedAt, u.UpdatedAt), nil
 }
 
-func (s *Store) ListURLs(ctx context.Context, userID uuid.UUID) ([]URL, error) {
-	rows, err := s.queries.ListURLs(ctx, userID)
+func (s *Store) ListURLs(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]URL, error) {
+	rows, err := s.queries.ListURLs(ctx, sqlstore.ListURLsParams{
+		UserID: userID,
+		Limit:  limit,
+		Offset: offset,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -76,8 +80,13 @@ func (s *Store) SearchURLs(ctx context.Context, userID uuid.UUID, query string) 
 	return urls, nil
 }
 
-func (s *Store) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string) ([]URL, error) {
-	rows, err := s.queries.ListURLsByTag(ctx, sqlstore.ListURLsByTagParams{UserID: userID, Name: tag})
+func (s *Store) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string, limit, offset int32) ([]URL, error) {
+	rows, err := s.queries.ListURLsByTag(ctx, sqlstore.ListURLsByTagParams{
+		UserID: userID,
+		Name:   tag,
+		Limit:  limit,
+		Offset: offset,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +97,13 @@ func (s *Store) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string)
 	return urls, nil
 }
 
-func (s *Store) ListURLsByCategory(ctx context.Context, userID, categoryID uuid.UUID) ([]URL, error) {
-	rows, err := s.queries.ListURLsByCategory(ctx, sqlstore.ListURLsByCategoryParams{UserID: userID, CategoryID: categoryID})
+func (s *Store) ListURLsByCategory(ctx context.Context, userID, categoryID uuid.UUID, limit, offset int32) ([]URL, error) {
+	rows, err := s.queries.ListURLsByCategory(ctx, sqlstore.ListURLsByCategoryParams{
+		UserID:     userID,
+		CategoryID: categoryID,
+		Limit:      limit,
+		Offset:     offset,
+	})
 	if err != nil {
 		return nil, err
 	}

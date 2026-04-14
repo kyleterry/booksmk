@@ -20,6 +20,7 @@ type User struct {
 	IsAdmin        bool
 	Theme          string
 	FontSize       string
+	ResultsPerPage int32
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -32,6 +33,7 @@ func userFromSQL(u sqlstore.User) User {
 		IsAdmin:        u.IsAdmin,
 		Theme:          u.Theme,
 		FontSize:       u.FontSize,
+		ResultsPerPage: u.ResultsPerPage,
 		CreatedAt:      u.CreatedAt.Time,
 		UpdatedAt:      u.UpdatedAt.Time,
 	}
@@ -66,7 +68,12 @@ func (s *Store) ListUsers(ctx context.Context) ([]User, error) {
 	}
 	users := make([]User, len(rows))
 	for i, u := range rows {
-		users[i] = userFromSQL(u)
+		users[i] = User{
+			ID:        u.ID,
+			Email:     u.Email,
+			IsAdmin:   u.IsAdmin,
+			CreatedAt: u.CreatedAt.Time,
+		}
 	}
 	return users, nil
 }
@@ -101,25 +108,12 @@ func (s *Store) UpdateUser(ctx context.Context, id uuid.UUID, email string) (Use
 	return userFromSQL(u), nil
 }
 
-func (s *Store) UpdateUserFontSize(ctx context.Context, id uuid.UUID, fontSize string) (User, error) {
-	u, err := s.queries.UpdateUserFontSize(ctx, sqlstore.UpdateUserFontSizeParams{
-		ID:       id,
-		FontSize: fontSize,
-	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return User{}, ErrNotFound
-	}
-	if err != nil {
-		return User{}, err
-	}
-
-	return userFromSQL(u), nil
-}
-
-func (s *Store) UpdateUserTheme(ctx context.Context, id uuid.UUID, theme string) (User, error) {
-	u, err := s.queries.UpdateUserTheme(ctx, sqlstore.UpdateUserThemeParams{
-		ID:    id,
-		Theme: theme,
+func (s *Store) UpdateUserSettings(ctx context.Context, id uuid.UUID, theme, fontSize string, resultsPerPage int32) (User, error) {
+	u, err := s.queries.UpdateUserSettings(ctx, sqlstore.UpdateUserSettingsParams{
+		ID:             id,
+		Theme:          theme,
+		FontSize:       fontSize,
+		ResultsPerPage: resultsPerPage,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return User{}, ErrNotFound

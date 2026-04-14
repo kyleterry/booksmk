@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countUsers = `-- name: CountUsers :one
@@ -25,7 +26,7 @@ func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
 const createUser = `-- name: CreateUser :one
 insert into users (email, password_digest, is_admin)
 values ($1, $2, $3)
-returning id, email, password_digest, is_admin, theme, font_size, created_at, updated_at
+returning id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -44,6 +45,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.IsAdmin,
 		&i.Theme,
 		&i.FontSize,
+		&i.ResultsPerPage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -60,7 +62,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 }
 
 const getUser = `-- name: GetUser :one
-select id, email, password_digest, is_admin, theme, font_size, created_at, updated_at from users where id = $1
+select id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at from users where id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
@@ -73,6 +75,7 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.IsAdmin,
 		&i.Theme,
 		&i.FontSize,
+		&i.ResultsPerPage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -80,7 +83,7 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-select id, email, password_digest, is_admin, theme, font_size, created_at, updated_at from users where email = $1
+select id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at from users where email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -93,6 +96,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.IsAdmin,
 		&i.Theme,
 		&i.FontSize,
+		&i.ResultsPerPage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -100,27 +104,30 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const listUsers = `-- name: ListUsers :many
-select id, email, password_digest, is_admin, theme, font_size, created_at, updated_at from users order by created_at desc
+select id, email, is_admin, created_at from users order by created_at desc
 `
 
-func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
+type ListUsersRow struct {
+	ID        uuid.UUID          `json:"id"`
+	Email     string             `json:"email"`
+	IsAdmin   bool               `json:"is_admin"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 	rows, err := q.db.Query(ctx, listUsers)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []User
+	var items []ListUsersRow
 	for rows.Next() {
-		var i User
+		var i ListUsersRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Email,
-			&i.PasswordDigest,
 			&i.IsAdmin,
-			&i.Theme,
-			&i.FontSize,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -136,7 +143,7 @@ const updateUser = `-- name: UpdateUser :one
 update users
 set email = $1, updated_at = now()
 where id = $2
-returning id, email, password_digest, is_admin, theme, font_size, created_at, updated_at
+returning id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at
 `
 
 type UpdateUserParams struct {
@@ -154,34 +161,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.IsAdmin,
 		&i.Theme,
 		&i.FontSize,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const updateUserFontSize = `-- name: UpdateUserFontSize :one
-update users
-set font_size = $1, updated_at = now()
-where id = $2
-returning id, email, password_digest, is_admin, theme, font_size, created_at, updated_at
-`
-
-type UpdateUserFontSizeParams struct {
-	FontSize string    `json:"font_size"`
-	ID       uuid.UUID `json:"id"`
-}
-
-func (q *Queries) UpdateUserFontSize(ctx context.Context, arg UpdateUserFontSizeParams) (User, error) {
-	row := q.db.QueryRow(ctx, updateUserFontSize, arg.FontSize, arg.ID)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.PasswordDigest,
-		&i.IsAdmin,
-		&i.Theme,
-		&i.FontSize,
+		&i.ResultsPerPage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -192,7 +172,7 @@ const updateUserPassword = `-- name: UpdateUserPassword :one
 update users
 set password_digest = $1, updated_at = now()
 where id = $2
-returning id, email, password_digest, is_admin, theme, font_size, created_at, updated_at
+returning id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at
 `
 
 type UpdateUserPasswordParams struct {
@@ -210,26 +190,34 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 		&i.IsAdmin,
 		&i.Theme,
 		&i.FontSize,
+		&i.ResultsPerPage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const updateUserTheme = `-- name: UpdateUserTheme :one
+const updateUserSettings = `-- name: UpdateUserSettings :one
 update users
-set theme = $1, updated_at = now()
-where id = $2
-returning id, email, password_digest, is_admin, theme, font_size, created_at, updated_at
+set theme = $1, font_size = $2, results_per_page = $3, updated_at = now()
+where id = $4
+returning id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at
 `
 
-type UpdateUserThemeParams struct {
-	Theme string    `json:"theme"`
-	ID    uuid.UUID `json:"id"`
+type UpdateUserSettingsParams struct {
+	Theme          string    `json:"theme"`
+	FontSize       string    `json:"font_size"`
+	ResultsPerPage int32     `json:"results_per_page"`
+	ID             uuid.UUID `json:"id"`
 }
 
-func (q *Queries) UpdateUserTheme(ctx context.Context, arg UpdateUserThemeParams) (User, error) {
-	row := q.db.QueryRow(ctx, updateUserTheme, arg.Theme, arg.ID)
+func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserSettings,
+		arg.Theme,
+		arg.FontSize,
+		arg.ResultsPerPage,
+		arg.ID,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -238,6 +226,7 @@ func (q *Queries) UpdateUserTheme(ctx context.Context, arg UpdateUserThemeParams
 		&i.IsAdmin,
 		&i.Theme,
 		&i.FontSize,
+		&i.ResultsPerPage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

@@ -155,6 +155,7 @@ type User struct {
 	IsAdmin        bool               `json:"is_admin"`
 	Theme          string             `json:"theme"`
 	FontSize       string             `json:"font_size"`
+	ResultsPerPage int32              `json:"results_per_page"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
