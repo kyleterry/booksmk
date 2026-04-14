@@ -59,41 +59,43 @@ delete from user_urls where user_id = $1 and url_id = $2;
 update urls set feed_url = $2 where id = $1;
 
 -- name: ListURLsByTag :many
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+with filtered_urls as (
+  select ut2.url_id
+  from url_tags ut2
+  join tags t2 on t2.id = ut2.tag_id
+  where ut2.user_id = $1 and t2.name = $2
+)
+select
+  u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
 left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
-where uu.user_id = $1 and u.id in (
-  select ut2.url_id from url_tags ut2
-  join tags t2 on t2.id = ut2.tag_id
-  where ut2.user_id = $1 and t2.name = $2
-)
+where uu.user_id = $1 and u.id in (select url_id from filtered_urls)
 group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc;
 
 -- name: ListURLsByCategory :many
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+with filtered_urls as (
+  select ut2.url_id from url_tags ut2
+  join tags t2 on t2.id = ut2.tag_id
+  join category_members cm on cm.kind = 'tag' and cm.value = t2.name
+  where ut2.user_id = $1 and cm.category_id = $2
+  union
+  select u2.id from urls u2
+  join category_members cm on cm.kind = 'domain'
+  where cm.category_id = $2
+    and regexp_replace(u2.url, '^https?://([^/?#]+).*$', '\1', 'i') = cm.value
+)
+select
+  u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
 left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
-where uu.user_id = $1
-  and (
-    exists (
-      select 1 from url_tags ut2
-      join tags t2 on t2.id = ut2.tag_id
-      join category_members cm on cm.kind = 'tag' and cm.value = t2.name
-      where ut2.user_id = $1 and ut2.url_id = u.id and cm.category_id = $2
-    )
-    or exists (
-      select 1 from category_members cm
-      where cm.category_id = $2 and cm.kind = 'domain'
-        and regexp_replace(u.url, '^https?://([^/?#]+).*$', '\1', 'i') = cm.value
-    )
-  )
+where uu.user_id = $1 and u.id in (select url_id from filtered_urls)
 group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc;
 

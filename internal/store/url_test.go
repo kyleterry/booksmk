@@ -320,3 +320,109 @@ func TestURLDeduplication(t *testing.T) {
 		t.Errorf("bob's URL gone after alice deleted: %v", err)
 	}
 }
+
+func TestListURLsByTag(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	u := setupUser(t, s, "listbytag@example.com")
+
+	if _, err := s.CreateURL(ctx, u.ID, "https://go.dev", "Go", "", []string{"programming", "go"}); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if _, err := s.CreateURL(ctx, u.ID, "https://rust-lang.org", "Rust", "", []string{"programming", "rust"}); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	tests := []struct {
+		tag       string
+		wantCount int
+	}{
+		{"programming", 2},
+		{"go", 1},
+		{"rust", 1},
+		{"nonexistent", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.tag, func(t *testing.T) {
+			urls, err := s.ListURLsByTag(ctx, u.ID, tt.tag)
+			if err != nil {
+				t.Fatalf("ListURLsByTag: %v", err)
+			}
+			if len(urls) != tt.wantCount {
+				t.Errorf("got %d urls, want %d", len(urls), tt.wantCount)
+			}
+		})
+	}
+}
+
+func TestListURLsByCategory(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	u := setupUser(t, s, "listbycat@example.com")
+
+	// URL 1: Matches by tag
+	if _, err := s.CreateURL(ctx, u.ID, "https://blog.golang.org", "Go Blog", "", []string{"go"}); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	// URL 2: Matches by domain
+	if _, err := s.CreateURL(ctx, u.ID, "https://news.ycombinator.com/item?id=1", "HN", "", []string{}); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	// URL 3: No match
+	if _, err := s.CreateURL(ctx, u.ID, "https://example.com", "Example", "", []string{"other"}); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	cat, err := s.CreateCategory(ctx, u.ID, "My Category", []store.CategoryMember{
+		{Kind: store.CategoryMemberKindTag, Value: "go"},
+		{Kind: store.CategoryMemberKindDomain, Value: "news.ycombinator.com"},
+	})
+	if err != nil {
+		t.Fatalf("CreateCategory: %v", err)
+	}
+
+	urls, err := s.ListURLsByCategory(ctx, u.ID, cat.ID)
+	if err != nil {
+		t.Fatalf("ListURLsByCategory: %v", err)
+	}
+
+	if len(urls) != 2 {
+		t.Errorf("got %d urls, want 2", len(urls))
+	}
+}
+
+func TestSearchURLs(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	u := setupUser(t, s, "search@example.com")
+
+	if _, err := s.CreateURL(ctx, u.ID, "https://google.com", "Search Engine", "Google search", []string{}); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if _, err := s.CreateURL(ctx, u.ID, "https://bing.com", "Bing", "Microsoft search", []string{}); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	tests := []struct {
+		query     string
+		wantCount int
+	}{
+		{"google", 1},
+		{"search", 2},
+		{"Microsoft", 1},
+		{"nonexistent", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.query, func(t *testing.T) {
+			urls, err := s.SearchURLs(ctx, u.ID, tt.query)
+			if err != nil {
+				t.Fatalf("SearchURLs: %v", err)
+			}
+			if len(urls) != tt.wantCount {
+				t.Errorf("query %q: got %d urls, want %d", tt.query, len(urls), tt.wantCount)
+			}
+		})
+	}
+}

@@ -234,8 +234,7 @@ func (s *Store) ListFeedItems(ctx context.Context, feedID, userID uuid.UUID) ([]
 	}
 	items := make([]FeedItem, len(rows))
 	for i, row := range rows {
-		isRead, _ := row.IsRead.(bool)
-		items[i] = newFeedItem(row.ID, row.FeedID, row.Guid, row.Url, row.Title, row.Summary, row.Author, row.PublishedAt, row.CreatedAt, isRead)
+		items[i] = newFeedItem(row.ID, row.FeedID, row.Guid, row.Url, row.Title, row.Summary, row.Author, row.PublishedAt, row.CreatedAt, row.IsRead)
 	}
 	return items, nil
 }
@@ -252,7 +251,6 @@ func (s *Store) ListTimelineItems(ctx context.Context, userID uuid.UUID, limit, 
 	}
 	items := make([]TimelineItem, len(rows))
 	for i, row := range rows {
-		isRead, _ := row.IsRead.(bool)
 		item := TimelineItem{
 			ID:           row.ID,
 			FeedID:       row.FeedID,
@@ -264,7 +262,7 @@ func (s *Store) ListTimelineItems(ctx context.Context, userID uuid.UUID, limit, 
 			Summary:      row.Summary,
 			Author:       row.Author,
 			CreatedAt:    row.CreatedAt.Time,
-			IsRead:       isRead,
+			IsRead:       row.IsRead,
 		}
 		if row.PublishedAt.Valid {
 			t := row.PublishedAt.Time
@@ -285,7 +283,6 @@ func (s *Store) GetTimelineItem(ctx context.Context, userID, itemID uuid.UUID) (
 		return TimelineItem{}, err
 	}
 
-	isRead, _ := row.IsRead.(bool)
 	item := TimelineItem{
 		ID:           row.ID,
 		FeedID:       row.FeedID,
@@ -297,7 +294,7 @@ func (s *Store) GetTimelineItem(ctx context.Context, userID, itemID uuid.UUID) (
 		Summary:      row.Summary,
 		Author:       row.Author,
 		CreatedAt:    row.CreatedAt.Time,
-		IsRead:       isRead,
+		IsRead:       row.IsRead,
 	}
 	if row.PublishedAt.Valid {
 		t := row.PublishedAt.Time

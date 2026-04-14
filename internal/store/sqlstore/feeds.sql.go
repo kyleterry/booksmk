@@ -108,17 +108,28 @@ func (q *Queries) GetFeedByID(ctx context.Context, id uuid.UUID) (Feed, error) {
 }
 
 const getTimelineItem = `-- name: GetTimelineItem :one
-select fi.id, fi.feed_id,
-       coalesce(nullif(uf.custom_name, ''), f.title) as feed_title,
-       f.image_url as feed_image_url,
-       fi.guid, fi.url, fi.title as item_title,
-       fi.summary, fi.author, fi.published_at, fi.created_at,
-       (fir.user_id is not null) as is_read
-from feed_items fi
-join feeds f on f.id = fi.feed_id
-join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
-left join feed_item_reads fir on fir.item_id = fi.id and fir.user_id = $1
-where fi.id = $2
+with item as (
+  select
+    fi.id, fi.feed_id, fi.guid, fi.url, fi.title as item_title,
+    fi.summary, fi.author, fi.published_at, fi.created_at,
+    f.title as feed_title, f.image_url as feed_image_url,
+    uf.custom_name as feed_custom_name
+  from feed_items fi
+  join feeds f on f.id = fi.feed_id
+  join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
+  where fi.id = $2
+)
+select
+  i.id, i.feed_id,
+  coalesce(nullif(i.feed_custom_name, ''), i.feed_title) as feed_title,
+  i.feed_image_url,
+  i.guid, i.url, i.item_title,
+  i.summary, i.author, i.published_at, i.created_at,
+  exists (
+    select 1 from feed_item_reads fir
+    where fir.item_id = i.id and fir.user_id = $1
+  ) as is_read
+from item i
 `
 
 type GetTimelineItemParams struct {
@@ -138,7 +149,7 @@ type GetTimelineItemRow struct {
 	Author       string             `json:"author"`
 	PublishedAt  pgtype.Timestamptz `json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	IsRead       interface{}        `json:"is_read"`
+	IsRead       bool               `json:"is_read"`
 }
 
 func (q *Queries) GetTimelineItem(ctx context.Context, arg GetTimelineItemParams) (GetTimelineItemRow, error) {
@@ -292,9 +303,11 @@ func (q *Queries) ListDueFeedPollJobs(ctx context.Context) ([]ListDueFeedPollJob
 
 const listFeedItems = `-- name: ListFeedItems :many
 select fi.id, fi.feed_id, fi.guid, fi.url, fi.title, fi.summary, fi.author, fi.published_at, fi.created_at,
-       (fir.user_id is not null) as is_read
+       exists (
+         select 1 from feed_item_reads fir
+         where fir.item_id = fi.id and fir.user_id = $2
+       ) as is_read
 from feed_items fi
-left join feed_item_reads fir on fir.item_id = fi.id and fir.user_id = $2
 where fi.feed_id = $1
   and (fi.published_at is null or fi.published_at <= now())
 order by fi.published_at desc nulls last
@@ -316,7 +329,7 @@ type ListFeedItemsRow struct {
 	Author      string             `json:"author"`
 	PublishedAt pgtype.Timestamptz `json:"published_at"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	IsRead      interface{}        `json:"is_read"`
+	IsRead      bool               `json:"is_read"`
 }
 
 func (q *Queries) ListFeedItems(ctx context.Context, arg ListFeedItemsParams) ([]ListFeedItemsRow, error) {
@@ -383,20 +396,31 @@ func (q *Queries) ListTagNamesForFeed(ctx context.Context, arg ListTagNamesForFe
 }
 
 const listTimelineItems = `-- name: ListTimelineItems :many
-select fi.id, fi.feed_id,
-       coalesce(nullif(uf.custom_name, ''), f.title) as feed_title,
-       f.image_url as feed_image_url,
-       fi.guid, fi.url, fi.title as item_title,
-       fi.summary, fi.author, fi.published_at, fi.created_at,
-       (fir.user_id is not null) as is_read
-from feed_items fi
-join feeds f on f.id = fi.feed_id
-join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
-left join feed_item_reads fir on fir.item_id = fi.id and fir.user_id = $1
-where fi.published_at is null or fi.published_at <= now()
-order by fi.published_at desc nulls last
-limit $2
-offset $3
+with timeline as (
+  select
+    fi.id, fi.feed_id, fi.guid, fi.url, fi.title as item_title,
+    fi.summary, fi.author, fi.published_at, fi.created_at,
+    f.title as feed_title, f.image_url as feed_image_url,
+    uf.custom_name as feed_custom_name
+  from feed_items fi
+  join feeds f on f.id = fi.feed_id
+  join user_feeds uf on uf.feed_id = fi.feed_id and uf.user_id = $1
+  where fi.published_at is null or fi.published_at <= now()
+  order by fi.published_at desc nulls last
+  limit $2
+  offset $3
+)
+select
+  t.id, t.feed_id,
+  coalesce(nullif(t.feed_custom_name, ''), t.feed_title) as feed_title,
+  t.feed_image_url,
+  t.guid, t.url, t.item_title,
+  t.summary, t.author, t.published_at, t.created_at,
+  exists (
+    select 1 from feed_item_reads fir
+    where fir.item_id = t.id and fir.user_id = $1
+  ) as is_read
+from timeline t
 `
 
 type ListTimelineItemsParams struct {
@@ -417,7 +441,7 @@ type ListTimelineItemsRow struct {
 	Author       string             `json:"author"`
 	PublishedAt  pgtype.Timestamptz `json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	IsRead       interface{}        `json:"is_read"`
+	IsRead       bool               `json:"is_read"`
 }
 
 func (q *Queries) ListTimelineItems(ctx context.Context, arg ListTimelineItemsParams) ([]ListTimelineItemsRow, error) {
