@@ -149,9 +149,45 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					line-height: 1;
 				}
 				.nav-brand span { color: var(--accent); }
-				.nav-links { display: flex; gap: 1.5rem; flex: 1; }
+				.nav-links { display: flex; gap: 1.5rem; align-items: center; }
 				.nav-links a { color: var(--fg3); font-size: 0.78rem; transition: color 0.1s; }
 				.nav-links a:hover { color: var(--accent); }
+				
+				.nav-search {
+					flex: 1;
+					display: flex;
+					justify-content: center;
+					max-width: 400px;
+					margin: 0 auto;
+				}
+				.nav-search form { width: 100%; position: relative; }
+				.nav-search input {
+					width: 100%;
+					background: var(--bg1);
+					border: 1px solid var(--bg2);
+					border-radius: 4px;
+					padding: 0.35rem 0.75rem;
+					padding-left: 2rem;
+					color: var(--fg);
+					font-family: inherit;
+					font-size: 0.75rem;
+					transition: all 0.15s;
+				}
+				.nav-search input:focus {
+					outline: none;
+					border-color: var(--accent-d);
+					background: var(--bg-s);
+					box-shadow: 0 0 0 2px rgba(232,169,32,0.05);
+				}
+				.nav-search .search-icon {
+					position: absolute;
+					left: 0.6rem;
+					top: 50%;
+					transform: translateY(-50%);
+					color: var(--fg4);
+					pointer-events: none;
+				}
+
 				.nav-user { position: relative; font-size: 0.76rem; }
 				.nav-user summary {
 					list-style: none;
@@ -443,9 +479,31 @@ templ Base(title string, user *NavUser, content templ.Component) {
 				.date-group-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg4); border-bottom: 1px solid var(--bg2); padding-bottom: 0.3rem; margin-bottom: 0.75rem; }
 				.pagination { display: flex; gap: 0.5rem; justify-content: center; padding: 1.5rem 0 0.5rem; }
 				.nav-user-icon { display: none; }
+				
+				@media (max-width: 760px) {
+					nav {
+						height: auto;
+						flex-wrap: wrap;
+						padding: 0.75rem 1rem;
+						gap: 0.75rem;
+					}
+					.nav-brand { order: 1; }
+					.nav-links { order: 2; flex: 1; }
+					.nav-user { order: 3; }
+					.nav-search {
+						order: 4;
+						width: 100%;
+						max-width: none;
+						margin: 0;
+					}
+					.nav-search input {
+						padding: 0.45rem 0.75rem 0.45rem 2rem;
+						font-size: 0.8rem;
+					}
+					.main { padding: 1.5rem 1rem; }
+				}
+
 				@media (max-width: 540px) {
-					nav { gap: 1rem; padding: 0 1rem; }
-					.nav-links { gap: 1rem; }
 					.nav-user-label { display: none; }
 					.nav-user-icon { display: block; }
 					.page-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
@@ -464,6 +522,19 @@ templ Base(title string, user *NavUser, content templ.Component) {
 						<a href="/feed">feeds</a>
 					}
 				</div>
+				
+				if user != nil {
+					<div class="nav-search">
+						<form method="GET" action="/url">
+							<svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+								<circle cx="11" cy="11" r="8"></circle>
+								<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+							</svg>
+							<input type="search" name="q" placeholder="search" aria-label="Search"/>
+						</form>
+					</div>
+				}
+
 				if user != nil {
 					<details class="nav-user">
 						<summary>

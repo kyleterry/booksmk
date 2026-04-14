@@ -13,9 +13,6 @@ templ ListPage(urls []store.URL, categories []store.Category) {
 	<div class="page-header">
 		<h1>urls <span class="count">({ strconv.Itoa(len(urls)) })</span></h1>
 		<div style="display:flex;gap:0.5rem">
-			<form method="GET" action="/url" style="display:flex;gap:0.25rem">
-				<input type="search" name="q" class="btn" style="width:150px;text-align:left" placeholder="search…"/>
-			</form>
 			<a href="/category/new" class="btn btn-sm">+ category</a>
 			<a href="/url/new" class="btn btn-primary">+ add</a>
 		</div>
@@ -28,7 +25,7 @@ templ ListPage(urls []store.URL, categories []store.Category) {
 	} else {
 		@filterInput()
 		for _, u := range urls {
-			@urlCard(u)
+			@URLCard(u)
 		}
 		@filterScript()
 	}
@@ -53,7 +50,7 @@ templ filterScript() {
 	</script>
 }
 
-templ urlCard(u store.URL) {
+templ URLCard(u store.URL) {
 	<div class="card" data-q={ strings.ToLower(u.Title + " " + u.URL + " " + strings.Join(u.Tags, " ")) }>
 		<div class="card-title">
 			if u.Title != "" {
@@ -189,7 +186,7 @@ templ TagPage(tag string, urls []store.URL, categories []store.Category) {
 	} else {
 		@filterInput()
 		for _, u := range urls {
-			@urlCard(u)
+			@URLCard(u)
 		}
 		@filterScript()
 	}
@@ -217,7 +214,7 @@ templ CategoryPage(cat *store.Category, urls []store.URL, categories []store.Cat
 	} else {
 		@filterInput()
 		for _, u := range urls {
-			@urlCard(u)
+			@URLCard(u)
 		}
 		@filterScript()
 	}
