@@ -54,27 +54,36 @@ templ UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg
 		</div>
 	</div>
 	<div class="card" style="margin-bottom:2rem">
-		<div class="detail-field">
-			<div class="detail-label">theme</div>
-		</div>
-		<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/theme") } style="margin:0">
-			<select name="theme" onchange="this.form.submit()" style="width:auto;margin-bottom:0">
-				<option value="dark" selected?={ user.Theme == "dark" }>dark</option>
-				<option value="light" selected?={ user.Theme == "light" }>light</option>
-				<option value="auto" selected?={ user.Theme == "auto" }>auto (system)</option>
-			</select>
-		</form>
-	</div>
-	<div class="card" style="margin-bottom:2rem">
-		<div class="detail-field">
-			<div class="detail-label">font size</div>
-		</div>
-		<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/font-size") } style="margin:0">
-			<select name="font_size" onchange="this.form.submit()" style="width:auto;margin-bottom:0">
-				<option value="small" selected?={ user.FontSize == "small" }>small</option>
-				<option value="medium" selected?={ user.FontSize == "medium" || user.FontSize == "" }>medium</option>
-				<option value="large" selected?={ user.FontSize == "large" }>large</option>
-			</select>
+		<div class="detail-label">look and feel</div>
+		<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/settings") } style="margin:0">
+			<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.75rem">
+				<div style="flex:1;min-width:140px">
+					<label for="theme">theme</label>
+					<select id="theme" name="theme" onchange="this.form.submit()" style="margin-bottom:0">
+						<option value="dark" selected?={ user.Theme == "dark" }>dark</option>
+						<option value="light" selected?={ user.Theme == "light" }>light</option>
+						<option value="auto" selected?={ user.Theme == "auto" }>auto (system)</option>
+					</select>
+				</div>
+				<div style="flex:1;min-width:140px">
+					<label for="font_size">font size</label>
+					<select id="font_size" name="font_size" onchange="this.form.submit()" style="margin-bottom:0">
+						<option value="small" selected?={ user.FontSize == "small" }>small</option>
+						<option value="medium" selected?={ user.FontSize == "medium" || user.FontSize == "" }>medium</option>
+						<option value="large" selected?={ user.FontSize == "large" }>large</option>
+					</select>
+				</div>
+				<div style="flex:1;min-width:140px">
+					<label for="results_per_page">results per page</label>
+					<select id="results_per_page" name="results_per_page" onchange="this.form.submit()" style="margin-bottom:0">
+						<option value="25" selected?={ user.ResultsPerPage == 25 }>25</option>
+						<option value="50" selected?={ user.ResultsPerPage == 50 || user.ResultsPerPage == 0 }>50</option>
+						<option value="100" selected?={ user.ResultsPerPage == 100 }>100</option>
+						<option value="250" selected?={ user.ResultsPerPage == 250 }>250</option>
+						<option value="500" selected?={ user.ResultsPerPage == 500 }>500</option>
+					</select>
+				</div>
+			</div>
 		</form>
 	</div>
 	<div class="card" style="margin-bottom:2rem">

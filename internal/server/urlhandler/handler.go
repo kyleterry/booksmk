@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/a-h/templ"
@@ -20,10 +21,10 @@ import (
 
 type urlStore interface {
 	GetURL(ctx context.Context, id, userID uuid.UUID) (store.URL, error)
-	ListURLs(ctx context.Context, userID uuid.UUID) ([]store.URL, error)
+	ListURLs(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]store.URL, error)
 	Search(ctx context.Context, userID uuid.UUID, query string) (store.SearchResults, error)
-	ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string) ([]store.URL, error)
-	ListURLsByCategory(ctx context.Context, userID, categoryID uuid.UUID) ([]store.URL, error)
+	ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string, limit, offset int32) ([]store.URL, error)
+	ListURLsByCategory(ctx context.Context, userID, categoryID uuid.UUID, limit, offset int32) ([]store.URL, error)
 	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error)
 	UpdateURL(ctx context.Context, id, userID uuid.UUID, title, description string, tags []string) (store.URL, error)
 	DeleteURL(ctx context.Context, id, userID uuid.UUID) error
@@ -121,11 +122,21 @@ func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 	if !ok {
 		return nil
 	}
-	return &ui.NavUser{ID: u.ID.String(), Email: u.Email, IsAdmin: u.IsAdmin, Theme: u.Theme, FontSize: u.FontSize}
+	return &ui.NavUser{ID: u.ID.String(), Email: u.Email, IsAdmin: u.IsAdmin, Theme: u.Theme, FontSize: u.FontSize, ResultsPerPage: u.ResultsPerPage}
 }
 
 func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 	user, _ := auth.UserFromContext(r.Context())
+
+	pageSize := user.ResultsPerPage
+	if pageSize <= 0 {
+		pageSize = 50
+	}
+	page := 1
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 1 {
+		page = p
+	}
+	offset := (page - 1) * int(pageSize)
 
 	categories, err := h.store.ListCategories(r.Context(), user.ID)
 	if err != nil {
@@ -135,13 +146,17 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if tag := r.URL.Query().Get("tag"); tag != "" {
-		urls, err := h.store.ListURLsByTag(r.Context(), user.ID, tag)
+		urls, err := h.store.ListURLsByTag(r.Context(), user.ID, tag, int32(pageSize+1), int32(offset))
 		if err != nil {
 			h.logger.Error("failed to list urls by tag", "tag", tag, "error", err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
-		h.render(w, r, ui.Base("tag: "+tag, h.navUser(r), urlpages.TagPage(tag, urls, categories)))
+		hasMore := len(urls) > int(pageSize)
+		if hasMore {
+			urls = urls[:pageSize]
+		}
+		h.render(w, r, ui.Base("tag: "+tag, h.navUser(r), urlpages.TagPage(tag, urls, categories, page, hasMore)))
 		return
 	}
 
@@ -151,11 +166,15 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid category id", http.StatusBadRequest)
 			return
 		}
-		urls, err := h.store.ListURLsByCategory(r.Context(), user.ID, id)
+		urls, err := h.store.ListURLsByCategory(r.Context(), user.ID, id, int32(pageSize+1), int32(offset))
 		if err != nil {
 			h.logger.Error("failed to list urls by category", "category_id", id, "error", err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
+		}
+		hasMore := len(urls) > int(pageSize)
+		if hasMore {
+			urls = urls[:pageSize]
 		}
 		var cat *store.Category
 
@@ -166,7 +185,7 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		h.render(w, r, ui.Base("category: "+catID, h.navUser(r), urlpages.CategoryPage(cat, urls, categories)))
+		h.render(w, r, ui.Base("category: "+catID, h.navUser(r), urlpages.CategoryPage(cat, urls, categories, page, hasMore)))
 		return
 	}
 
@@ -181,14 +200,18 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urls, err := h.store.ListURLs(r.Context(), user.ID)
+	urls, err := h.store.ListURLs(r.Context(), user.ID, int32(pageSize+1), int32(offset))
 	if err != nil {
 		h.logger.Error("failed to list urls", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
+	hasMore := len(urls) > int(pageSize)
+	if hasMore {
+		urls = urls[:pageSize]
+	}
 
-	h.render(w, r, ui.Base("urls", h.navUser(r), urlpages.ListPage(urls, categories)))
+	h.render(w, r, ui.Base("urls", h.navUser(r), urlpages.ListPage(urls, categories, page, hasMore)))
 }
 
 func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {

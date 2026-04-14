@@ -71,7 +71,7 @@ func (q *Queries) GetSession(ctx context.Context, token string) (Session, error)
 }
 
 const getSessionUser = `-- name: GetSessionUser :one
-select u.id, u.email, u.password_digest, u.is_admin, u.theme, u.font_size, u.created_at, u.updated_at
+select u.id, u.email, u.password_digest, u.is_admin, u.theme, u.font_size, u.results_per_page, u.created_at, u.updated_at
 from users u
 join sessions s on s.user_id = u.id
 where s.token = $1 and s.expires_at > now()
@@ -87,6 +87,7 @@ func (q *Queries) GetSessionUser(ctx context.Context, token string) (User, error
 		&i.IsAdmin,
 		&i.Theme,
 		&i.FontSize,
+		&i.ResultsPerPage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

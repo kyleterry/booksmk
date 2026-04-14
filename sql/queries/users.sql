@@ -5,7 +5,7 @@ select * from users where id = $1;
 select * from users where email = $1;
 
 -- name: ListUsers :many
-select * from users order by created_at desc;
+select id, email, is_admin, created_at from users order by created_at desc;
 
 -- name: CreateUser :one
 insert into users (email, password_digest, is_admin)
@@ -27,16 +27,10 @@ returning *;
 -- name: DeleteUser :exec
 delete from users where id = $1;
 
--- name: UpdateUserTheme :one
+-- name: UpdateUserSettings :one
 update users
-set theme = $1, updated_at = now()
-where id = $2
-returning *;
-
--- name: UpdateUserFontSize :one
-update users
-set font_size = $1, updated_at = now()
-where id = $2
+set theme = $1, font_size = $2, results_per_page = $3, updated_at = now()
+where id = $4
 returning *;
 
 -- name: CountUsers :one

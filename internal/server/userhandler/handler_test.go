@@ -29,8 +29,7 @@ type mockUserStore struct {
 	ListUsersFn           func(context.Context) ([]store.User, error)
 	UpdateUserFn          func(context.Context, uuid.UUID, string) (store.User, error)
 	UpdateUserPasswordFn  func(context.Context, uuid.UUID, string) (store.User, error)
-	UpdateUserThemeFn     func(context.Context, uuid.UUID, string) (store.User, error)
-	UpdateUserFontSizeFn  func(context.Context, uuid.UUID, string) (store.User, error)
+	UpdateUserSettingsFn  func(context.Context, uuid.UUID, string, string, int32) (store.User, error)
 	DeleteUserFn          func(context.Context, uuid.UUID) error
 	GetInviteCodeByCodeFn func(context.Context, string) (store.InviteCode, error)
 	UseInviteCodeFn       func(context.Context, uuid.UUID, uuid.UUID) error
@@ -93,16 +92,9 @@ func (m *mockUserStore) UpdateUserPassword(ctx context.Context, id uuid.UUID, di
 	return store.User{}, nil
 }
 
-func (m *mockUserStore) UpdateUserTheme(ctx context.Context, id uuid.UUID, theme string) (store.User, error) {
-	if m.UpdateUserThemeFn != nil {
-		return m.UpdateUserThemeFn(ctx, id, theme)
-	}
-	return store.User{}, nil
-}
-
-func (m *mockUserStore) UpdateUserFontSize(ctx context.Context, id uuid.UUID, fontSize string) (store.User, error) {
-	if m.UpdateUserFontSizeFn != nil {
-		return m.UpdateUserFontSizeFn(ctx, id, fontSize)
+func (m *mockUserStore) UpdateUserSettings(ctx context.Context, id uuid.UUID, theme, fontSize string, resultsPerPage int32) (store.User, error) {
+	if m.UpdateUserSettingsFn != nil {
+		return m.UpdateUserSettingsFn(ctx, id, theme, fontSize, resultsPerPage)
 	}
 	return store.User{}, nil
 }
@@ -560,7 +552,7 @@ func TestHandleChangePassword(t *testing.T) {
 	}
 }
 
-func TestHandleUpdateTheme(t *testing.T) {
+func TestHandleUpdateSettings(t *testing.T) {
 	otherUserID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
 	tests := []struct {
@@ -572,11 +564,11 @@ func TestHandleUpdateTheme(t *testing.T) {
 		wantLoc    string
 	}{
 		{
-			name:   "valid theme redirects to profile",
+			name:   "valid settings redirect to profile",
 			userID: fixtureUserID.String(),
-			body:   "theme=dark",
+			body:   "theme=dark&font_size=medium&results_per_page=100",
 			setup: func(m *mockUserStore) {
-				m.UpdateUserThemeFn = func(_ context.Context, _ uuid.UUID, _ string) (store.User, error) {
+				m.UpdateUserSettingsFn = func(_ context.Context, _ uuid.UUID, _, _ string, _ int32) (store.User, error) {
 					return fixtureUser, nil
 				}
 			},
@@ -586,67 +578,28 @@ func TestHandleUpdateTheme(t *testing.T) {
 		{
 			name:       "invalid theme returns 400",
 			userID:     fixtureUserID.String(),
-			body:       "theme=neon",
+			body:       "theme=neon&font_size=medium&results_per_page=100",
 			setup:      func(m *mockUserStore) {},
 			wantStatus: http.StatusBadRequest,
-		},
-		{
-			name:       "updating another user's theme returns 403",
-			userID:     otherUserID.String(),
-			body:       "theme=dark",
-			setup:      func(m *mockUserStore) {},
-			wantStatus: http.StatusForbidden,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ms := &mockUserStore{}
-			tt.setup(ms)
-			path := "/user/" + tt.userID + "/theme"
-			w := serve(t, newHandler(ms), authReq(http.MethodPost, path, tt.body))
-			assertStatus(t, w, tt.wantStatus)
-			if tt.wantLoc != "" {
-				assertRedirect(t, w, tt.wantLoc)
-			}
-		})
-	}
-}
-
-func TestHandleUpdateFontSize(t *testing.T) {
-	otherUserID := uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
-
-	tests := []struct {
-		name       string
-		userID     string
-		body       string
-		setup      func(*mockUserStore)
-		wantStatus int
-		wantLoc    string
-	}{
-		{
-			name:   "valid font size redirects to profile",
-			userID: fixtureUserID.String(),
-			body:   "font_size=large",
-			setup: func(m *mockUserStore) {
-				m.UpdateUserFontSizeFn = func(_ context.Context, _ uuid.UUID, _ string) (store.User, error) {
-					return fixtureUser, nil
-				}
-			},
-			wantStatus: http.StatusSeeOther,
-			wantLoc:    "/user/" + fixtureUserID.String(),
 		},
 		{
 			name:       "invalid font size returns 400",
 			userID:     fixtureUserID.String(),
-			body:       "font_size=huge",
+			body:       "theme=dark&font_size=huge&results_per_page=100",
 			setup:      func(m *mockUserStore) {},
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:       "updating another user's font size returns 403",
+			name:       "invalid results per page returns 400",
+			userID:     fixtureUserID.String(),
+			body:       "theme=dark&font_size=medium&results_per_page=0",
+			setup:      func(m *mockUserStore) {},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "updating another user settings returns 403",
 			userID:     otherUserID.String(),
-			body:       "font_size=medium",
+			body:       "theme=dark&font_size=medium&results_per_page=100",
 			setup:      func(m *mockUserStore) {},
 			wantStatus: http.StatusForbidden,
 		},
@@ -656,7 +609,7 @@ func TestHandleUpdateFontSize(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ms := &mockUserStore{}
 			tt.setup(ms)
-			path := "/user/" + tt.userID + "/font-size"
+			path := "/user/" + tt.userID + "/settings"
 			w := serve(t, newHandler(ms), authReq(http.MethodPost, path, tt.body))
 			assertStatus(t, w, tt.wantStatus)
 			if tt.wantLoc != "" {

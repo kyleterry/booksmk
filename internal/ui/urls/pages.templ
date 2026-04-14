@@ -3,23 +3,17 @@ package urls
 import (
 	"fmt"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"go.e64ec.com/booksmk/internal/store"
 )
 
-templ ListPage(urls []store.URL, categories []store.Category) {
+templ ListPage(urls []store.URL, categories []store.Category, page int, hasMore bool) {
 	<div class="page-header">
-		<h1>urls <span class="count">({ strconv.Itoa(len(urls)) })</span></h1>
-		<div style="display:flex;gap:0.5rem">
-			<a href="/category/new" class="btn btn-sm">+ category</a>
-			<a href="/url/new" class="btn btn-primary">+ add</a>
-		</div>
+		<h1>bookmarks</h1>
+		<a href="/url/new" class="btn btn-primary">+ bookmark</a>
 	</div>
-	if len(categories) > 0 {
-		@categoryNav(categories, "")
-	}
+	@categoryNav(categories, "")
 	if len(urls) == 0 {
 		<div class="empty">no bookmarks yet - <a href="/url/new">add one</a></div>
 	} else {
@@ -28,11 +22,12 @@ templ ListPage(urls []store.URL, categories []store.Category) {
 			@URLCard(u)
 		}
 		@filterScript()
+		@pagination("/url", page, hasMore)
 	}
 }
 
 templ filterInput() {
-	<input type="search" class="filter-input" placeholder="filter…" id="url-filter"/>
+	<input type="search" class="filter-input" placeholder="filter" id="url-filter"/>
 }
 
 templ filterScript() {
@@ -173,14 +168,12 @@ templ DetailPage(u store.URL, discussions []store.Discussion, subscribedFeed *st
 	}
 }
 
-templ TagPage(tag string, urls []store.URL, categories []store.Category) {
+templ TagPage(tag string, urls []store.URL, categories []store.Category, page int, hasMore bool) {
 	<div class="page-header">
-		<h1>tag: <span style="color:var(--accent)">{ tag }</span> <span class="count">({ strconv.Itoa(len(urls)) })</span></h1>
-		<a href="/url/new" class="btn btn-primary">+ add</a>
+		<h1>tag: <span style="color:var(--accent)">{ tag }</span></h1>
+		<a href="/url/new" class="btn btn-primary">+ bookmark</a>
 	</div>
-	if len(categories) > 0 {
-		@categoryNav(categories, "")
-	}
+	@categoryNav(categories, "")
 	if len(urls) == 0 {
 		<div class="empty">no bookmarks with this tag</div>
 	} else {
@@ -189,26 +182,29 @@ templ TagPage(tag string, urls []store.URL, categories []store.Category) {
 			@URLCard(u)
 		}
 		@filterScript()
+		@pagination("/url?tag="+tag, page, hasMore)
 	}
 }
 
-templ CategoryPage(cat *store.Category, urls []store.URL, categories []store.Category) {
+templ CategoryPage(cat *store.Category, urls []store.URL, categories []store.Category, page int, hasMore bool) {
 	<div class="page-header">
 		if cat != nil {
 			<div>
-				<h1>{ cat.Name } <span class="count">({ strconv.Itoa(len(urls)) })</span></h1>
+				<h1>{ cat.Name }</h1>
 				if len(cat.Members) > 0 {
 					<p class="page-subtitle">{ categoryMembersString(cat.Members) }</p>
 				}
 			</div>
-			<a href={ templ.SafeURL("/category/" + cat.ID.String() + "/edit") } class="btn btn-sm">edit</a>
+			<div style="display:flex;gap:0.5rem">
+				<a href={ templ.SafeURL("/category/" + cat.ID.String() + "/edit") } class="btn btn-sm">edit</a>
+				<a href="/url/new" class="btn btn-primary">+ bookmark</a>
+			</div>
 		} else {
-			<h1>category <span class="count">({ strconv.Itoa(len(urls)) })</span></h1>
+			<h1>category</h1>
+			<a href="/url/new" class="btn btn-primary">+ bookmark</a>
 		}
 	</div>
-	if len(categories) > 0 {
-		@categoryNav(categories, activeCategoryID(cat))
-	}
+	@categoryNav(categories, activeCategoryID(cat))
 	if len(urls) == 0 {
 		<div class="empty">no bookmarks match this category</div>
 	} else {
@@ -217,6 +213,11 @@ templ CategoryPage(cat *store.Category, urls []store.URL, categories []store.Cat
 			@URLCard(u)
 		}
 		@filterScript()
+		if cat != nil {
+			@pagination("/url?category="+cat.ID.String(), page, hasMore)
+		} else {
+			@pagination("/url", page, hasMore)
+		}
 	}
 }
 
@@ -228,6 +229,7 @@ templ categoryNav(categories []store.Category, activeID string) {
 				class={ "feed-nav-link", templ.KV("feed-nav-link-active", c.ID.String() == activeID) }
 			>{ c.Name }</a>
 		}
+		<a href="/category/new" class="feed-nav-link" style="border-style:dashed;opacity:0.6">+ category</a>
 	</div>
 }
 
@@ -325,4 +327,22 @@ func hostname(rawURL string) string {
 		return rawURL
 	}
 	return u.Hostname()
+}
+
+templ pagination(basePath string, page int, hasMore bool) {
+	<div class="pagination">
+		if page > 1 {
+			<a href={ templ.SafeURL(fmt.Sprintf("%s%spage=%d", basePath, paramJoin(basePath), page-1)) } class="btn btn-sm">← newer</a>
+		}
+		if hasMore {
+			<a href={ templ.SafeURL(fmt.Sprintf("%s%spage=%d", basePath, paramJoin(basePath), page+1)) } class="btn btn-sm">older →</a>
+		}
+	</div>
+}
+
+func paramJoin(path string) string {
+	if strings.Contains(path, "?") {
+		return "&"
+	}
+	return "?"
 }

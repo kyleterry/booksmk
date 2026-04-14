@@ -1,11 +1,12 @@
 package ui
 
 type NavUser struct {
-	ID       string
-	Email    string
+	ID             string
+	Email          string
 	IsAdmin  bool
 	Theme    string
 	FontSize string
+	ResultsPerPage int32
 }
 
 func (u *NavUser) theme() string {
@@ -106,12 +107,15 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					}
 				}
 				html[data-font-size="small"]  { --base-font-size: 11px; }
-			html[data-font-size="medium"] { --base-font-size: 13px; }
-			html[data-font-size="large"]  { --base-font-size: 15px; }
-			*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+				html[data-font-size="medium"] { --base-font-size: 13px; }
+				html[data-font-size="large"]  { --base-font-size: 15px; }
+				html {
+					font-size: var(--base-font-size, 13px);
+				}
+				*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 				body {
 					font-family: 'Martian Mono', ui-monospace, 'Cascadia Code', monospace;
-					font-size: var(--base-font-size, 13px);
+					font-size: 1rem;
 					line-height: 1.6;
 					background: var(--bg);
 					color: var(--fg);
@@ -277,10 +281,10 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					transition: all 0.1s;
 				}
 				.btn:hover { border-color: var(--bg3); color: var(--fg1); background: var(--bg1); text-decoration: none; }
-				.btn-primary { border-color: var(--accent-d); color: var(--accent); }
-				.btn-primary:hover { border-color: var(--accent); background: rgba(232,169,32,0.06); color: var(--accent-b); }
-				.btn-danger { border-color: var(--red-d); color: var(--red); opacity: 0.65; }
-				.btn-danger:hover { border-color: var(--red); background: rgba(212,72,72,0.07); opacity: 1; }
+				.btn-primary { border-color: var(--accent); color: var(--accent); }
+				.btn-primary:hover { background: var(--accent-d); color: var(--accent-b); }
+				.btn-danger { border-color: var(--red); color: var(--red); }
+				.btn-danger:hover { background: var(--red-d); }
 				.btn-sm { }
 				.filter-input {
 					width: 100%;

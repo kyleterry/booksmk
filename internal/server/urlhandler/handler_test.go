@@ -31,10 +31,10 @@ var (
 
 type mockURLStore struct {
 	GetURLFn                func(context.Context, uuid.UUID, uuid.UUID) (store.URL, error)
-	ListURLsFn              func(context.Context, uuid.UUID) ([]store.URL, error)
+	ListURLsFn              func(context.Context, uuid.UUID, int32, int32) ([]store.URL, error)
 	SearchFn                func(context.Context, uuid.UUID, string) (store.SearchResults, error)
-	ListURLsByTagFn         func(context.Context, uuid.UUID, string) ([]store.URL, error)
-	ListURLsByCategoryFn    func(context.Context, uuid.UUID, uuid.UUID) ([]store.URL, error)
+	ListURLsByTagFn         func(context.Context, uuid.UUID, string, int32, int32) ([]store.URL, error)
+	ListURLsByCategoryFn    func(context.Context, uuid.UUID, uuid.UUID, int32, int32) ([]store.URL, error)
 	CreateURLFn             func(context.Context, uuid.UUID, string, string, string, []string) (store.URL, error)
 	UpdateURLFn             func(context.Context, uuid.UUID, uuid.UUID, string, string, []string) (store.URL, error)
 	DeleteURLFn             func(context.Context, uuid.UUID, uuid.UUID) error
@@ -56,9 +56,9 @@ func (m *mockURLStore) GetURL(ctx context.Context, id, userID uuid.UUID) (store.
 	return store.URL{}, store.ErrNotFound
 }
 
-func (m *mockURLStore) ListURLs(ctx context.Context, userID uuid.UUID) ([]store.URL, error) {
+func (m *mockURLStore) ListURLs(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]store.URL, error) {
 	if m.ListURLsFn != nil {
-		return m.ListURLsFn(ctx, userID)
+		return m.ListURLsFn(ctx, userID, limit, offset)
 	}
 	return nil, nil
 }
@@ -70,16 +70,16 @@ func (m *mockURLStore) Search(ctx context.Context, userID uuid.UUID, query strin
 	return store.SearchResults{}, nil
 }
 
-func (m *mockURLStore) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string) ([]store.URL, error) {
+func (m *mockURLStore) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string, limit, offset int32) ([]store.URL, error) {
 	if m.ListURLsByTagFn != nil {
-		return m.ListURLsByTagFn(ctx, userID, tag)
+		return m.ListURLsByTagFn(ctx, userID, tag, limit, offset)
 	}
 	return nil, nil
 }
 
-func (m *mockURLStore) ListURLsByCategory(ctx context.Context, userID, categoryID uuid.UUID) ([]store.URL, error) {
+func (m *mockURLStore) ListURLsByCategory(ctx context.Context, userID, categoryID uuid.UUID, limit, offset int32) ([]store.URL, error) {
 	if m.ListURLsByCategoryFn != nil {
-		return m.ListURLsByCategoryFn(ctx, userID, categoryID)
+		return m.ListURLsByCategoryFn(ctx, userID, categoryID, limit, offset)
 	}
 	return nil, nil
 }
@@ -182,7 +182,7 @@ func TestHandleList(t *testing.T) {
 		{
 			name: "empty list shows empty state",
 			setup: func(m *mockURLStore) {
-				m.ListURLsFn = func(_ context.Context, _ uuid.UUID) ([]store.URL, error) { return nil, nil }
+				m.ListURLsFn = func(_ context.Context, _ uuid.UUID, _, _ int32) ([]store.URL, error) { return nil, nil }
 			},
 			wantStatus: http.StatusOK,
 			wantBody:   "no bookmarks",
@@ -190,7 +190,7 @@ func TestHandleList(t *testing.T) {
 		{
 			name: "lists urls",
 			setup: func(m *mockURLStore) {
-				m.ListURLsFn = func(_ context.Context, _ uuid.UUID) ([]store.URL, error) {
+				m.ListURLsFn = func(_ context.Context, _ uuid.UUID, _, _ int32) ([]store.URL, error) {
 					return []store.URL{fixtureURL}, nil
 				}
 			},
@@ -200,7 +200,7 @@ func TestHandleList(t *testing.T) {
 		{
 			name: "store error returns 500",
 			setup: func(m *mockURLStore) {
-				m.ListURLsFn = func(_ context.Context, _ uuid.UUID) ([]store.URL, error) {
+				m.ListURLsFn = func(_ context.Context, _ uuid.UUID, _, _ int32) ([]store.URL, error) {
 					return nil, errors.New("db down")
 				}
 			},

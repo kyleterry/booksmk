@@ -17,7 +17,8 @@ left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
 where uu.user_id = $1
 group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
-order by uu.created_at desc;
+order by uu.created_at desc
+limit $2 offset $3;
 
 -- name: SearchURLs :many
 select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
@@ -74,7 +75,8 @@ left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
 where uu.user_id = $1 and u.id in (select url_id from filtered_urls)
 group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
-order by uu.created_at desc;
+order by uu.created_at desc
+limit $3 offset $4;
 
 -- name: ListURLsByCategory :many
 with filtered_urls as (
@@ -97,7 +99,8 @@ left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
 where uu.user_id = $1 and u.id in (select url_id from filtered_urls)
 group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
-order by uu.created_at desc;
+order by uu.created_at desc
+limit $3 offset $4;
 
 -- name: ListURLsForFeedBackfill :many
 select id, url from urls where feed_url = '' order by created_at desc;

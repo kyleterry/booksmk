@@ -723,6 +723,22 @@ func TestDateLabel(t *testing.T) {
 			t.Errorf("dateLabel = %q, want %q", got, "today")
 		}
 	})
+
+	t.Run("timezone: DST transition handles 23h day correctly", func(t *testing.T) {
+		loc, err := time.LoadLocation("America/Los_Angeles")
+		if err != nil {
+			t.Skip("America/Los_Angeles not available")
+		}
+		// In 2026, DST starts on March 8. March 8 only has 23 hours.
+		// now is March 9 00:00:00
+		now := time.Date(2026, 3, 9, 0, 0, 0, 0, loc)
+		// item is March 8 12:00:00
+		item := time.Date(2026, 3, 8, 12, 0, 0, 0, loc)
+		got := dateLabel(&item, now)
+		if got != "yesterday" {
+			t.Errorf("dateLabel(March 8) when now is March 9 = %q, want %q", got, "yesterday")
+		}
+	})
 }
 
 // TestGroupFeedItemsPDT verifies that groupFeedItems uses the client timezone
