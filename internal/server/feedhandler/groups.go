@@ -1,35 +1,11 @@
 package feedhandler
 
 import (
-	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
 	"go.e64ec.com/booksmk/internal/store"
 )
-
-// nowInRequestTZ returns the current time in the timezone reported by the
-// browser via the "tz" cookie. Falls back to UTC if the cookie is absent or
-// the timezone name is unrecognised.
-func nowInRequestTZ(r *http.Request) time.Time {
-	c, err := r.Cookie("tz")
-	if err != nil {
-		return time.Now().UTC()
-	}
-
-	name, err := url.QueryUnescape(c.Value)
-	if err != nil {
-		return time.Now().UTC()
-	}
-
-	loc, err := time.LoadLocation(name)
-	if err != nil {
-		return time.Now().UTC()
-	}
-
-	return time.Now().In(loc)
-}
 
 // dateLabel returns the display label for a published timestamp relative to now.
 //
@@ -49,7 +25,7 @@ func dateLabel(t *time.Time, now time.Time) string {
 	tLocal := t.In(loc)
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 	tDay := time.Date(tLocal.Year(), tLocal.Month(), tLocal.Day(), 0, 0, 0, 0, loc)
-	days := int(today.Sub(tDay).Hours() / 24)
+	days := int(today.Sub(tDay).Hours()+12) / 24
 	switch {
 	case days <= 0:
 		return "today"

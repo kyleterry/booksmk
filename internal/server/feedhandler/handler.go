@@ -154,7 +154,7 @@ func (h *Handler) handleTimeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groups := groupTimeline(items, nowInRequestTZ(r))
+	groups := groupTimeline(items, h.nowInRequestTZ(r))
 	h.render(w, r, ui.Base("feeds", h.navUser(r), feedpages.TimelinePage(feeds, groups, page, hasMore)))
 }
 
@@ -223,7 +223,7 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groups := groupFeedItems(items, nowInRequestTZ(r))
+	groups := groupFeedItems(items, h.nowInRequestTZ(r))
 	h.render(w, r, ui.Base(f.Title, h.navUser(r), feedpages.FeedDetailPage(f, groups)))
 }
 
@@ -361,6 +361,30 @@ func (h *Handler) renderItemFragment(w http.ResponseWriter, r *http.Request, use
 	}
 
 	h.render(w, r, feedpages.TimelineItemCard(item))
+}
+
+// nowInRequestTZ returns the current time in the timezone reported by the
+// browser via the "tz" cookie. Falls back to UTC if the cookie is absent or
+// the timezone name is unrecognised.
+func (h *Handler) nowInRequestTZ(r *http.Request) time.Time {
+	c, err := r.Cookie("tz")
+	if err != nil {
+		return time.Now().UTC()
+	}
+
+	name, err := url.QueryUnescape(c.Value)
+	if err != nil {
+		h.logger.Error("failed to unescape tz cookie", "value", c.Value, "error", err)
+		return time.Now().UTC()
+	}
+
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		h.logger.Error("failed to load location", "name", name, "error", err)
+		return time.Now().UTC()
+	}
+
+	return time.Now().In(loc)
 }
 
 // safeReferer returns the request referer if it is a relative path, otherwise /feed.

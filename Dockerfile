@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 go build -o /out/booksmkctl ./cmd/booksmkctl
 
 FROM alpine:3.21
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates tzdata
 
 COPY --from=build /out/booksmk /usr/local/bin/booksmk
 COPY --from=build /out/booksmkctl /usr/local/bin/booksmkctl
