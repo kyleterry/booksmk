@@ -16,7 +16,7 @@ type SearchResults struct {
 // Search performs a combined search across URLs and Feeds.
 func (s *Store) Search(ctx context.Context, userID uuid.UUID, query string) (SearchResults, error) {
 	q := "%" + query + "%"
-	
+
 	urlRows, err := s.queries.SearchURLs(ctx, sqlstore.SearchURLsParams{
 		UserID: userID,
 		Query:  q,
@@ -24,7 +24,7 @@ func (s *Store) Search(ctx context.Context, userID uuid.UUID, query string) (Sea
 	if err != nil {
 		return SearchResults{}, err
 	}
-	
+
 	feedRows, err := s.queries.SearchFeeds(ctx, sqlstore.SearchFeedsParams{
 		UserID: userID,
 		Query:  q,

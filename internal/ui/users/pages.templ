@@ -194,7 +194,7 @@ templ ImportResultPage(userID string, imported int, failures []ImportFailure) {
 			for _, f := range failures {
 				<li>
 					<code>{ f.URL }</code>
-					<span class="form-hint"> — { f.Reason }</span>
+					<span class="form-hint">— { f.Reason }</span>
 				</li>
 			}
 		</ul>

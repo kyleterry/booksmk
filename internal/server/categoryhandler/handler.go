@@ -214,4 +214,3 @@ func parseMembers(raw string) []store.CategoryMember {
 	}
 	return members
 }
-

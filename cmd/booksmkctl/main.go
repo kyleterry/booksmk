@@ -139,14 +139,14 @@ func runImportBlocklist(logger *slog.Logger, source string) error {
 		if err != nil {
 			return fmt.Errorf("fetch: %w", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		r = resp.Body
 	} else {
 		f, err := os.Open(source)
 		if err != nil {
 			return fmt.Errorf("open file: %w", err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		r = f
 	}
 

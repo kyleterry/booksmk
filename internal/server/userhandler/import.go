@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 
 	"go.e64ec.com/booksmk/internal/auth"
+	"go.e64ec.com/booksmk/internal/importer"
 	"go.e64ec.com/booksmk/internal/store"
 	"go.e64ec.com/booksmk/internal/ui"
 	userpages "go.e64ec.com/booksmk/internal/ui/users"
-	"go.e64ec.com/booksmk/internal/importer"
 )
 
 const maxImportSize = 10 << 20 // 10 MB

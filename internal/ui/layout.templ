@@ -3,9 +3,9 @@ package ui
 type NavUser struct {
 	ID             string
 	Email          string
-	IsAdmin  bool
-	Theme    string
-	FontSize string
+	IsAdmin        bool
+	Theme          string
+	FontSize       string
 	ResultsPerPage int32
 }
 
@@ -536,7 +536,6 @@ templ Base(title string, user *NavUser, content templ.Component) {
 						<a href="/feed">feeds</a>
 					}
 				</div>
-				
 				if user != nil {
 					<div class="nav-search">
 						<form method="GET" action="/url">
@@ -548,7 +547,6 @@ templ Base(title string, user *NavUser, content templ.Component) {
 						</form>
 					</div>
 				}
-
 				if user != nil {
 					<details class="nav-user">
 						<summary>

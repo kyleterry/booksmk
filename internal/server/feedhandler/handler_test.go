@@ -644,7 +644,6 @@ func TestParseTags(t *testing.T) {
 	}
 }
 
-
 func TestSafeReferer(t *testing.T) {
 	tests := []struct {
 		referer string

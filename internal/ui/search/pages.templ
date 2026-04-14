@@ -11,11 +11,9 @@ templ ResultsPage(query string, results store.SearchResults) {
 	<div class="page-header">
 		<h1>search: <span style="color:var(--accent)">{ query }</span></h1>
 	</div>
-
 	if len(results.URLs) == 0 && len(results.Feeds) == 0 {
 		<div class="empty">no matches found for "{ query }"</div>
 	}
-
 	if len(results.Feeds) > 0 {
 		<div style="margin-bottom: 2.5rem">
 			<h2>feeds <span class="count">({ strconv.Itoa(len(results.Feeds)) })</span></h2>
@@ -24,7 +22,6 @@ templ ResultsPage(query string, results store.SearchResults) {
 			}
 		</div>
 	}
-
 	if len(results.URLs) > 0 {
 		<div>
 			<h2>bookmarks <span class="count">({ strconv.Itoa(len(results.URLs)) })</span></h2>
