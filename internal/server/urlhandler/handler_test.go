@@ -32,7 +32,7 @@ var (
 type mockURLStore struct {
 	GetURLFn                func(context.Context, uuid.UUID, uuid.UUID) (store.URL, error)
 	ListURLsFn              func(context.Context, uuid.UUID) ([]store.URL, error)
-	SearchURLsFn            func(context.Context, uuid.UUID, string) ([]store.URL, error)
+	SearchFn                func(context.Context, uuid.UUID, string) (store.SearchResults, error)
 	ListURLsByTagFn         func(context.Context, uuid.UUID, string) ([]store.URL, error)
 	ListURLsByCategoryFn    func(context.Context, uuid.UUID, uuid.UUID) ([]store.URL, error)
 	CreateURLFn             func(context.Context, uuid.UUID, string, string, string, []string) (store.URL, error)
@@ -63,11 +63,11 @@ func (m *mockURLStore) ListURLs(ctx context.Context, userID uuid.UUID) ([]store.
 	return nil, nil
 }
 
-func (m *mockURLStore) SearchURLs(ctx context.Context, userID uuid.UUID, query string) ([]store.URL, error) {
-	if m.SearchURLsFn != nil {
-		return m.SearchURLsFn(ctx, userID, query)
+func (m *mockURLStore) Search(ctx context.Context, userID uuid.UUID, query string) (store.SearchResults, error) {
+	if m.SearchFn != nil {
+		return m.SearchFn(ctx, userID, query)
 	}
-	return nil, nil
+	return store.SearchResults{}, nil
 }
 
 func (m *mockURLStore) ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string) ([]store.URL, error) {

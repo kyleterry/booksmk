@@ -597,6 +597,69 @@ func (q *Queries) RemoveFeedFromUser(ctx context.Context, arg RemoveFeedFromUser
 	return err
 }
 
+const searchFeeds = `-- name: SearchFeeds :many
+select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
+from feeds f
+join user_feeds uf on uf.feed_id = f.id
+where uf.user_id = $1
+  and (
+    f.title ilike $2
+    or f.description ilike $2
+    or f.feed_url ilike $2
+    or uf.custom_name ilike $2
+  )
+order by f.title, f.created_at desc
+`
+
+type SearchFeedsParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	Query  string    `json:"query"`
+}
+
+type SearchFeedsRow struct {
+	ID            uuid.UUID          `json:"id"`
+	FeedUrl       string             `json:"feed_url"`
+	SiteUrl       string             `json:"site_url"`
+	Title         string             `json:"title"`
+	Description   string             `json:"description"`
+	ImageUrl      string             `json:"image_url"`
+	LastFetchedAt pgtype.Timestamptz `json:"last_fetched_at"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	CustomName    string             `json:"custom_name"`
+}
+
+func (q *Queries) SearchFeeds(ctx context.Context, arg SearchFeedsParams) ([]SearchFeedsRow, error) {
+	rows, err := q.db.Query(ctx, searchFeeds, arg.UserID, arg.Query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchFeedsRow
+	for rows.Next() {
+		var i SearchFeedsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.FeedUrl,
+			&i.SiteUrl,
+			&i.Title,
+			&i.Description,
+			&i.ImageUrl,
+			&i.LastFetchedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CustomName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateFeedMeta = `-- name: UpdateFeedMeta :exec
 update feeds
 set site_url        = $2,

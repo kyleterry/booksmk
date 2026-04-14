@@ -1,0 +1,64 @@
+package search
+
+import (
+	"strconv"
+
+	"go.e64ec.com/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/ui/urls"
+)
+
+templ ResultsPage(query string, results store.SearchResults) {
+	<div class="page-header">
+		<h1>search: <span style="color:var(--accent)">{ query }</span></h1>
+	</div>
+
+	if len(results.URLs) == 0 && len(results.Feeds) == 0 {
+		<div class="empty">no matches found for "{ query }"</div>
+	}
+
+	if len(results.Feeds) > 0 {
+		<div style="margin-bottom: 2.5rem">
+			<h2>feeds <span class="count">({ strconv.Itoa(len(results.Feeds)) })</span></h2>
+			for _, f := range results.Feeds {
+				@feedCard(f)
+			}
+		</div>
+	}
+
+	if len(results.URLs) > 0 {
+		<div>
+			<h2>bookmarks <span class="count">({ strconv.Itoa(len(results.URLs)) })</span></h2>
+			for _, u := range results.URLs {
+				@urls.URLCard(u)
+			}
+		</div>
+	}
+}
+
+templ feedCard(f store.Feed) {
+	<div class="card">
+		<div class="card-title">
+			if f.ImageURL != "" {
+				<img src={ f.ImageURL } alt="" class="feed-icon" loading="lazy"/>
+			}
+			<a href={ templ.SafeURL("/feed/" + f.ID.String()) }>{ feedLabel(f) }</a>
+		</div>
+		<div class="card-url">
+			<a href={ templ.SafeURL(f.SiteURL) } target="_blank" rel="noopener noreferrer" style="color:var(--fg4);font-size:0.71rem">{ f.FeedURL }</a>
+			<span class="card-date">{ f.CreatedAt.Format("Jan 2, 2006") }</span>
+		</div>
+		if f.Description != "" {
+			<div class="card-desc">{ f.Description }</div>
+		}
+	</div>
+}
+
+func feedLabel(f store.Feed) string {
+	if f.CustomName != "" {
+		return f.CustomName
+	}
+	if f.Title != "" {
+		return f.Title
+	}
+	return f.FeedURL
+}

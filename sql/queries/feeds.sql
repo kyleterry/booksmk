@@ -158,3 +158,16 @@ set scheduled_at    = $2,
     error_count     = $4,
     last_error      = $5
 where id = $1;
+
+-- name: SearchFeeds :many
+select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
+from feeds f
+join user_feeds uf on uf.feed_id = f.id
+where uf.user_id = $1
+  and (
+    f.title ilike @query
+    or f.description ilike @query
+    or f.feed_url ilike @query
+    or uf.custom_name ilike @query
+  )
+order by f.title, f.created_at desc;

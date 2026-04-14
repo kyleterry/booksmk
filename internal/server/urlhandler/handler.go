@@ -13,6 +13,7 @@ import (
 	"go.e64ec.com/booksmk/internal/auth"
 	"go.e64ec.com/booksmk/internal/store"
 	"go.e64ec.com/booksmk/internal/ui"
+	searchpages "go.e64ec.com/booksmk/internal/ui/search"
 	urlpages "go.e64ec.com/booksmk/internal/ui/urls"
 	"go.e64ec.com/booksmk/internal/urlfetch"
 )
@@ -20,7 +21,7 @@ import (
 type urlStore interface {
 	GetURL(ctx context.Context, id, userID uuid.UUID) (store.URL, error)
 	ListURLs(ctx context.Context, userID uuid.UUID) ([]store.URL, error)
-	SearchURLs(ctx context.Context, userID uuid.UUID, query string) ([]store.URL, error)
+	Search(ctx context.Context, userID uuid.UUID, query string) (store.SearchResults, error)
 	ListURLsByTag(ctx context.Context, userID uuid.UUID, tag string) ([]store.URL, error)
 	ListURLsByCategory(ctx context.Context, userID, categoryID uuid.UUID) ([]store.URL, error)
 	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error)
@@ -170,13 +171,13 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if q := r.URL.Query().Get("q"); q != "" {
-		urls, err := h.store.SearchURLs(r.Context(), user.ID, q)
+		results, err := h.store.Search(r.Context(), user.ID, q)
 		if err != nil {
-			h.logger.Error("failed to search urls", "query", q, "error", err)
+			h.logger.Error("failed to search", "query", q, "error", err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
-		h.render(w, r, ui.Base("search: "+q, h.navUser(r), urlpages.ListPage(urls, categories)))
+		h.render(w, r, ui.Base("search: "+q, h.navUser(r), searchpages.ResultsPage(q, results)))
 		return
 	}
 
