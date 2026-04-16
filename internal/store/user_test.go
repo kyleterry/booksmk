@@ -260,18 +260,19 @@ func TestUpdateUserSettings(t *testing.T) {
 	}
 
 	tests := []struct {
-		theme          string
-		fontSize       string
-		resultsPerPage int32
+		theme               string
+		fontSize            string
+		resultsPerPage      int32
+		feedGroupingEnabled bool
 	}{
-		{"dark", "medium", 50},
-		{"light", "small", 25},
-		{"auto", "large", 100},
+		{"dark", "medium", 50, true},
+		{"light", "small", 25, false},
+		{"auto", "large", 100, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s-%s-%d", tt.theme, tt.fontSize, tt.resultsPerPage), func(t *testing.T) {
-			updated, err := s.UpdateUserSettings(ctx, u.ID, tt.theme, tt.fontSize, tt.resultsPerPage)
+			updated, err := s.UpdateUserSettings(ctx, u.ID, tt.theme, tt.fontSize, tt.resultsPerPage, tt.feedGroupingEnabled)
 			if err != nil {
 				t.Fatalf("UpdateUserSettings: %v", err)
 			}
@@ -283,6 +284,9 @@ func TestUpdateUserSettings(t *testing.T) {
 			}
 			if updated.ResultsPerPage != tt.resultsPerPage {
 				t.Errorf("ResultsPerPage = %d, want %d", updated.ResultsPerPage, tt.resultsPerPage)
+			}
+			if updated.FeedGroupingEnabled != tt.feedGroupingEnabled {
+				t.Errorf("FeedGroupingEnabled = %v, want %v", updated.FeedGroupingEnabled, tt.feedGroupingEnabled)
 			}
 		})
 	}

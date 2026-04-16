@@ -158,15 +158,16 @@ type UrlTag struct {
 }
 
 type User struct {
-	ID             uuid.UUID          `json:"id"`
-	Email          string             `json:"email"`
-	PasswordDigest string             `json:"password_digest"`
-	IsAdmin        bool               `json:"is_admin"`
-	Theme          string             `json:"theme"`
-	FontSize       string             `json:"font_size"`
-	ResultsPerPage int32              `json:"results_per_page"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	ID                  uuid.UUID          `json:"id"`
+	Email               string             `json:"email"`
+	PasswordDigest      string             `json:"password_digest"`
+	IsAdmin             bool               `json:"is_admin"`
+	Theme               string             `json:"theme"`
+	FontSize            string             `json:"font_size"`
+	ResultsPerPage      int32              `json:"results_per_page"`
+	FeedGroupingEnabled bool               `json:"feed_grouping_enabled"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 }
 
 type UserFeed struct {

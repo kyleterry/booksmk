@@ -29,7 +29,7 @@ type userStore interface {
 	ListUsers(ctx context.Context) ([]store.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, email string) (store.User, error)
 	UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordDigest string) (store.User, error)
-	UpdateUserSettings(ctx context.Context, id uuid.UUID, theme, fontSize string, resultsPerPage int32) (store.User, error)
+	UpdateUserSettings(ctx context.Context, id uuid.UUID, theme, fontSize string, resultsPerPage int32, feedGroupingEnabled bool) (store.User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetInviteCodeByCode(ctx context.Context, code string) (store.InviteCode, error)
 	UseInviteCode(ctx context.Context, id, usedBy uuid.UUID) error
@@ -373,7 +373,9 @@ func (h *Handler) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.store.UpdateUserSettings(r.Context(), id, theme, fontSize, int32(resultsPerPage)); errors.Is(err, store.ErrNotFound) {
+	feedGroupingEnabled := r.FormValue("feed_grouping_enabled") != "false"
+
+	if _, err := h.store.UpdateUserSettings(r.Context(), id, theme, fontSize, int32(resultsPerPage), feedGroupingEnabled); errors.Is(err, store.ErrNotFound) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	} else if err != nil {

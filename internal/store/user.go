@@ -14,28 +14,30 @@ import (
 var ErrNotFound = errors.New("not found")
 
 type User struct {
-	ID             uuid.UUID
-	Email          string
-	PasswordDigest string
-	IsAdmin        bool
-	Theme          string
-	FontSize       string
-	ResultsPerPage int32
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID                  uuid.UUID
+	Email               string
+	PasswordDigest      string
+	IsAdmin             bool
+	Theme               string
+	FontSize            string
+	ResultsPerPage      int32
+	FeedGroupingEnabled bool
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
 }
 
 func userFromSQL(u sqlstore.User) User {
 	return User{
-		ID:             u.ID,
-		Email:          u.Email,
-		PasswordDigest: u.PasswordDigest,
-		IsAdmin:        u.IsAdmin,
-		Theme:          u.Theme,
-		FontSize:       u.FontSize,
-		ResultsPerPage: u.ResultsPerPage,
-		CreatedAt:      u.CreatedAt.Time,
-		UpdatedAt:      u.UpdatedAt.Time,
+		ID:                  u.ID,
+		Email:               u.Email,
+		PasswordDigest:      u.PasswordDigest,
+		IsAdmin:             u.IsAdmin,
+		Theme:               u.Theme,
+		FontSize:            u.FontSize,
+		ResultsPerPage:      u.ResultsPerPage,
+		FeedGroupingEnabled: u.FeedGroupingEnabled,
+		CreatedAt:           u.CreatedAt.Time,
+		UpdatedAt:           u.UpdatedAt.Time,
 	}
 }
 
@@ -108,12 +110,14 @@ func (s *Store) UpdateUser(ctx context.Context, id uuid.UUID, email string) (Use
 	return userFromSQL(u), nil
 }
 
-func (s *Store) UpdateUserSettings(ctx context.Context, id uuid.UUID, theme, fontSize string, resultsPerPage int32) (User, error) {
+// UpdateUserSettings updates display and behavior preferences for the given user.
+func (s *Store) UpdateUserSettings(ctx context.Context, id uuid.UUID, theme, fontSize string, resultsPerPage int32, feedGroupingEnabled bool) (User, error) {
 	u, err := s.queries.UpdateUserSettings(ctx, sqlstore.UpdateUserSettingsParams{
-		ID:             id,
-		Theme:          theme,
-		FontSize:       fontSize,
-		ResultsPerPage: resultsPerPage,
+		ID:                  id,
+		Theme:               theme,
+		FontSize:            fontSize,
+		ResultsPerPage:      resultsPerPage,
+		FeedGroupingEnabled: feedGroupingEnabled,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return User{}, ErrNotFound

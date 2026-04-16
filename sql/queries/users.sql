@@ -29,8 +29,8 @@ delete from users where id = $1;
 
 -- name: UpdateUserSettings :one
 update users
-set theme = $1, font_size = $2, results_per_page = $3, updated_at = now()
-where id = $4
+set theme = $1, font_size = $2, results_per_page = $3, feed_grouping_enabled = $4, updated_at = now()
+where id = $5
 returning *;
 
 -- name: CountUsers :one

@@ -44,13 +44,34 @@ func dateLabel(t *time.Time, now time.Time) string {
 
 func groupTimeline(items []store.TimelineItem, now time.Time) []store.TimelineGroup {
 	var groups []store.TimelineGroup
+
 	for _, item := range items {
 		label := dateLabel(item.PublishedAt, now)
 		if len(groups) == 0 || groups[len(groups)-1].Label != label {
 			groups = append(groups, store.TimelineGroup{Label: label})
 		}
-		groups[len(groups)-1].Items = append(groups[len(groups)-1].Items, item)
+
+		g := &groups[len(groups)-1]
+		var fg *store.TimelineFeedGroup
+		for i := range g.FeedGroups {
+			if g.FeedGroups[i].FeedID == item.FeedID {
+				fg = &g.FeedGroups[i]
+				break
+			}
+		}
+
+		if fg == nil {
+			g.FeedGroups = append(g.FeedGroups, store.TimelineFeedGroup{
+				FeedID:       item.FeedID,
+				FeedTitle:    item.FeedTitle,
+				FeedImageURL: item.FeedImageURL,
+			})
+			fg = &g.FeedGroups[len(g.FeedGroups)-1]
+		}
+
+		fg.Items = append(fg.Items, item)
 	}
+
 	return groups
 }
 

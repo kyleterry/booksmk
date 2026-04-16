@@ -26,7 +26,7 @@ func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
 const createUser = `-- name: CreateUser :one
 insert into users (email, password_digest, is_admin)
 values ($1, $2, $3)
-returning id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at
+returning id, email, password_digest, is_admin, theme, font_size, results_per_page, feed_grouping_enabled, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -46,6 +46,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Theme,
 		&i.FontSize,
 		&i.ResultsPerPage,
+		&i.FeedGroupingEnabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -62,7 +63,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 }
 
 const getUser = `-- name: GetUser :one
-select id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at from users where id = $1
+select id, email, password_digest, is_admin, theme, font_size, results_per_page, feed_grouping_enabled, created_at, updated_at from users where id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
@@ -76,6 +77,7 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Theme,
 		&i.FontSize,
 		&i.ResultsPerPage,
+		&i.FeedGroupingEnabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -83,7 +85,7 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-select id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at from users where email = $1
+select id, email, password_digest, is_admin, theme, font_size, results_per_page, feed_grouping_enabled, created_at, updated_at from users where email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -97,6 +99,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Theme,
 		&i.FontSize,
 		&i.ResultsPerPage,
+		&i.FeedGroupingEnabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -143,7 +146,7 @@ const updateUser = `-- name: UpdateUser :one
 update users
 set email = $1, updated_at = now()
 where id = $2
-returning id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at
+returning id, email, password_digest, is_admin, theme, font_size, results_per_page, feed_grouping_enabled, created_at, updated_at
 `
 
 type UpdateUserParams struct {
@@ -162,6 +165,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.Theme,
 		&i.FontSize,
 		&i.ResultsPerPage,
+		&i.FeedGroupingEnabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -172,7 +176,7 @@ const updateUserPassword = `-- name: UpdateUserPassword :one
 update users
 set password_digest = $1, updated_at = now()
 where id = $2
-returning id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at
+returning id, email, password_digest, is_admin, theme, font_size, results_per_page, feed_grouping_enabled, created_at, updated_at
 `
 
 type UpdateUserPasswordParams struct {
@@ -191,6 +195,7 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 		&i.Theme,
 		&i.FontSize,
 		&i.ResultsPerPage,
+		&i.FeedGroupingEnabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -199,16 +204,17 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 
 const updateUserSettings = `-- name: UpdateUserSettings :one
 update users
-set theme = $1, font_size = $2, results_per_page = $3, updated_at = now()
-where id = $4
-returning id, email, password_digest, is_admin, theme, font_size, results_per_page, created_at, updated_at
+set theme = $1, font_size = $2, results_per_page = $3, feed_grouping_enabled = $4, updated_at = now()
+where id = $5
+returning id, email, password_digest, is_admin, theme, font_size, results_per_page, feed_grouping_enabled, created_at, updated_at
 `
 
 type UpdateUserSettingsParams struct {
-	Theme          string    `json:"theme"`
-	FontSize       string    `json:"font_size"`
-	ResultsPerPage int32     `json:"results_per_page"`
-	ID             uuid.UUID `json:"id"`
+	Theme               string    `json:"theme"`
+	FontSize            string    `json:"font_size"`
+	ResultsPerPage      int32     `json:"results_per_page"`
+	FeedGroupingEnabled bool      `json:"feed_grouping_enabled"`
+	ID                  uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (User, error) {
@@ -216,6 +222,7 @@ func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettings
 		arg.Theme,
 		arg.FontSize,
 		arg.ResultsPerPage,
+		arg.FeedGroupingEnabled,
 		arg.ID,
 	)
 	var i User
@@ -227,6 +234,7 @@ func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettings
 		&i.Theme,
 		&i.FontSize,
 		&i.ResultsPerPage,
+		&i.FeedGroupingEnabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

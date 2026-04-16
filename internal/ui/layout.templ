@@ -1,12 +1,13 @@
 package ui
 
 type NavUser struct {
-	ID             string
-	Email          string
-	IsAdmin        bool
-	Theme          string
-	FontSize       string
-	ResultsPerPage int32
+	ID                  string
+	Email               string
+	IsAdmin             bool
+	Theme               string
+	FontSize            string
+	ResultsPerPage      int32
+	FeedGroupingEnabled bool
 }
 
 func (u *NavUser) theme() string {
@@ -491,6 +492,14 @@ templ Base(title string, user *NavUser, content templ.Component) {
 				.feed-icon-lg { width: 28px; height: 28px; object-fit: contain; border-radius: 3px; flex-shrink: 0; }
 				.date-group { margin-bottom: 2rem; }
 				.date-group-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg4); border-bottom: 1px solid var(--bg2); padding-bottom: 0.3rem; margin-bottom: 0.75rem; }
+				.feed-group { border: none; margin-bottom: 1rem; }
+				.feed-group-summary { display: flex; align-items: center; justify-content: space-between; padding: 0.3rem 0; cursor: pointer; list-style: none; gap: 0.5rem; }
+				.feed-group-summary::-webkit-details-marker { display: none; }
+				.feed-group-summary::before { content: "▶"; font-size: 0.6rem; color: var(--fg4); margin-right: 0.4rem; flex-shrink: 0; transition: transform 0.15s; }
+				details[open] > .feed-group-summary::before { transform: rotate(90deg); }
+				.feed-group-title { display: flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; font-weight: 600; color: var(--fg2); flex: 1; min-width: 0; }
+			.feed-group-title a { color: var(--fg2); }
+			.feed-group-title a:hover { color: var(--accent); }
 				.pagination { display: flex; gap: 0.5rem; justify-content: center; padding: 1.5rem 0 0.5rem; }
 				.nav-user-icon { display: none; }
 				

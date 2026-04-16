@@ -56,6 +56,7 @@ templ UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg
 	<div class="card" style="margin-bottom:2rem">
 		<div class="detail-label">look and feel</div>
 		<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/settings") } style="margin:0">
+			<input type="hidden" name="feed_grouping_enabled" value={ fmt.Sprintf("%v", user.FeedGroupingEnabled) }/>
 			<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.75rem">
 				<div style="flex:1;min-width:140px">
 					<label for="theme">theme</label>
@@ -81,6 +82,23 @@ templ UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg
 						<option value="100" selected?={ user.ResultsPerPage == 100 }>100</option>
 						<option value="250" selected?={ user.ResultsPerPage == 250 }>250</option>
 						<option value="500" selected?={ user.ResultsPerPage == 500 }>500</option>
+					</select>
+				</div>
+			</div>
+		</form>
+	</div>
+	<div class="card" style="margin-bottom:2rem">
+		<div class="detail-label">feed options</div>
+		<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/settings") } style="margin:0">
+			<input type="hidden" name="theme" value={ user.Theme }/>
+			<input type="hidden" name="font_size" value={ user.FontSize }/>
+			<input type="hidden" name="results_per_page" value={ fmt.Sprintf("%d", user.ResultsPerPage) }/>
+			<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.75rem">
+				<div style="flex:1;min-width:200px">
+					<label for="feed_grouping_enabled">timeline grouping</label>
+					<select id="feed_grouping_enabled" name="feed_grouping_enabled" onchange="this.form.submit()" style="margin-bottom:0">
+						<option value="true" selected?={ user.FeedGroupingEnabled }>group by feed</option>
+						<option value="false" selected?={ !user.FeedGroupingEnabled }>flat (chronological)</option>
 					</select>
 				</div>
 			</div>
