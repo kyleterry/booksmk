@@ -13,7 +13,7 @@ import (
 // mustSubscribe is a test helper that subscribes a user to a feed and fails on error.
 func mustSubscribe(t *testing.T, s *store.Store, userID uuid.UUID, feedURL string, tags []string) store.Feed {
 	t.Helper()
-	f, err := s.SubscribeToFeed(context.Background(), userID, feedURL, tags)
+	f, err := s.SubscribeToFeed(context.Background(), userID, feedURL, tags, false)
 	if err != nil {
 		t.Fatalf("mustSubscribe(%q): %v", feedURL, err)
 	}
@@ -41,7 +41,7 @@ func TestSubscribeToFeed(t *testing.T) {
 	u := mustCreateUser(t, s, "feed-subscribe@example.com")
 
 	t.Run("creates subscription", func(t *testing.T) {
-		f, err := s.SubscribeToFeed(ctx, u.ID, "https://example.com/feed.xml", []string{"tech", "go"})
+		f, err := s.SubscribeToFeed(ctx, u.ID, "https://example.com/feed.xml", []string{"tech", "go"}, false)
 		if err != nil {
 			t.Fatalf("SubscribeToFeed: %v", err)
 		}
@@ -54,11 +54,11 @@ func TestSubscribeToFeed(t *testing.T) {
 	})
 
 	t.Run("idempotent — subscribing twice returns same feed", func(t *testing.T) {
-		f1, err := s.SubscribeToFeed(ctx, u.ID, "https://idempotent.example.com/feed.xml", nil)
+		f1, err := s.SubscribeToFeed(ctx, u.ID, "https://idempotent.example.com/feed.xml", nil, false)
 		if err != nil {
 			t.Fatalf("first SubscribeToFeed: %v", err)
 		}
-		f2, err := s.SubscribeToFeed(ctx, u.ID, "https://idempotent.example.com/feed.xml", nil)
+		f2, err := s.SubscribeToFeed(ctx, u.ID, "https://idempotent.example.com/feed.xml", nil, false)
 		if err != nil {
 			t.Fatalf("second SubscribeToFeed: %v", err)
 		}

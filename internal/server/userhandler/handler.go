@@ -18,7 +18,8 @@ import (
 )
 
 type urlCreator interface {
-	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error)
+	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string, isBlockedBypass bool) (store.URL, error)
+	IsBlocked(ctx context.Context, rawURL string) (bool, error)
 }
 
 type userStore interface {

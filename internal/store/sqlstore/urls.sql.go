@@ -36,14 +36,14 @@ func (q *Queries) AddURLToUser(ctx context.Context, arg AddURLToUserParams) erro
 }
 
 const getURL = `-- name: GetURL :one
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+select u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
 left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
 where u.id = $1 and uu.user_id = $2
-group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+group by u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at
 `
 
 type GetURLParams struct {
@@ -52,14 +52,15 @@ type GetURLParams struct {
 }
 
 type GetURLRow struct {
-	ID          uuid.UUID          `json:"id"`
-	Url         string             `json:"url"`
-	FeedUrl     string             `json:"feed_url"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	Tags        []string           `json:"tags"`
+	ID              uuid.UUID          `json:"id"`
+	Url             string             `json:"url"`
+	FeedUrl         string             `json:"feed_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	Tags            []string           `json:"tags"`
 }
 
 func (q *Queries) GetURL(ctx context.Context, arg GetURLParams) (GetURLRow, error) {
@@ -69,6 +70,7 @@ func (q *Queries) GetURL(ctx context.Context, arg GetURLParams) (GetURLRow, erro
 		&i.ID,
 		&i.Url,
 		&i.FeedUrl,
+		&i.IsBlockedBypass,
 		&i.Title,
 		&i.Description,
 		&i.CreatedAt,
@@ -79,14 +81,14 @@ func (q *Queries) GetURL(ctx context.Context, arg GetURLParams) (GetURLRow, erro
 }
 
 const listURLs = `-- name: ListURLs :many
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+select u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
 left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
 where uu.user_id = $1
-group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+group by u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
 limit $2 offset $3
 `
@@ -98,14 +100,15 @@ type ListURLsParams struct {
 }
 
 type ListURLsRow struct {
-	ID          uuid.UUID          `json:"id"`
-	Url         string             `json:"url"`
-	FeedUrl     string             `json:"feed_url"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	Tags        []string           `json:"tags"`
+	ID              uuid.UUID          `json:"id"`
+	Url             string             `json:"url"`
+	FeedUrl         string             `json:"feed_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	Tags            []string           `json:"tags"`
 }
 
 func (q *Queries) ListURLs(ctx context.Context, arg ListURLsParams) ([]ListURLsRow, error) {
@@ -121,6 +124,7 @@ func (q *Queries) ListURLs(ctx context.Context, arg ListURLsParams) ([]ListURLsR
 			&i.ID,
 			&i.Url,
 			&i.FeedUrl,
+			&i.IsBlockedBypass,
 			&i.Title,
 			&i.Description,
 			&i.CreatedAt,
@@ -150,14 +154,14 @@ with filtered_urls as (
     and regexp_replace(u2.url, '^https?://([^/?#]+).*$', '\1', 'i') = cm.value
 )
 select
-  u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
 left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
 where uu.user_id = $1 and u.id in (select url_id from filtered_urls)
-group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+group by u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
 limit $3 offset $4
 `
@@ -170,14 +174,15 @@ type ListURLsByCategoryParams struct {
 }
 
 type ListURLsByCategoryRow struct {
-	ID          uuid.UUID          `json:"id"`
-	Url         string             `json:"url"`
-	FeedUrl     string             `json:"feed_url"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	Tags        []string           `json:"tags"`
+	ID              uuid.UUID          `json:"id"`
+	Url             string             `json:"url"`
+	FeedUrl         string             `json:"feed_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	Tags            []string           `json:"tags"`
 }
 
 func (q *Queries) ListURLsByCategory(ctx context.Context, arg ListURLsByCategoryParams) ([]ListURLsByCategoryRow, error) {
@@ -198,6 +203,7 @@ func (q *Queries) ListURLsByCategory(ctx context.Context, arg ListURLsByCategory
 			&i.ID,
 			&i.Url,
 			&i.FeedUrl,
+			&i.IsBlockedBypass,
 			&i.Title,
 			&i.Description,
 			&i.CreatedAt,
@@ -222,14 +228,14 @@ with filtered_urls as (
   where ut2.user_id = $1 and t2.name = $2
 )
 select
-  u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
 left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
 where uu.user_id = $1 and u.id in (select url_id from filtered_urls)
-group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+group by u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
 limit $3 offset $4
 `
@@ -242,14 +248,15 @@ type ListURLsByTagParams struct {
 }
 
 type ListURLsByTagRow struct {
-	ID          uuid.UUID          `json:"id"`
-	Url         string             `json:"url"`
-	FeedUrl     string             `json:"feed_url"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	Tags        []string           `json:"tags"`
+	ID              uuid.UUID          `json:"id"`
+	Url             string             `json:"url"`
+	FeedUrl         string             `json:"feed_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	Tags            []string           `json:"tags"`
 }
 
 func (q *Queries) ListURLsByTag(ctx context.Context, arg ListURLsByTagParams) ([]ListURLsByTagRow, error) {
@@ -270,6 +277,7 @@ func (q *Queries) ListURLsByTag(ctx context.Context, arg ListURLsByTagParams) ([
 			&i.ID,
 			&i.Url,
 			&i.FeedUrl,
+			&i.IsBlockedBypass,
 			&i.Title,
 			&i.Description,
 			&i.CreatedAt,
@@ -330,7 +338,7 @@ func (q *Queries) RemoveURLFromUser(ctx context.Context, arg RemoveURLFromUserPa
 }
 
 const searchURLs = `-- name: SearchURLs :many
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+select u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
@@ -342,7 +350,7 @@ where uu.user_id = $1
     or uu.description ilike $2
     or u.url ilike $2
   )
-group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+group by u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
 `
 
@@ -352,14 +360,15 @@ type SearchURLsParams struct {
 }
 
 type SearchURLsRow struct {
-	ID          uuid.UUID          `json:"id"`
-	Url         string             `json:"url"`
-	FeedUrl     string             `json:"feed_url"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	Tags        []string           `json:"tags"`
+	ID              uuid.UUID          `json:"id"`
+	Url             string             `json:"url"`
+	FeedUrl         string             `json:"feed_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	Tags            []string           `json:"tags"`
 }
 
 func (q *Queries) SearchURLs(ctx context.Context, arg SearchURLsParams) ([]SearchURLsRow, error) {
@@ -375,6 +384,7 @@ func (q *Queries) SearchURLs(ctx context.Context, arg SearchURLsParams) ([]Searc
 			&i.ID,
 			&i.Url,
 			&i.FeedUrl,
+			&i.IsBlockedBypass,
 			&i.Title,
 			&i.Description,
 			&i.CreatedAt,
@@ -432,14 +442,20 @@ func (q *Queries) UpdateUserURL(ctx context.Context, arg UpdateUserURLParams) (u
 }
 
 const upsertURL = `-- name: UpsertURL :one
-insert into urls (url)
-values ($1)
-on conflict (url) do update set url = excluded.url
+insert into urls (url, is_blocked_bypass)
+values ($1, $2)
+on conflict (url) do update set 
+    is_blocked_bypass = excluded.is_blocked_bypass or urls.is_blocked_bypass
 returning id
 `
 
-func (q *Queries) UpsertURL(ctx context.Context, url string) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, upsertURL, url)
+type UpsertURLParams struct {
+	Url             string `json:"url"`
+	IsBlockedBypass bool   `json:"is_blocked_bypass"`
+}
+
+func (q *Queries) UpsertURL(ctx context.Context, arg UpsertURLParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, upsertURL, arg.Url, arg.IsBlockedBypass)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err

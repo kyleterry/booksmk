@@ -19,6 +19,13 @@ type APIKey struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type Blocklist struct {
+	ID        uuid.UUID          `json:"id"`
+	Pattern   string             `json:"pattern"`
+	Kind      string             `json:"kind"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type Category struct {
 	ID        uuid.UUID          `json:"id"`
 	UserID    uuid.UUID          `json:"user_id"`
@@ -49,15 +56,16 @@ type DiscussionRunLog struct {
 }
 
 type Feed struct {
-	ID            uuid.UUID          `json:"id"`
-	FeedUrl       string             `json:"feed_url"`
-	SiteUrl       string             `json:"site_url"`
-	Title         string             `json:"title"`
-	Description   string             `json:"description"`
-	ImageUrl      string             `json:"image_url"`
-	LastFetchedAt pgtype.Timestamptz `json:"last_fetched_at"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ID              uuid.UUID          `json:"id"`
+	FeedUrl         string             `json:"feed_url"`
+	SiteUrl         string             `json:"site_url"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	ImageUrl        string             `json:"image_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	LastFetchedAt   pgtype.Timestamptz `json:"last_fetched_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
 type FeedItem struct {
@@ -116,10 +124,11 @@ type Tag struct {
 }
 
 type Url struct {
-	ID        uuid.UUID          `json:"id"`
-	Url       string             `json:"url"`
-	FeedUrl   string             `json:"feed_url"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	ID              uuid.UUID          `json:"id"`
+	Url             string             `json:"url"`
+	FeedUrl         string             `json:"feed_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 }
 
 type UrlDiscussion struct {

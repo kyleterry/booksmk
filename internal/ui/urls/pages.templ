@@ -47,6 +47,11 @@ templ filterScript() {
 
 templ URLCard(u store.URL) {
 	<div class="card" data-q={ strings.ToLower(u.Title + " " + u.URL + " " + strings.Join(u.Tags, " ")) }>
+		if u.IsBlockedBypass {
+			<div class="warning" style="margin-bottom: 0.5rem; padding: 0.2rem 0.5rem;">
+				⚠️ Blocked URL bypass
+			</div>
+		}
 		<div class="card-title">
 			if u.Title != "" {
 				<a href={ templ.SafeURL("/url/" + u.ID.String()) }>{ u.Title }</a>
@@ -89,6 +94,11 @@ templ DetailPage(u store.URL, discussions []store.Discussion, subscribedFeed *st
 		</h1>
 	</div>
 	<div class="card">
+		if u.IsBlockedBypass {
+			<div class="warning">
+				⚠️ This URL was added by an admin despite being on the blocklist.
+			</div>
+		}
 		<div class="detail-field">
 			<div class="detail-label">url</div>
 			<div class="detail-value"><a href={ templ.SafeURL(u.URL) } target="_blank" rel="noopener noreferrer">{ u.URL }</a></div>

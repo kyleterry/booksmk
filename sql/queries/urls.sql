@@ -1,27 +1,27 @@
 -- name: GetURL :one
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+select u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
 left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
 where u.id = $1 and uu.user_id = $2
-group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at;
+group by u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at;
 
 -- name: ListURLs :many
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+select u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
 left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
 where uu.user_id = $1
-group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+group by u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
 limit $2 offset $3;
 
 -- name: SearchURLs :many
-select u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+select u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
@@ -33,13 +33,14 @@ where uu.user_id = $1
     or uu.description ilike @query
     or u.url ilike @query
   )
-group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+group by u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc;
 
 -- name: UpsertURL :one
-insert into urls (url)
-values ($1)
-on conflict (url) do update set url = excluded.url
+insert into urls (url, is_blocked_bypass)
+values ($1, $2)
+on conflict (url) do update set 
+    is_blocked_bypass = excluded.is_blocked_bypass or urls.is_blocked_bypass
 returning id;
 
 -- name: AddURLToUser :exec
@@ -67,14 +68,14 @@ with filtered_urls as (
   where ut2.user_id = $1 and t2.name = $2
 )
 select
-  u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
 left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
 where uu.user_id = $1 and u.id in (select url_id from filtered_urls)
-group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+group by u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
 limit $3 offset $4;
 
@@ -91,14 +92,14 @@ with filtered_urls as (
     and regexp_replace(u2.url, '^https?://([^/?#]+).*$', '\1', 'i') = cm.value
 )
 select
-  u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at,
+  u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at,
   coalesce(array_agg(t.name order by t.name) filter (where t.name is not null), '{}')::text[] as tags
 from urls u
 join user_urls uu on uu.url_id = u.id
 left join url_tags ut on ut.url_id = u.id and ut.user_id = uu.user_id
 left join tags t on t.id = ut.tag_id
 where uu.user_id = $1 and u.id in (select url_id from filtered_urls)
-group by u.id, u.url, u.feed_url, uu.title, uu.description, uu.created_at, uu.updated_at
+group by u.id, u.url, u.feed_url, u.is_blocked_bypass, uu.title, uu.description, uu.created_at, uu.updated_at
 order by uu.created_at desc
 limit $3 offset $4;
 

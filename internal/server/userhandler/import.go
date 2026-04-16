@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 
 	"go.e64ec.com/booksmk/internal/auth"
+	"go.e64ec.com/booksmk/internal/importer"
 	"go.e64ec.com/booksmk/internal/store"
 	"go.e64ec.com/booksmk/internal/ui"
 	userpages "go.e64ec.com/booksmk/internal/ui/users"
-	"go.e64ec.com/booksmk/internal/importer"
 )
 
 const maxImportSize = 10 << 20 // 10 MB
@@ -104,8 +104,19 @@ func (h *Handler) handleImport(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		_, createErr := h.urlStore.CreateURL(r.Context(), authedUser.ID, bm.URL, bm.Title, bm.Description, tags)
+		isBlocked, err := h.urlStore.IsBlocked(r.Context(), bm.URL)
+		if err != nil {
+			h.logger.Error("import: failed to check blocklist", "url", bm.URL, "error", err)
+		}
+
+		if isBlocked && !authedUser.IsAdmin {
+			failures = append(failures, userpages.ImportFailure{URL: bm.URL, Reason: "this URL or domain is blocked"})
+			continue
+		}
+
+		_, createErr := h.urlStore.CreateURL(r.Context(), authedUser.ID, bm.URL, bm.Title, bm.Description, tags, isBlocked)
 		if createErr != nil {
+
 			h.logger.Warn("import: failed to create url", "url", bm.URL, "error", createErr)
 			failures = append(failures, userpages.ImportFailure{URL: bm.URL, Reason: fmt.Sprintf("could not save: %s", createErr)})
 			continue

@@ -15,7 +15,8 @@ import (
 )
 
 type urlStore interface {
-	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error)
+	CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string, isBlockedBypass bool) (store.URL, error)
+	IsBlocked(ctx context.Context, rawURL string) (bool, error)
 }
 
 type feedItemStore interface {
@@ -98,7 +99,18 @@ func (h *Handler) handleCreateURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u, _ := auth.UserFromContext(r.Context())
-	created, err := h.store.CreateURL(r.Context(), u.ID, body.URL, body.Title, body.Description, body.Tags)
+
+	isBlocked, err := h.store.IsBlocked(r.Context(), body.URL)
+	if err != nil {
+		h.logger.Error("api: failed to check blocklist", "error", err)
+	}
+
+	if isBlocked && !u.IsAdmin {
+		jsonError(w, "this URL or domain is blocked", http.StatusForbidden)
+		return
+	}
+
+	created, err := h.store.CreateURL(r.Context(), u.ID, body.URL, body.Title, body.Description, body.Tags, isBlocked)
 	if err != nil {
 		h.logger.Error("api: failed to create url", "error", err)
 		jsonError(w, "internal server error", http.StatusInternalServerError)

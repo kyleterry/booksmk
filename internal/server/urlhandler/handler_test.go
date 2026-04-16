@@ -35,12 +35,13 @@ type mockURLStore struct {
 	SearchFn                func(context.Context, uuid.UUID, string) (store.SearchResults, error)
 	ListURLsByTagFn         func(context.Context, uuid.UUID, string, int32, int32) ([]store.URL, error)
 	ListURLsByCategoryFn    func(context.Context, uuid.UUID, uuid.UUID, int32, int32) ([]store.URL, error)
-	CreateURLFn             func(context.Context, uuid.UUID, string, string, string, []string) (store.URL, error)
+	CreateURLFn             func(context.Context, uuid.UUID, string, string, string, []string, bool) (store.URL, error)
 	UpdateURLFn             func(context.Context, uuid.UUID, uuid.UUID, string, string, []string) (store.URL, error)
 	DeleteURLFn             func(context.Context, uuid.UUID, uuid.UUID) error
 	ListDiscussionsForURLFn func(context.Context, uuid.UUID) ([]store.Discussion, error)
 	SetURLFeedURLFn         func(context.Context, uuid.UUID, string) error
 	ListCategoriesFn        func(context.Context, uuid.UUID) ([]store.Category, error)
+	IsBlockedFn             func(context.Context, string) (bool, error)
 }
 
 type mockFeedStore struct{}
@@ -91,9 +92,16 @@ func (m *mockURLStore) ListCategories(ctx context.Context, userID uuid.UUID) ([]
 	return nil, nil
 }
 
-func (m *mockURLStore) CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string) (store.URL, error) {
+func (m *mockURLStore) IsBlocked(ctx context.Context, rawURL string) (bool, error) {
+	if m.IsBlockedFn != nil {
+		return m.IsBlockedFn(ctx, rawURL)
+	}
+	return false, nil
+}
+
+func (m *mockURLStore) CreateURL(ctx context.Context, userID uuid.UUID, rawURL, title, description string, tags []string, isBlockedBypass bool) (store.URL, error) {
 	if m.CreateURLFn != nil {
-		return m.CreateURLFn(ctx, userID, rawURL, title, description, tags)
+		return m.CreateURLFn(ctx, userID, rawURL, title, description, tags, isBlockedBypass)
 	}
 	return store.URL{}, errors.New("CreateURL not configured")
 }
@@ -240,7 +248,7 @@ func TestHandleCreate(t *testing.T) {
 			name: "valid url redirects to detail",
 			body: "url=https%3A%2F%2Fexample.com&title=Example&tags=go%2Ctest",
 			setup: func(m *mockURLStore) {
-				m.CreateURLFn = func(_ context.Context, _ uuid.UUID, rawURL, title, _ string, _ []string) (store.URL, error) {
+				m.CreateURLFn = func(_ context.Context, _ uuid.UUID, rawURL, title, _ string, _ []string, _ bool) (store.URL, error) {
 					return fixtureURL, nil
 				}
 			},
@@ -258,7 +266,7 @@ func TestHandleCreate(t *testing.T) {
 			name: "store error shows error",
 			body: "url=https%3A%2F%2Fexample.com",
 			setup: func(m *mockURLStore) {
-				m.CreateURLFn = func(_ context.Context, _ uuid.UUID, _, _, _ string, _ []string) (store.URL, error) {
+				m.CreateURLFn = func(_ context.Context, _ uuid.UUID, _, _, _ string, _ []string, _ bool) (store.URL, error) {
 					return store.URL{}, errors.New("db error")
 				}
 			},

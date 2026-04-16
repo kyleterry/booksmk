@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"go.e64ec.com/booksmk/internal/store"
+	"go.e64ec.com/booksmk/internal/store/sqlstore"
 )
 
 templ UsersPage(users []store.User) {
@@ -74,6 +75,7 @@ templ AdminPage(runs []store.BatchRunSummary, nextAt time.Time, codes []store.In
 		<h1>admin</h1>
 		<div style="display:flex;gap:0.75rem">
 			<a href="/admin/users" class="btn btn-sm">users</a>
+			<a href="/admin/blocklist" class="btn btn-sm">blocklist</a>
 		</div>
 	</div>
 	<div class="page-header">
@@ -131,6 +133,61 @@ templ AdminPage(runs []store.BatchRunSummary, nextAt time.Time, codes []store.In
 	for _, c := range codes {
 		@inviteCard(c)
 	}
+}
+
+templ BlocklistPage(entries []sqlstore.Blocklist, errMsg string) {
+	<div class="page-header">
+		<h1>blocklist <span class="count">({ fmt.Sprintf("%d", len(entries)) })</span></h1>
+		<a href="/admin/blocklist/new" class="btn btn-primary">+ block</a>
+	</div>
+	if errMsg != "" {
+		<div class="error">{ errMsg }</div>
+	}
+	if len(entries) == 0 {
+		<div class="empty">no blocked entries</div>
+	} else {
+		for _, e := range entries {
+			@blocklistEntryCard(e)
+		}
+	}
+}
+
+templ blocklistEntryCard(e sqlstore.Blocklist) {
+	<div class="card">
+		<div class="card-title" style="font-size:0.85rem;color:var(--fg2)">{ e.Pattern }</div>
+		<div class="card-url">
+			<span style="font-size:0.71rem;color:var(--fg4)">{ e.Kind }</span>
+			<span class="card-date">{ e.CreatedAt.Time.Format("Jan 2, 2006") }</span>
+		</div>
+		<div class="card-footer">
+			<form method="POST" action={ templ.SafeURL("/admin/blocklist/" + e.ID.String()) } style="margin:0">
+				<input type="hidden" name="_method" value="DELETE"/>
+				<button type="submit" class="btn btn-sm btn-danger">delete</button>
+			</form>
+		</div>
+	</div>
+}
+
+templ NewBlocklistEntryPage(errMsg string) {
+	<div class="page-header">
+		<h1>block new entry</h1>
+	</div>
+	if errMsg != "" {
+		<div class="error">{ errMsg }</div>
+	}
+	<form method="POST" action="/admin/blocklist">
+		<label for="pattern">pattern (domain or full URL)</label>
+		<input type="text" id="pattern" name="pattern" required autofocus placeholder="example.com or https://example.com/bad"/>
+		<label for="kind">kind</label>
+		<select id="kind" name="kind">
+			<option value="domain">domain</option>
+			<option value="url">url</option>
+		</select>
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">block</button>
+			<a href="/admin/blocklist" class="btn">cancel</a>
+		</div>
+	</form>
 }
 
 templ inviteCard(c store.InviteCode) {
