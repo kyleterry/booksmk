@@ -75,7 +75,35 @@ func Fetch(rawURL string) Meta {
 	if title != "" && defaults != nil && defaults[0] == "github" {
 		title = strings.TrimSuffix(title, " · GitHub")
 	}
-	return Meta{Title: title, Tags: tags, FeedURL: extractFeedLink(body, rawURL)}
+
+	feedURL := extractFeedLink(body, rawURL)
+	if feedURL == "" {
+		feedURL = findFeedAtBase(rawURL)
+	}
+
+	return Meta{Title: title, Tags: tags, FeedURL: feedURL}
+}
+
+// findFeedAtBase fetches the scheme+host root of rawURL and looks for a feed
+// link there. Some sites only advertise feeds on their index page, not on
+// individual posts. Returns empty string if rawURL is already the root or no
+// feed link is found.
+func findFeedAtBase(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	if u.Path == "" || u.Path == "/" {
+		return ""
+	}
+
+	baseURL := u.Scheme + "://" + u.Host + "/"
+	body, _ := fetchPageHTML(baseURL)
+	if body == "" {
+		return ""
+	}
+
+	return extractFeedLink(body, baseURL)
 }
 
 // FetchTitle returns the title for rawURL. For YouTube URLs it uses the oEmbed
