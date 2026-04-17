@@ -75,7 +75,7 @@ tasks:
     env:
       BOOKSMK_DATABASE_URL: "{{.DATABASE_URL}}"
     cmds:
-      - go test ./...
+      - go test -v ./...
 
   fmt:
     desc: Format Go code

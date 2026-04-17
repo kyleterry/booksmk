@@ -1,6 +1,7 @@
 # booksmk
 
-A personal URL bookmarking service. Spiritual successor to [sufr](https://github.com/kyleterry/sufr).
+A URL bookmarking and feed reader service. Spiritual successor to
+[sufr](https://github.com/kyleterry/sufr).
 
 ## Screenshots
 
@@ -9,10 +10,9 @@ See [docs/screenshots.md](docs/screenshots.md) for what you're gonna get.
 ## Features
 
 - Save and organize URLs with titles, descriptions, and tags
-- Automatic page title fetching
+- Automatic page title and tag fetching
 - Feed discovery and tracking for saved URLs
-- Multi-user with invite-based registration
-- API key authentication for programmatic access
+- API key authentication for some programmatic access
 
 ## Requirements
 
@@ -21,13 +21,18 @@ See [docs/screenshots.md](docs/screenshots.md) for what you're gonna get.
 
 ## Development
 
-The dev environment is managed with Nix. Enter the shell to get all tools and environment variables set:
+Some task commands assume `podman` is available.
 
-```
-nix develop
-```
+The dev environment is managed with Nix. Enter the shell to get all tools and
+environment variables set:
 
-This sets `PGDATA`, `PGHOST`, and `BOOKSMK_DATABASE_URL`. PostgreSQL is managed manually — start it separately before running the app.
+```shell
+nix develop # or: direnv allow
+task db:start # starts a postgres container
+task db:wait
+task db:init
+air # runs the server, rebuilds when files change.
+```
 
 ### Building
 
@@ -35,32 +40,20 @@ This sets `PGDATA`, `PGHOST`, and `BOOKSMK_DATABASE_URL`. PostgreSQL is managed 
 go build ./cmd/booksmk ./cmd/booksmkctl
 ```
 
-### Running
-
-```
-go run ./cmd/booksmk
-```
-
 ### Testing
 
 ```
-go test ./...
+task test
 ```
 
 Store and migration tests require `BOOKSMK_DATABASE_URL` to be set and will be skipped otherwise.
 
 ### Code generation
 
-Regenerate the sqlc query layer after changing SQL:
+Generate sqlc and templ code:
 
 ```
-sqlc generate
-```
-
-Regenerate templ components after changing templates:
-
-```
-templ generate
+task generate
 ```
 
 ## Configuration
@@ -68,6 +61,7 @@ templ generate
 | Variable | Default | Description |
 |---|---|---|
 | `BOOKSMK_DATABASE_URL` | required | PostgreSQL connection string |
+| `BOOKSMK_SECURE_COOKIES` | false | Enables secure cookies for production |
 | `BOOKSMK_ADDR` | `:8080` | Address and port to listen on |
 
 ## Stack
@@ -75,3 +69,4 @@ templ generate
 - [pgx](https://github.com/jackc/pgx) — PostgreSQL driver and connection pool
 - [sqlc](https://sqlc.dev) — SQL query generation
 - [templ](https://github.com/a-h/templ) — HTML templating
+- [htmx](https://htmx.org/) - Simple JS shit; favors server-side rendering, like me.
