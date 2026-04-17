@@ -137,11 +137,11 @@ templ DetailPage(u store.URL, discussions []store.Discussion, subscribedFeed *st
 			</form>
 			if u.FeedURL != "" {
 				if subscribedFeed != nil {
-					<a href={ templ.SafeURL("/feed/" + subscribedFeed.ID.String()) } class="btn btn-sm">view feed ↗</a>
+					<a href={ templ.SafeURL("/feed/" + subscribedFeed.ID.String()) } class="btn btn-sm" style="margin-left:auto">view feed ↗</a>
 				} else {
 					<form method="POST" action="/feed" style="margin:0">
 						<input type="hidden" name="feed_url" value={ u.FeedURL }/>
-						<button type="submit" class="btn btn-sm btn-primary">subscribe to feed</button>
+						<button type="submit" class="btn btn-sm btn-primary" style="margin-left:auto">subscribe to feed</button>
 					</form>
 				}
 			}
