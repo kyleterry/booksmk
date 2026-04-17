@@ -63,6 +63,7 @@ type TimelineFeedGroup struct {
 	FeedID       uuid.UUID
 	FeedTitle    string
 	FeedImageURL string
+	UnreadCount  int
 	Items        []TimelineItem
 }
 

@@ -29,7 +29,7 @@ type mockUserStore struct {
 	ListUsersFn           func(context.Context) ([]store.User, error)
 	UpdateUserFn          func(context.Context, uuid.UUID, string) (store.User, error)
 	UpdateUserPasswordFn  func(context.Context, uuid.UUID, string) (store.User, error)
-	UpdateUserSettingsFn  func(context.Context, uuid.UUID, string, string, int32, bool) (store.User, error)
+	UpdateUserSettingsFn  func(context.Context, uuid.UUID, store.UserSettings) (store.User, error)
 	DeleteUserFn          func(context.Context, uuid.UUID) error
 	GetInviteCodeByCodeFn func(context.Context, string) (store.InviteCode, error)
 	UseInviteCodeFn       func(context.Context, uuid.UUID, uuid.UUID) error
@@ -92,9 +92,9 @@ func (m *mockUserStore) UpdateUserPassword(ctx context.Context, id uuid.UUID, di
 	return store.User{}, nil
 }
 
-func (m *mockUserStore) UpdateUserSettings(ctx context.Context, id uuid.UUID, theme, fontSize string, resultsPerPage int32, feedGroupingEnabled bool) (store.User, error) {
+func (m *mockUserStore) UpdateUserSettings(ctx context.Context, id uuid.UUID, settings store.UserSettings) (store.User, error) {
 	if m.UpdateUserSettingsFn != nil {
-		return m.UpdateUserSettingsFn(ctx, id, theme, fontSize, resultsPerPage, feedGroupingEnabled)
+		return m.UpdateUserSettingsFn(ctx, id, settings)
 	}
 	return store.User{}, nil
 }
@@ -568,7 +568,7 @@ func TestHandleUpdateSettings(t *testing.T) {
 			userID: fixtureUserID.String(),
 			body:   "theme=dark&font_size=medium&results_per_page=100",
 			setup: func(m *mockUserStore) {
-				m.UpdateUserSettingsFn = func(_ context.Context, _ uuid.UUID, _, _ string, _ int32, _ bool) (store.User, error) {
+				m.UpdateUserSettingsFn = func(_ context.Context, _ uuid.UUID, _ store.UserSettings) (store.User, error) {
 					return fixtureUser, nil
 				}
 			},

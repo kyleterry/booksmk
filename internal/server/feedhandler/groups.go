@@ -70,6 +70,9 @@ func groupTimeline(items []store.TimelineItem, now time.Time) []store.TimelineGr
 		}
 
 		fg.Items = append(fg.Items, item)
+		if !item.IsRead {
+			fg.UnreadCount++
+		}
 	}
 
 	return groups

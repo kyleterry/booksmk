@@ -13,6 +13,14 @@ import (
 
 var ErrNotFound = errors.New("not found")
 
+// UserSettings holds the user-configurable display and behavior preferences.
+type UserSettings struct {
+	Theme               string
+	FontSize            string
+	ResultsPerPage      int32
+	FeedGroupingEnabled bool
+}
+
 type User struct {
 	ID                  uuid.UUID
 	Email               string
@@ -111,13 +119,13 @@ func (s *Store) UpdateUser(ctx context.Context, id uuid.UUID, email string) (Use
 }
 
 // UpdateUserSettings updates display and behavior preferences for the given user.
-func (s *Store) UpdateUserSettings(ctx context.Context, id uuid.UUID, theme, fontSize string, resultsPerPage int32, feedGroupingEnabled bool) (User, error) {
+func (s *Store) UpdateUserSettings(ctx context.Context, id uuid.UUID, settings UserSettings) (User, error) {
 	u, err := s.queries.UpdateUserSettings(ctx, sqlstore.UpdateUserSettingsParams{
 		ID:                  id,
-		Theme:               theme,
-		FontSize:            fontSize,
-		ResultsPerPage:      resultsPerPage,
-		FeedGroupingEnabled: feedGroupingEnabled,
+		Theme:               settings.Theme,
+		FontSize:            settings.FontSize,
+		ResultsPerPage:      settings.ResultsPerPage,
+		FeedGroupingEnabled: settings.FeedGroupingEnabled,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return User{}, ErrNotFound

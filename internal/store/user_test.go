@@ -272,7 +272,12 @@ func TestUpdateUserSettings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s-%s-%d", tt.theme, tt.fontSize, tt.resultsPerPage), func(t *testing.T) {
-			updated, err := s.UpdateUserSettings(ctx, u.ID, tt.theme, tt.fontSize, tt.resultsPerPage, tt.feedGroupingEnabled)
+			updated, err := s.UpdateUserSettings(ctx, u.ID, store.UserSettings{
+				Theme:               tt.theme,
+				FontSize:            tt.fontSize,
+				ResultsPerPage:      tt.resultsPerPage,
+				FeedGroupingEnabled: tt.feedGroupingEnabled,
+			})
 			if err != nil {
 				t.Fatalf("UpdateUserSettings: %v", err)
 			}

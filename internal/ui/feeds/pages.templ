@@ -57,6 +57,16 @@ templ TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, h
 						el.open = false;
 					}
 				});
+				document.querySelectorAll('details[data-feed-id]').forEach(function(details) {
+					new MutationObserver(function() {
+						var total = details.querySelectorAll('.card').length;
+						var unread = details.querySelectorAll('.feed-item-unread').length;
+						var countEl = details.querySelector('.feed-group-title .count');
+						if (!countEl) return;
+						var next = '(' + unread + '/' + total + ')';
+						if (countEl.textContent !== next) countEl.textContent = next;
+					}).observe(details, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+				});
 			</script>
 		}
 	}
@@ -75,7 +85,7 @@ templ TimelineFeedGroupSection(fg store.TimelineFeedGroup) {
 					<img src={ fg.FeedImageURL } alt="" class="feed-icon" loading="lazy"/>
 				}
 				<a href={ templ.SafeURL("/feed/" + fg.FeedID.String()) }>{ fg.FeedTitle }</a>
-				<span class="count">({ itoa(len(fg.Items)) })</span>
+				<span class="count">({ itoa(fg.UnreadCount) }/{ itoa(len(fg.Items)) })</span>
 			</span>
 			<button
 				class="btn btn-sm"
