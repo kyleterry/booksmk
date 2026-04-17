@@ -163,21 +163,18 @@ where fi.feed_id = $2
 on conflict do nothing;
 
 -- name: EnqueueFeedPollJob :exec
-insert into feed_poll_jobs (feed_id)
-values ($1)
-on conflict (feed_id) do nothing;
+update feeds set next_fetch_at = now() where id = $1;
 
 -- name: ListDueFeedPollJobs :many
-select j.id, j.feed_id, f.feed_url, j.fetch_count, j.error_count
-from feed_poll_jobs j
-join feeds f on f.id = j.feed_id
-where j.scheduled_at <= now()
-order by j.scheduled_at
+select id, feed_url, fetch_count, error_count
+from feeds
+where next_fetch_at <= now()
+order by next_fetch_at
 limit 200;
 
 -- name: CompleteFeedPollJob :exec
-update feed_poll_jobs
-set scheduled_at    = $2,
+update feeds
+set next_fetch_at   = $2,
     last_fetched_at = now(),
     fetch_count     = $3,
     error_count     = $4,
@@ -185,22 +182,20 @@ set scheduled_at    = $2,
 where id = $1;
 
 -- name: ListFeedPollJobStatuses :many
-select j.id,
-       j.feed_id,
-       f.feed_url,
-       f.title,
-       j.scheduled_at,
-       j.last_fetched_at,
-       j.fetch_count,
-       j.error_count,
-       j.last_error
-from feed_poll_jobs j
-join feeds f on f.id = j.feed_id
-order by j.scheduled_at asc
+select id,
+       feed_url,
+       title,
+       next_fetch_at as scheduled_at,
+       last_fetched_at,
+       fetch_count,
+       error_count,
+       last_error
+from feeds
+order by next_fetch_at asc
 limit 100;
 
 -- name: ScheduleAllFeedPollJobsNow :exec
-update feed_poll_jobs set scheduled_at = now();
+update feeds set next_fetch_at = now();
 
 -- name: SearchFeeds :many
 select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.is_blocked_bypass, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name

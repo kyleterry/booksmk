@@ -82,7 +82,6 @@ type FeedItemGroup struct {
 // FeedPollJob is a feed due for a poll cycle.
 type FeedPollJob struct {
 	ID         uuid.UUID
-	FeedID     uuid.UUID
 	FeedURL    string
 	FetchCount int32
 	ErrorCount int32
@@ -91,7 +90,6 @@ type FeedPollJob struct {
 // FeedPollJobStatus is the current state of a feed poll job for admin display.
 type FeedPollJobStatus struct {
 	ID            uuid.UUID
-	FeedID        uuid.UUID
 	FeedURL       string
 	FeedTitle     string
 	ScheduledAt   time.Time
@@ -381,7 +379,6 @@ func (s *Store) ListDueFeedPollJobs(ctx context.Context) ([]FeedPollJob, error) 
 	for i, r := range rows {
 		jobs[i] = FeedPollJob{
 			ID:         r.ID,
-			FeedID:     r.FeedID,
 			FeedURL:    r.FeedUrl,
 			FetchCount: r.FetchCount,
 			ErrorCount: r.ErrorCount,
@@ -391,13 +388,13 @@ func (s *Store) ListDueFeedPollJobs(ctx context.Context) ([]FeedPollJob, error) 
 }
 
 // CompleteFeedPollJob updates the poll job after processing.
-func (s *Store) CompleteFeedPollJob(ctx context.Context, jobID uuid.UUID, nextAt time.Time, fetchCount, errorCount int32, lastError string) error {
+func (s *Store) CompleteFeedPollJob(ctx context.Context, id uuid.UUID, nextAt time.Time, fetchCount, errorCount int32, lastError string) error {
 	return s.queries.CompleteFeedPollJob(ctx, sqlstore.CompleteFeedPollJobParams{
-		ID:          jobID,
-		ScheduledAt: pgtype.Timestamptz{Time: nextAt.UTC(), Valid: true},
-		FetchCount:  fetchCount,
-		ErrorCount:  errorCount,
-		LastError:   lastError,
+		ID:            id,
+		NextFetchAt:   pgtype.Timestamptz{Time: nextAt.UTC(), Valid: true},
+		FetchCount:    fetchCount,
+		ErrorCount:    errorCount,
+		LastError:     lastError,
 	})
 }
 
@@ -445,7 +442,6 @@ func (s *Store) ListFeedPollJobStatuses(ctx context.Context) ([]FeedPollJobStatu
 	for i, r := range rows {
 		job := FeedPollJobStatus{
 			ID:          r.ID,
-			FeedID:      r.FeedID,
 			FeedURL:     r.FeedUrl,
 			FeedTitle:   r.Title,
 			ScheduledAt: r.ScheduledAt.Time,

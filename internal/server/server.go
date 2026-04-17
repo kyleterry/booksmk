@@ -86,8 +86,11 @@ func (s *Server) Run(ctx context.Context) error {
 		errCh <- srv.ListenAndServe()
 	}()
 
-	go jobrunner.Run(ctx, s.discussionWorker, s.logger)
-	go jobrunner.Run(ctx, s.feedWorker, s.logger)
+	go func() {
+		runner := jobrunner.New(s.store, s.logger)
+		go runner.Run(ctx, s.discussionWorker)
+		go runner.Run(ctx, s.feedWorker)
+	}()
 
 	select {
 	case <-ctx.Done():

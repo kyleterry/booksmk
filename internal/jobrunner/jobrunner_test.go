@@ -8,10 +8,24 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func discardLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
+type stubStore struct{}
+
+func (s *stubStore) ClaimJobRun(ctx context.Context, jobName string, lockDuration time.Duration, nextRunAt time.Time) (bool, error) {
+	return true, nil
+}
+func (s *stubStore) CreateJobRun(ctx context.Context, jobName string, startedAt time.Time) (uuid.UUID, error) {
+	return uuid.New(), nil
+}
+func (s *stubStore) CompleteJobRun(ctx context.Context, id uuid.UUID, completedAt time.Time, err error, metadata any) error {
+	return nil
 }
 
 func TestPoolBoundedConcurrency(t *testing.T) {
@@ -62,21 +76,26 @@ func TestPoolBoundedConcurrency(t *testing.T) {
 	}
 }
 
-type stubHandler struct {
+type stubJob struct {
 	ticks atomic.Int32
 }
 
-func (s *stubHandler) Name() string            { return "stub" }
-func (s *stubHandler) Interval() time.Duration { return 10 * time.Millisecond }
-func (s *stubHandler) Tick(_ context.Context)  { s.ticks.Add(1) }
+func (s *stubJob) Name() string            { return "stub" }
+func (s *stubJob) Interval() time.Duration { return 10 * time.Millisecond }
+func (s *stubJob) Run(_ context.Context) (any, error) {
+	s.ticks.Add(1)
+	return nil, nil
+}
 
-func TestRunStopsOnContextCancel(t *testing.T) {
-	h := &stubHandler{}
+func TestRunnerStopsOnContextCancel(t *testing.T) {
+	j := &stubJob{}
 	ctx, cancel := context.WithCancel(context.Background())
+	st := &stubStore{}
+	r := New(st, discardLogger())
 
 	done := make(chan struct{})
 	go func() {
-		Run(ctx, h, discardLogger())
+		r.Run(ctx, j)
 		close(done)
 	}()
 
@@ -89,7 +108,7 @@ func TestRunStopsOnContextCancel(t *testing.T) {
 		t.Fatal("Run did not return after context cancel")
 	}
 
-	if h.ticks.Load() == 0 {
+	if j.ticks.Load() == 0 {
 		t.Errorf("expected at least one tick, got 0")
 	}
 }

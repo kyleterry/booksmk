@@ -70,7 +70,7 @@ templ ResetPasswordPage(user store.User, errMsg string) {
 	</div>
 }
 
-templ AdminPage(runs []store.BatchRunSummary, nextAt time.Time, feedJobs []store.FeedPollJobStatus, codes []store.InviteCode) {
+templ AdminPage(discussRuns []store.JobRun, nextDiscussAt time.Time, feedRuns []store.JobRun, nextFeedAt time.Time, feedJobs []store.FeedPollJobStatus, codes []store.InviteCode) {
 	<div class="page-header" style="margin-bottom:2rem">
 		<h1>admin</h1>
 		<div style="display:flex;gap:0.75rem">
@@ -78,57 +78,15 @@ templ AdminPage(runs []store.BatchRunSummary, nextAt time.Time, feedJobs []store
 			<a href="/admin/blocklist" class="btn btn-sm">blocklist</a>
 		</div>
 	</div>
+
+	@JobRunsSection("discussion checks", "/admin/run", discussRuns, nextDiscussAt, "urls checked", "url_count", "discussions found", "found_count")
+	@JobRunsSection("feed polls", "/admin/feed-poll/run", feedRuns, nextFeedAt, "feeds polled", "feed_count", "errors", "error_count")
+
 	<div class="page-header">
-		<h2>discussion runs <span class="count">({ fmt.Sprintf("%d", len(runs)) })</span></h2>
-		<div style="display:flex;align-items:center;gap:1rem">
-			<div style="font-size:0.72rem;color:var(--fg4)">
-				<span>next run: </span>@nextRunLabel(nextAt)
-			</div>
-			<form method="POST" action="/admin/run" style="margin:0">
-				<button type="submit" class="btn btn-sm btn-primary">run now</button>
-			</form>
-		</div>
-	</div>
-	if len(runs) == 0 {
-		<div class="empty">no runs yet</div>
-	} else {
-		<div style="overflow-x:auto;margin-bottom:3rem">
-			<table style="width:100%;border-collapse:collapse;font-size:0.78rem">
-				<thead>
-					<tr style="border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left">
-						<th style="padding:0.4rem 0.75rem 0.4rem 0;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem">started</th>
-						<th style="padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem">duration</th>
-						<th style="padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right">urls checked</th>
-						<th style="padding:0.4rem 0 0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right">discussions found</th>
-					</tr>
-				</thead>
-				<tbody>
-					for _, r := range runs {
-						<tr style="border-bottom:1px solid var(--bg1)">
-							<td style="padding:0.55rem 0.75rem 0.55rem 0;color:var(--fg2);white-space:nowrap"><time datetime={ r.StartedAt.UTC().Format("2006-01-02T15:04:05Z07:00") } data-fmt="datetime">{ r.StartedAt.Format("Jan 2 15:04") }</time></td>
-							<td style="padding:0.55rem 0.75rem;color:var(--fg3);white-space:nowrap">{ formatDuration(r.CompletedAt.Sub(r.StartedAt)) }</td>
-							<td style="padding:0.55rem 0.75rem;text-align:right;color:var(--fg3)">{ fmt.Sprintf("%d", r.URLCount) }</td>
-							<td style="padding:0.55rem 0 0.55rem 0.75rem;text-align:right">
-								if r.FoundCount > 0 {
-									<span style="color:var(--accent)">{ fmt.Sprintf("%d", r.FoundCount) }</span>
-								} else {
-									<span style="color:var(--fg4)">0</span>
-								}
-							</td>
-						</tr>
-					}
-				</tbody>
-			</table>
-		</div>
-	}
-	<div class="page-header">
-		<h2>feed poll jobs <span class="count">({ fmt.Sprintf("%d", len(feedJobs)) })</span></h2>
-		<form method="POST" action="/admin/feed-poll/run" style="margin:0">
-			<button type="submit" class="btn btn-sm btn-primary">poll all now</button>
-		</form>
+		<h2>individual feeds <span class="count">({ fmt.Sprintf("%d", len(feedJobs)) })</span></h2>
 	</div>
 	if len(feedJobs) == 0 {
-		<div class="empty" style="margin-bottom:3rem">no feed poll jobs</div>
+		<div class="empty" style="margin-bottom:3rem">no feeds</div>
 	} else {
 		<div style="overflow-x:auto;margin-bottom:3rem">
 			<table style="width:100%;border-collapse:collapse;font-size:0.78rem">
@@ -175,6 +133,7 @@ templ AdminPage(runs []store.BatchRunSummary, nextAt time.Time, feedJobs []store
 			</table>
 		</div>
 	}
+
 	<div class="page-header">
 		<h2>invite codes <span class="count">({ fmt.Sprintf("%d", len(codes)) })</span></h2>
 		<form method="POST" action="/admin/invite/" style="margin:0">
@@ -186,6 +145,58 @@ templ AdminPage(runs []store.BatchRunSummary, nextAt time.Time, feedJobs []store
 	}
 	for _, c := range codes {
 		@inviteCard(c)
+	}
+}
+
+templ JobRunsSection(title, actionURL string, runs []store.JobRun, nextAt time.Time, col1Label, col1Key, col2Label, col2Key string) {
+	<div class="page-header">
+		<h2>{ title } <span class="count">({ fmt.Sprintf("%d", len(runs)) })</span></h2>
+		<div style="display:flex;align-items:center;gap:1rem">
+			<div style="font-size:0.72rem;color:var(--fg4)">
+				<span>next run: </span>@nextRunLabel(nextAt)
+			</div>
+			<form method="POST" action={ templ.SafeURL(actionURL) } style="margin:0">
+				<button type="submit" class="btn btn-sm btn-primary">run now</button>
+			</form>
+		</div>
+	</div>
+	if len(runs) == 0 {
+		<div class="empty" style="margin-bottom:3rem">no runs yet</div>
+	} else {
+		<div style="overflow-x:auto;margin-bottom:3rem">
+			<table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+				<thead>
+					<tr style="border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left">
+						<th style="padding:0.4rem 0.75rem 0.4rem 0;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem">started</th>
+						<th style="padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem">duration</th>
+						<th style="padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right">{ col1Label }</th>
+						<th style="padding:0.4rem 0 0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right">{ col2Label }</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, r := range runs {
+						<tr style="border-bottom:1px solid var(--bg1)">
+							<td style="padding:0.55rem 0.75rem 0.55rem 0;color:var(--fg2);white-space:nowrap"><time datetime={ r.StartedAt.UTC().Format("2006-01-02T15:04:05Z07:00") } data-fmt="datetime">{ r.StartedAt.Format("Jan 2 15:04") }</time></td>
+							<td style="padding:0.55rem 0.75rem;color:var(--fg3);white-space:nowrap">
+								if r.CompletedAt != nil {
+									{ formatDuration(r.CompletedAt.Sub(r.StartedAt)) }
+								} else {
+									<span style="color:var(--accent)">running...</span>
+								}
+							</td>
+							<td style="padding:0.55rem 0.75rem;text-align:right;color:var(--fg3)">{ fmt.Sprintf("%v", r.Metadata[col1Key]) }</td>
+							<td style="padding:0.55rem 0 0.55rem 0.75rem;text-align:right">
+								if val, ok := r.Metadata[col2Key]; ok && fmt.Sprintf("%v", val) != "0" {
+									<span style="color:var(--accent)">{ fmt.Sprintf("%v", val) }</span>
+								} else {
+									<span style="color:var(--fg4)">0</span>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
 	}
 }
 

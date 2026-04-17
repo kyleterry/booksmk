@@ -45,8 +45,8 @@ func (q *Queries) AddTagToFeed(ctx context.Context, arg AddTagToFeedParams) erro
 }
 
 const completeFeedPollJob = `-- name: CompleteFeedPollJob :exec
-update feed_poll_jobs
-set scheduled_at    = $2,
+update feeds
+set next_fetch_at   = $2,
     last_fetched_at = now(),
     fetch_count     = $3,
     error_count     = $4,
@@ -56,7 +56,7 @@ where id = $1
 
 type CompleteFeedPollJobParams struct {
 	ID          uuid.UUID          `json:"id"`
-	ScheduledAt pgtype.Timestamptz `json:"scheduled_at"`
+	NextFetchAt pgtype.Timestamptz `json:"next_fetch_at"`
 	FetchCount  int32              `json:"fetch_count"`
 	ErrorCount  int32              `json:"error_count"`
 	LastError   string             `json:"last_error"`
@@ -65,7 +65,7 @@ type CompleteFeedPollJobParams struct {
 func (q *Queries) CompleteFeedPollJob(ctx context.Context, arg CompleteFeedPollJobParams) error {
 	_, err := q.db.Exec(ctx, completeFeedPollJob,
 		arg.ID,
-		arg.ScheduledAt,
+		arg.NextFetchAt,
 		arg.FetchCount,
 		arg.ErrorCount,
 		arg.LastError,
@@ -74,13 +74,11 @@ func (q *Queries) CompleteFeedPollJob(ctx context.Context, arg CompleteFeedPollJ
 }
 
 const enqueueFeedPollJob = `-- name: EnqueueFeedPollJob :exec
-insert into feed_poll_jobs (feed_id)
-values ($1)
-on conflict (feed_id) do nothing
+update feeds set next_fetch_at = now() where id = $1
 `
 
-func (q *Queries) EnqueueFeedPollJob(ctx context.Context, feedID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, enqueueFeedPollJob, feedID)
+func (q *Queries) EnqueueFeedPollJob(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, enqueueFeedPollJob, id)
 	return err
 }
 
@@ -90,9 +88,22 @@ from feeds
 where id = $1
 `
 
-func (q *Queries) GetFeedByID(ctx context.Context, id uuid.UUID) (Feed, error) {
+type GetFeedByIDRow struct {
+	ID              uuid.UUID          `json:"id"`
+	FeedUrl         string             `json:"feed_url"`
+	SiteUrl         string             `json:"site_url"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	ImageUrl        string             `json:"image_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	LastFetchedAt   pgtype.Timestamptz `json:"last_fetched_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) GetFeedByID(ctx context.Context, id uuid.UUID) (GetFeedByIDRow, error) {
 	row := q.db.QueryRow(ctx, getFeedByID, id)
-	var i Feed
+	var i GetFeedByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.FeedUrl,
@@ -264,17 +275,15 @@ func (q *Queries) GetUserFeedByFeedURL(ctx context.Context, arg GetUserFeedByFee
 }
 
 const listDueFeedPollJobs = `-- name: ListDueFeedPollJobs :many
-select j.id, j.feed_id, f.feed_url, j.fetch_count, j.error_count
-from feed_poll_jobs j
-join feeds f on f.id = j.feed_id
-where j.scheduled_at <= now()
-order by j.scheduled_at
+select id, feed_url, fetch_count, error_count
+from feeds
+where next_fetch_at <= now()
+order by next_fetch_at
 limit 200
 `
 
 type ListDueFeedPollJobsRow struct {
 	ID         uuid.UUID `json:"id"`
-	FeedID     uuid.UUID `json:"feed_id"`
 	FeedUrl    string    `json:"feed_url"`
 	FetchCount int32     `json:"fetch_count"`
 	ErrorCount int32     `json:"error_count"`
@@ -291,7 +300,6 @@ func (q *Queries) ListDueFeedPollJobs(ctx context.Context) ([]ListDueFeedPollJob
 		var i ListDueFeedPollJobsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.FeedID,
 			&i.FeedUrl,
 			&i.FetchCount,
 			&i.ErrorCount,
@@ -369,24 +377,21 @@ func (q *Queries) ListFeedItems(ctx context.Context, arg ListFeedItemsParams) ([
 }
 
 const listFeedPollJobStatuses = `-- name: ListFeedPollJobStatuses :many
-select j.id,
-       j.feed_id,
-       f.feed_url,
-       f.title,
-       j.scheduled_at,
-       j.last_fetched_at,
-       j.fetch_count,
-       j.error_count,
-       j.last_error
-from feed_poll_jobs j
-join feeds f on f.id = j.feed_id
-order by j.scheduled_at asc
+select id,
+       feed_url,
+       title,
+       next_fetch_at as scheduled_at,
+       last_fetched_at,
+       fetch_count,
+       error_count,
+       last_error
+from feeds
+order by next_fetch_at asc
 limit 100
 `
 
 type ListFeedPollJobStatusesRow struct {
 	ID            uuid.UUID          `json:"id"`
-	FeedID        uuid.UUID          `json:"feed_id"`
 	FeedUrl       string             `json:"feed_url"`
 	Title         string             `json:"title"`
 	ScheduledAt   pgtype.Timestamptz `json:"scheduled_at"`
@@ -407,7 +412,6 @@ func (q *Queries) ListFeedPollJobStatuses(ctx context.Context) ([]ListFeedPollJo
 		var i ListFeedPollJobStatusesRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.FeedID,
 			&i.FeedUrl,
 			&i.Title,
 			&i.ScheduledAt,
@@ -687,7 +691,7 @@ func (q *Queries) RemoveFeedFromUser(ctx context.Context, arg RemoveFeedFromUser
 }
 
 const scheduleAllFeedPollJobsNow = `-- name: ScheduleAllFeedPollJobsNow :exec
-update feed_poll_jobs set scheduled_at = now()
+update feeds set next_fetch_at = now()
 `
 
 func (q *Queries) ScheduleAllFeedPollJobsNow(ctx context.Context) error {
@@ -818,9 +822,22 @@ type UpsertFeedParams struct {
 	IsBlockedBypass bool   `json:"is_blocked_bypass"`
 }
 
-func (q *Queries) UpsertFeed(ctx context.Context, arg UpsertFeedParams) (Feed, error) {
+type UpsertFeedRow struct {
+	ID              uuid.UUID          `json:"id"`
+	FeedUrl         string             `json:"feed_url"`
+	SiteUrl         string             `json:"site_url"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	ImageUrl        string             `json:"image_url"`
+	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	LastFetchedAt   pgtype.Timestamptz `json:"last_fetched_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) UpsertFeed(ctx context.Context, arg UpsertFeedParams) (UpsertFeedRow, error) {
 	row := q.db.QueryRow(ctx, upsertFeed, arg.FeedUrl, arg.IsBlockedBypass)
-	var i Feed
+	var i UpsertFeedRow
 	err := row.Scan(
 		&i.ID,
 		&i.FeedUrl,

@@ -12,24 +12,9 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const claimBatchRun = `-- name: ClaimBatchRun :one
-update discussion_runs
-set    scheduled_at = now() + interval '30 minutes',
-       last_run_at  = now()
-where  scheduled_at <= now()
-returning id
-`
-
-func (q *Queries) ClaimBatchRun(ctx context.Context) (int32, error) {
-	row := q.db.QueryRow(ctx, claimBatchRun)
-	var id int32
-	err := row.Scan(&id)
-	return id, err
-}
-
 const completeDiscussionJob = `-- name: CompleteDiscussionJob :exec
-update url_discussion_jobs
-set scheduled_at    = $2,
+update urls
+set next_check_at   = $2,
     last_checked_at = now(),
     check_count     = $3,
     empty_count     = $4
@@ -38,7 +23,7 @@ where id = $1
 
 type CompleteDiscussionJobParams struct {
 	ID          uuid.UUID          `json:"id"`
-	ScheduledAt pgtype.Timestamptz `json:"scheduled_at"`
+	NextCheckAt pgtype.Timestamptz `json:"next_check_at"`
 	CheckCount  int32              `json:"check_count"`
 	EmptyCount  int32              `json:"empty_count"`
 }
@@ -46,7 +31,7 @@ type CompleteDiscussionJobParams struct {
 func (q *Queries) CompleteDiscussionJob(ctx context.Context, arg CompleteDiscussionJobParams) error {
 	_, err := q.db.Exec(ctx, completeDiscussionJob,
 		arg.ID,
-		arg.ScheduledAt,
+		arg.NextCheckAt,
 		arg.CheckCount,
 		arg.EmptyCount,
 	)
@@ -54,58 +39,12 @@ func (q *Queries) CompleteDiscussionJob(ctx context.Context, arg CompleteDiscuss
 }
 
 const enqueueDiscussionJob = `-- name: EnqueueDiscussionJob :exec
-insert into url_discussion_jobs (url_id)
-values ($1)
-on conflict (url_id) do nothing
+update urls set next_check_at = now() where id = $1
 `
 
-func (q *Queries) EnqueueDiscussionJob(ctx context.Context, urlID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, enqueueDiscussionJob, urlID)
+func (q *Queries) EnqueueDiscussionJob(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, enqueueDiscussionJob, id)
 	return err
-}
-
-const getNextBatchRunAt = `-- name: GetNextBatchRunAt :one
-select scheduled_at from discussion_runs where id = 1
-`
-
-func (q *Queries) GetNextBatchRunAt(ctx context.Context) (pgtype.Timestamptz, error) {
-	row := q.db.QueryRow(ctx, getNextBatchRunAt)
-	var scheduled_at pgtype.Timestamptz
-	err := row.Scan(&scheduled_at)
-	return scheduled_at, err
-}
-
-const listBatchRuns = `-- name: ListBatchRuns :many
-select id, started_at, completed_at, url_count, found_count
-from discussion_run_log
-order by started_at desc
-limit 15
-`
-
-func (q *Queries) ListBatchRuns(ctx context.Context) ([]DiscussionRunLog, error) {
-	rows, err := q.db.Query(ctx, listBatchRuns)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []DiscussionRunLog
-	for rows.Next() {
-		var i DiscussionRunLog
-		if err := rows.Scan(
-			&i.ID,
-			&i.StartedAt,
-			&i.CompletedAt,
-			&i.UrlCount,
-			&i.FoundCount,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const listDiscussionsForURL = `-- name: ListDiscussionsForURL :many
@@ -145,17 +84,15 @@ func (q *Queries) ListDiscussionsForURL(ctx context.Context, urlID uuid.UUID) ([
 }
 
 const listDueURLs = `-- name: ListDueURLs :many
-select j.id, j.url_id, u.url, j.check_count, j.empty_count
-from url_discussion_jobs j
-join urls u on u.id = j.url_id
-where j.scheduled_at <= now()
-order by j.scheduled_at
+select id, url, check_count, empty_count
+from urls
+where next_check_at <= now()
+order by next_check_at
 limit 500
 `
 
 type ListDueURLsRow struct {
 	ID         uuid.UUID `json:"id"`
-	URLID      uuid.UUID `json:"url_id"`
 	Url        string    `json:"url"`
 	CheckCount int32     `json:"check_count"`
 	EmptyCount int32     `json:"empty_count"`
@@ -172,7 +109,6 @@ func (q *Queries) ListDueURLs(ctx context.Context) ([]ListDueURLsRow, error) {
 		var i ListDueURLsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.URLID,
 			&i.Url,
 			&i.CheckCount,
 			&i.EmptyCount,
@@ -185,31 +121,6 @@ func (q *Queries) ListDueURLs(ctx context.Context) ([]ListDueURLsRow, error) {
 		return nil, err
 	}
 	return items, nil
-}
-
-const recordBatchRun = `-- name: RecordBatchRun :exec
-insert into discussion_run_log (started_at, url_count, found_count)
-values ($1, $2, $3)
-`
-
-type RecordBatchRunParams struct {
-	StartedAt  pgtype.Timestamptz `json:"started_at"`
-	UrlCount   int32              `json:"url_count"`
-	FoundCount int32              `json:"found_count"`
-}
-
-func (q *Queries) RecordBatchRun(ctx context.Context, arg RecordBatchRunParams) error {
-	_, err := q.db.Exec(ctx, recordBatchRun, arg.StartedAt, arg.UrlCount, arg.FoundCount)
-	return err
-}
-
-const scheduleBatchRunNow = `-- name: ScheduleBatchRunNow :exec
-update discussion_runs set scheduled_at = now() where id = 1
-`
-
-func (q *Queries) ScheduleBatchRunNow(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, scheduleBatchRunNow)
-	return err
 }
 
 const upsertDiscussion = `-- name: UpsertDiscussion :exec
