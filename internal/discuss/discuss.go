@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -81,20 +81,17 @@ func (w *Worker) Run(ctx context.Context) (any, error) {
 	}
 
 	var (
-		mu         sync.Mutex
-		totalFound int32
+		totalFound atomic.Int32
 	)
 
 	jobrunner.Pool(ctx, discussConcurrency, urls, func(ctx context.Context, u store.DiscussionURLJob) {
 		found := w.processURL(ctx, u)
-		mu.Lock()
-		totalFound += found
-		mu.Unlock()
+		totalFound.Add(found)
 	})
 
 	return map[string]int32{
 		"url_count":   int32(len(urls)),
-		"found_count": totalFound,
+		"found_count": totalFound.Load(),
 	}, nil
 }
 
