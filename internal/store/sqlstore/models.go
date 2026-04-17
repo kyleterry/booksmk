@@ -41,20 +41,6 @@ type CategoryMember struct {
 	Value      string    `json:"value"`
 }
 
-type DiscussionRun struct {
-	ID          int32              `json:"id"`
-	ScheduledAt pgtype.Timestamptz `json:"scheduled_at"`
-	LastRunAt   pgtype.Timestamptz `json:"last_run_at"`
-}
-
-type DiscussionRunLog struct {
-	ID          uuid.UUID          `json:"id"`
-	StartedAt   pgtype.Timestamptz `json:"started_at"`
-	CompletedAt pgtype.Timestamptz `json:"completed_at"`
-	UrlCount    int32              `json:"url_count"`
-	FoundCount  int32              `json:"found_count"`
-}
-
 type Feed struct {
 	ID              uuid.UUID          `json:"id"`
 	FeedUrl         string             `json:"feed_url"`
@@ -64,6 +50,10 @@ type Feed struct {
 	ImageUrl        string             `json:"image_url"`
 	IsBlockedBypass bool               `json:"is_blocked_bypass"`
 	LastFetchedAt   pgtype.Timestamptz `json:"last_fetched_at"`
+	NextFetchAt     pgtype.Timestamptz `json:"next_fetch_at"`
+	FetchCount      int32              `json:"fetch_count"`
+	ErrorCount      int32              `json:"error_count"`
+	LastError       string             `json:"last_error"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
@@ -86,16 +76,6 @@ type FeedItemRead struct {
 	ReadAt pgtype.Timestamptz `json:"read_at"`
 }
 
-type FeedPollJob struct {
-	ID            uuid.UUID          `json:"id"`
-	FeedID        uuid.UUID          `json:"feed_id"`
-	ScheduledAt   pgtype.Timestamptz `json:"scheduled_at"`
-	LastFetchedAt pgtype.Timestamptz `json:"last_fetched_at"`
-	FetchCount    int32              `json:"fetch_count"`
-	ErrorCount    int32              `json:"error_count"`
-	LastError     string             `json:"last_error"`
-}
-
 type FeedTag struct {
 	UserID uuid.UUID `json:"user_id"`
 	FeedID uuid.UUID `json:"feed_id"`
@@ -109,6 +89,21 @@ type InviteCode struct {
 	UsedBy    pgtype.UUID        `json:"used_by"`
 	UsedAt    pgtype.Timestamptz `json:"used_at"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type JobConfig struct {
+	JobName     string             `json:"job_name"`
+	NextRunAt   pgtype.Timestamptz `json:"next_run_at"`
+	LockedUntil pgtype.Timestamptz `json:"locked_until"`
+}
+
+type JobRun struct {
+	ID          uuid.UUID          `json:"id"`
+	JobName     string             `json:"job_name"`
+	StartedAt   pgtype.Timestamptz `json:"started_at"`
+	CompletedAt pgtype.Timestamptz `json:"completed_at"`
+	Error       *string            `json:"error"`
+	Metadata    []byte             `json:"metadata"`
 }
 
 type Session struct {
@@ -128,6 +123,10 @@ type Url struct {
 	Url             string             `json:"url"`
 	FeedUrl         string             `json:"feed_url"`
 	IsBlockedBypass bool               `json:"is_blocked_bypass"`
+	NextCheckAt     pgtype.Timestamptz `json:"next_check_at"`
+	LastCheckedAt   pgtype.Timestamptz `json:"last_checked_at"`
+	CheckCount      int32              `json:"check_count"`
+	EmptyCount      int32              `json:"empty_count"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 }
 
@@ -140,15 +139,6 @@ type UrlDiscussion struct {
 	Score         int32              `json:"score"`
 	CommentCount  int32              `json:"comment_count"`
 	FoundAt       pgtype.Timestamptz `json:"found_at"`
-}
-
-type UrlDiscussionJob struct {
-	ID            uuid.UUID          `json:"id"`
-	URLID         uuid.UUID          `json:"url_id"`
-	ScheduledAt   pgtype.Timestamptz `json:"scheduled_at"`
-	LastCheckedAt pgtype.Timestamptz `json:"last_checked_at"`
-	CheckCount    int32              `json:"check_count"`
-	EmptyCount    int32              `json:"empty_count"`
 }
 
 type UrlTag struct {

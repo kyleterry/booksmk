@@ -82,10 +82,21 @@ type FeedItemGroup struct {
 // FeedPollJob is a feed due for a poll cycle.
 type FeedPollJob struct {
 	ID         uuid.UUID
-	FeedID     uuid.UUID
 	FeedURL    string
 	FetchCount int32
 	ErrorCount int32
+}
+
+// FeedPollJobStatus is the current state of a feed poll job for admin display.
+type FeedPollJobStatus struct {
+	ID            uuid.UUID
+	FeedURL       string
+	FeedTitle     string
+	ScheduledAt   time.Time
+	LastFetchedAt *time.Time
+	FetchCount    int32
+	ErrorCount    int32
+	LastError     string
 }
 
 // UpsertFeedItemParams holds the data for creating or updating a feed item.
@@ -368,7 +379,6 @@ func (s *Store) ListDueFeedPollJobs(ctx context.Context) ([]FeedPollJob, error) 
 	for i, r := range rows {
 		jobs[i] = FeedPollJob{
 			ID:         r.ID,
-			FeedID:     r.FeedID,
 			FeedURL:    r.FeedUrl,
 			FetchCount: r.FetchCount,
 			ErrorCount: r.ErrorCount,
@@ -378,10 +388,10 @@ func (s *Store) ListDueFeedPollJobs(ctx context.Context) ([]FeedPollJob, error) 
 }
 
 // CompleteFeedPollJob updates the poll job after processing.
-func (s *Store) CompleteFeedPollJob(ctx context.Context, jobID uuid.UUID, nextAt time.Time, fetchCount, errorCount int32, lastError string) error {
+func (s *Store) CompleteFeedPollJob(ctx context.Context, id uuid.UUID, nextAt time.Time, fetchCount, errorCount int32, lastError string) error {
 	return s.queries.CompleteFeedPollJob(ctx, sqlstore.CompleteFeedPollJobParams{
-		ID:          jobID,
-		ScheduledAt: pgtype.Timestamptz{Time: nextAt.UTC(), Valid: true},
+		ID:          id,
+		NextFetchAt: pgtype.Timestamptz{Time: nextAt.UTC(), Valid: true},
 		FetchCount:  fetchCount,
 		ErrorCount:  errorCount,
 		LastError:   lastError,
@@ -420,6 +430,37 @@ func (s *Store) UpsertFeedItem(ctx context.Context, p UpsertFeedItemParams) (uui
 // EnqueueFeedPollJob schedules a feed for its first (or next) poll.
 func (s *Store) EnqueueFeedPollJob(ctx context.Context, feedID uuid.UUID) error {
 	return s.queries.EnqueueFeedPollJob(ctx, feedID)
+}
+
+// ListFeedPollJobStatuses returns the status of all feed poll jobs for admin display.
+func (s *Store) ListFeedPollJobStatuses(ctx context.Context) ([]FeedPollJobStatus, error) {
+	rows, err := s.queries.ListFeedPollJobStatuses(ctx)
+	if err != nil {
+		return nil, err
+	}
+	jobs := make([]FeedPollJobStatus, len(rows))
+	for i, r := range rows {
+		job := FeedPollJobStatus{
+			ID:          r.ID,
+			FeedURL:     r.FeedUrl,
+			FeedTitle:   r.Title,
+			ScheduledAt: r.ScheduledAt.Time,
+			FetchCount:  r.FetchCount,
+			ErrorCount:  r.ErrorCount,
+			LastError:   r.LastError,
+		}
+		if r.LastFetchedAt.Valid {
+			t := r.LastFetchedAt.Time
+			job.LastFetchedAt = &t
+		}
+		jobs[i] = job
+	}
+	return jobs, nil
+}
+
+// ScheduleAllFeedPollJobsNow sets all feed poll jobs to run immediately.
+func (s *Store) ScheduleAllFeedPollJobsNow(ctx context.Context) error {
+	return s.queries.ScheduleAllFeedPollJobsNow(ctx)
 }
 
 // setFeedTags replaces all tags for a user's feed with the given names.

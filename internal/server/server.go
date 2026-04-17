@@ -10,6 +10,7 @@ import (
 
 	"go.e64ec.com/booksmk/internal/discuss"
 	"go.e64ec.com/booksmk/internal/feedworker"
+	"go.e64ec.com/booksmk/internal/jobrunner"
 	"go.e64ec.com/booksmk/internal/server/adminhandler"
 	"go.e64ec.com/booksmk/internal/server/apihandler"
 	"go.e64ec.com/booksmk/internal/server/apikeyhandler"
@@ -85,11 +86,11 @@ func (s *Server) Run(ctx context.Context) error {
 		errCh <- srv.ListenAndServe()
 	}()
 
-	s.logger.Info("starting discussion worker")
-	go s.discussionWorker.Run(ctx)
-
-	s.logger.Info("starting feed worker")
-	go s.feedWorker.Run(ctx)
+	go func() {
+		runner := jobrunner.New(s.store, s.logger)
+		go runner.Run(ctx, s.discussionWorker)
+		go runner.Run(ctx, s.feedWorker)
+	}()
 
 	select {
 	case <-ctx.Done():

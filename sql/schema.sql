@@ -23,6 +23,10 @@ create table urls (
 	url        text         not null unique,
 	feed_url   text         not null default '',
 	is_blocked_bypass boolean not null default false,
+	next_check_at   timestamptz not null default now(),
+	last_checked_at timestamptz,
+	check_count     int         not null default 0,
+	empty_count     int         not null default 0,
 	created_at timestamptz  not null default now()
 );
 
@@ -79,29 +83,19 @@ create table url_discussions (
 	unique (url_id, discussion_url)
 );
 
-create table url_discussion_jobs (
-	id              uuid        primary key default gen_random_uuid(),
-	url_id          uuid        not null references urls(id) on delete cascade unique,
-	scheduled_at    timestamptz not null default now(),
-	last_checked_at timestamptz,
-	check_count     int         not null default 0,
-	empty_count     int         not null default 0
+create table job_configs (
+    job_name     text primary key,
+    next_run_at  timestamptz not null default now(),
+    locked_until timestamptz not null default '1970-01-01'
 );
 
-create table discussion_runs (
-	id           int         primary key default 1 check (id = 1),
-	scheduled_at timestamptz not null default now(),
-	last_run_at  timestamptz
-);
-
-insert into discussion_runs (id) values (1);
-
-create table discussion_run_log (
-	id           uuid        primary key default gen_random_uuid(),
-	started_at   timestamptz not null,
-	completed_at timestamptz not null default now(),
-	url_count    int         not null default 0,
-	found_count  int         not null default 0
+create table job_runs (
+    id           uuid primary key default gen_random_uuid(),
+    job_name     text not null references job_configs(job_name) on delete cascade,
+    started_at   timestamptz not null default now(),
+    completed_at timestamptz,
+    error        text,
+    metadata     jsonb not null default '{}'::jsonb
 );
 
 create table feeds (
@@ -113,6 +107,10 @@ create table feeds (
 	image_url       text        not null default '',
 	is_blocked_bypass boolean not null default false,
 	last_fetched_at timestamptz,
+	next_fetch_at   timestamptz not null default now(),
+	fetch_count     int         not null default 0,
+	error_count     int         not null default 0,
+	last_error      text        not null default '',
 	created_at      timestamptz not null default now(),
 	updated_at      timestamptz not null default now()
 );
@@ -152,18 +150,7 @@ create table feed_item_reads (
 	primary key (user_id, item_id)
 );
 
-create table feed_poll_jobs (
-	id              uuid        primary key default gen_random_uuid(),
-	feed_id         uuid        not null references feeds(id) on delete cascade unique,
-	scheduled_at    timestamptz not null default now(),
-	last_fetched_at timestamptz,
-	fetch_count     int         not null default 0,
-	error_count     int         not null default 0,
-	last_error      text        not null default ''
-);
-
 create index on feed_items (feed_id, published_at desc);
-create index on feed_poll_jobs (scheduled_at);
 
 create table categories (
 	id         uuid        primary key default gen_random_uuid(),

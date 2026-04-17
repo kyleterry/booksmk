@@ -4,12 +4,18 @@ import (
 	"context"
 	"log/slog"
 	"os"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
 
+	"go.e64ec.com/booksmk/internal/jobrunner"
 	"go.e64ec.com/booksmk/internal/store"
+)
+
+const (
+	discussInterval    = 30 * time.Minute
+	discussConcurrency = 10
 )
 
 // Discussion is a single discussion thread found for a URL.
@@ -27,11 +33,9 @@ type Fetcher interface {
 }
 
 type discussStore interface {
-	ClaimBatchRun(ctx context.Context) (bool, error)
 	ListDueURLs(ctx context.Context) ([]store.DiscussionURLJob, error)
 	SaveDiscussion(ctx context.Context, p store.SaveDiscussionParams) error
 	CompleteDiscussionJob(ctx context.Context, id uuid.UUID, nextAt time.Time, checkCount, emptyCount int32) error
-	RecordBatchRun(ctx context.Context, startedAt time.Time, urlCount, foundCount int32) error
 }
 
 // Worker polls for pending discussion jobs and processes them concurrently.
@@ -60,67 +64,35 @@ func New(st discussStore, logger *slog.Logger) *Worker {
 	}
 }
 
-// Run starts the polling loop. It returns when ctx is cancelled.
-func (w *Worker) Run(ctx context.Context) {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			w.tick(ctx)
-		}
-	}
-}
+// Name implements jobrunner.Job.
+func (w *Worker) Name() string { return "discuss" }
 
-func (w *Worker) tick(ctx context.Context) {
-	claimed, err := w.store.ClaimBatchRun(ctx)
-	if err != nil {
-		w.logger.Error("claim discussion batch run", "error", err)
-		return
-	}
-	if !claimed {
-		return
-	}
+// Interval implements jobrunner.Job.
+func (w *Worker) Interval() time.Duration { return discussInterval }
 
+// Run implements jobrunner.Job.
+func (w *Worker) Run(ctx context.Context) (any, error) {
 	urls, err := w.store.ListDueURLs(ctx)
 	if err != nil {
-		w.logger.Error("list due discussion urls", "error", err)
-		return
+		return nil, err
 	}
 	if len(urls) == 0 {
-		return
+		return map[string]int32{"url_count": 0, "found_count": 0}, nil
 	}
 
-	w.logger.Info("starting discussion batch", "urls", len(urls))
-
-	startedAt := time.Now()
 	var (
-		mu         sync.Mutex
-		totalFound int32
+		totalFound atomic.Int32
 	)
 
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, 10)
-	for _, u := range urls {
-		wg.Add(1)
-		sem <- struct{}{}
-		go func(u store.DiscussionURLJob) {
-			defer wg.Done()
-			defer func() { <-sem }()
-			found := w.processURL(ctx, u)
-			mu.Lock()
-			totalFound += found
-			mu.Unlock()
-		}(u)
-	}
-	wg.Wait()
+	jobrunner.Pool(ctx, discussConcurrency, urls, func(ctx context.Context, u store.DiscussionURLJob) {
+		found := w.processURL(ctx, u)
+		totalFound.Add(found)
+	})
 
-	if err := w.store.RecordBatchRun(ctx, startedAt, int32(len(urls)), totalFound); err != nil {
-		w.logger.Error("record batch run", "error", err)
-	}
-	w.logger.Info("discussion batch complete", "urls", len(urls), "found", totalFound)
+	return map[string]int32{
+		"url_count":   int32(len(urls)),
+		"found_count": totalFound.Load(),
+	}, nil
 }
 
 func (w *Worker) processURL(ctx context.Context, job store.DiscussionURLJob) int32 {
@@ -138,7 +110,7 @@ func (w *Worker) processURL(ctx context.Context, job store.DiscussionURLJob) int
 
 		for _, d := range results {
 			if err := w.store.SaveDiscussion(ctx, store.SaveDiscussionParams{
-				URLID:         job.URLID,
+				URLID:         job.ID,
 				Source:        f.Name(),
 				Title:         d.Title,
 				DiscussionURL: d.DiscussionURL,
@@ -164,13 +136,14 @@ func (w *Worker) processURL(ctx context.Context, job store.DiscussionURLJob) int
 		w.logger.Error("complete discussion job", "job_id", job.ID, "error", err)
 		return 0
 	}
-	w.logger.Info("discussion url complete", "url", job.URL, "found", totalFound, "next_check", nextAt.Format("2006-01-02 15:04"))
 	return int32(totalFound)
 }
 
 // nextScheduledAt returns the time of the next check using exponential backoff
 // based on the number of consecutive empty results. Starts at 1 day, caps at 30.
+// Adds +/- 5 minutes of jitter.
 func nextScheduledAt(emptyCount int32) time.Time {
 	days := min(int32(1)<<emptyCount, 30)
-	return time.Now().Add(time.Duration(days) * 24 * time.Hour)
+	jitter := jobrunner.Jitter(5 * time.Minute)
+	return time.Now().Add(time.Duration(days)*24*time.Hour + jitter)
 }

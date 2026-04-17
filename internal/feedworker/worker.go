@@ -5,12 +5,19 @@ import (
 	"log/slog"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/mmcdole/gofeed"
 
+	"go.e64ec.com/booksmk/internal/jobrunner"
 	"go.e64ec.com/booksmk/internal/store"
+)
+
+const (
+	feedPollInterval    = 15 * time.Minute
+	feedPollConcurrency = 5
 )
 
 // feedStore is the subset of store.Store the worker needs.
@@ -37,60 +44,50 @@ func New(st feedStore, logger *slog.Logger) *Worker {
 	}
 }
 
-// Run starts the polling loop and blocks until ctx is cancelled.
-func (w *Worker) Run(ctx context.Context) {
-	ticker := time.NewTicker(60 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			w.tick(ctx)
-		}
-	}
-}
+// Name implements jobrunner.Job.
+func (w *Worker) Name() string { return "feed_poll" }
 
-func (w *Worker) tick(ctx context.Context) {
+// Interval implements jobrunner.Job.
+func (w *Worker) Interval() time.Duration { return feedPollInterval }
+
+// Run implements jobrunner.Job.
+func (w *Worker) Run(ctx context.Context) (any, error) {
 	jobs, err := w.store.ListDueFeedPollJobs(ctx)
 	if err != nil {
-		w.logger.Error("list due feed poll jobs", "error", err)
-		return
+		return nil, err
 	}
 	if len(jobs) == 0 {
-		return
+		return map[string]int32{"feed_count": 0, "error_count": 0}, nil
 	}
 
-	w.logger.Info("starting feed poll batch", "feeds", len(jobs))
+	var (
+		errorCount atomic.Int32
+	)
 
-	sem := make(chan struct{}, 5)
-	for _, job := range jobs {
-		sem <- struct{}{}
-		go func(j store.FeedPollJob) {
-			defer func() { <-sem }()
-			w.processJob(ctx, j)
-		}(job)
-	}
-	// drain semaphore to wait for all goroutines
-	for i := 0; i < cap(sem); i++ {
-		sem <- struct{}{}
-	}
+	jobrunner.Pool(ctx, feedPollConcurrency, jobs, func(ctx context.Context, job store.FeedPollJob) {
+		if err := w.processJob(ctx, job); err != nil {
+			errorCount.Add(1)
+		}
+	})
 
-	w.logger.Info("feed poll batch complete", "feeds", len(jobs))
+	return map[string]int32{
+		"feed_count":  int32(len(jobs)),
+		"error_count": errorCount.Load(),
+	}, nil
 }
 
-func (w *Worker) processJob(ctx context.Context, job store.FeedPollJob) {
+func (w *Worker) processJob(ctx context.Context, job store.FeedPollJob) error {
 	fctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
 	feed, err := w.parser.ParseURLWithContext(job.FeedURL, fctx)
 	if err != nil {
 		w.logger.Warn("feed fetch failed", "url", job.FeedURL, "error", err)
-		nextAt := time.Now().Add(time.Hour)
+		nextAt := time.Now().Add(time.Hour + jobrunner.Jitter(5*time.Minute))
 		if completeErr := w.store.CompleteFeedPollJob(ctx, job.ID, nextAt, job.FetchCount, job.ErrorCount+1, err.Error()); completeErr != nil {
 			w.logger.Error("complete feed poll job", "job_id", job.ID, "error", completeErr)
 		}
-		return
+		return err
 	}
 
 	// feed.Link (channel <link>) can be a relative URL (e.g. pjrc.com uses "/").
@@ -104,8 +101,8 @@ func (w *Worker) processJob(ctx context.Context, job store.FeedPollJob) {
 	} else if feed.ITunesExt != nil && feed.ITunesExt.Image != "" {
 		imageURL = feed.ITunesExt.Image
 	}
-	if err := w.store.UpdateFeedMeta(ctx, job.FeedID, siteURL, title, description, imageURL); err != nil {
-		w.logger.Warn("update feed meta", "feed_id", job.FeedID, "error", err)
+	if err := w.store.UpdateFeedMeta(ctx, job.ID, siteURL, title, description, imageURL); err != nil {
+		w.logger.Warn("update feed meta", "feed_id", job.ID, "error", err)
 	}
 
 	// base URL for resolving relative item links: prefer resolved site URL, fall back to feed URL.
@@ -141,7 +138,7 @@ func (w *Worker) processJob(ctx context.Context, job store.FeedPollJob) {
 		}
 
 		_, upsertErr := w.store.UpsertFeedItem(ctx, store.UpsertFeedItemParams{
-			FeedID:      job.FeedID,
+			FeedID:      job.ID,
 			GUID:        guid,
 			URL:         resolveURL(baseURL, item.Link),
 			Title:       item.Title,
@@ -150,16 +147,16 @@ func (w *Worker) processJob(ctx context.Context, job store.FeedPollJob) {
 			PublishedAt: publishedAt,
 		})
 		if upsertErr != nil {
-			w.logger.Warn("upsert feed item", "feed_id", job.FeedID, "guid", guid, "error", upsertErr)
+			w.logger.Warn("upsert feed item", "feed_id", job.ID, "guid", guid, "error", upsertErr)
 		}
 	}
 
-	nextAt := time.Now().Add(time.Hour)
+	nextAt := time.Now().Add(time.Hour + jobrunner.Jitter(5*time.Minute))
 	if err := w.store.CompleteFeedPollJob(ctx, job.ID, nextAt, job.FetchCount+1, 0, ""); err != nil {
 		w.logger.Error("complete feed poll job", "job_id", job.ID, "error", err)
 	}
 
-	w.logger.Info("feed poll complete", "url", job.FeedURL, "items", len(feed.Items))
+	return nil
 }
 
 // resolveURL resolves ref against base. If ref is already absolute, it is

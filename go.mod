@@ -4,9 +4,12 @@ go 1.26.1
 
 require (
 	github.com/a-h/templ v0.3.1001
+	github.com/fergusstrange/embedded-postgres v1.34.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.2
+	github.com/mmcdole/gofeed v1.3.0
 	golang.org/x/crypto v0.48.0
+	golang.org/x/net v0.51.0
 )
 
 require (
@@ -134,6 +137,7 @@ require (
 	github.com/ldez/tagliatelle v0.7.2 // indirect
 	github.com/ldez/usetesting v0.5.0 // indirect
 	github.com/leonklingele/grouper v1.1.2 // indirect
+	github.com/lib/pq v1.11.2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/macabu/inamedparam v0.2.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
@@ -149,7 +153,6 @@ require (
 	github.com/mgechev/revive v1.15.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/mmcdole/gofeed v1.3.0 // indirect
 	github.com/mmcdole/goxpp v1.1.1-0.20240225020742-a0c311522b23 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -207,6 +210,7 @@ require (
 	github.com/uudashr/gocognit v1.2.1 // indirect
 	github.com/uudashr/iface v1.4.1 // indirect
 	github.com/xen0n/gosmopolitan v1.3.0 // indirect
+	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yagipy/maintidx v1.0.0 // indirect
 	github.com/yeya24/promlinter v0.3.0 // indirect
@@ -221,7 +225,6 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260209203927-2842357ff358 // indirect
 	golang.org/x/mod v0.33.0 // indirect
-	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
