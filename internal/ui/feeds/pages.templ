@@ -2,6 +2,7 @@ package feeds
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -85,7 +86,7 @@ templ TimelineFeedGroupSection(fg store.TimelineFeedGroup) {
 					<img src={ fg.FeedImageURL } alt="" class="feed-icon" loading="lazy"/>
 				}
 				<a href={ templ.SafeURL("/feed/" + fg.FeedID.String()) }>{ fg.FeedTitle }</a>
-				<span class="count">({ itoa(fg.UnreadCount) }/{ itoa(len(fg.Items)) })</span>
+				<span class="count">({ strconv.Itoa(fg.UnreadCount) }/{ strconv.Itoa(len(fg.Items)) })</span>
 			</span>
 			<button
 				class="btn btn-sm"
@@ -143,7 +144,7 @@ templ FeedDetailPage(feed store.Feed, groups []store.FeedItemGroup) {
 			if feed.ImageURL != "" {
 				<img src={ feed.ImageURL } alt="" class="feed-icon-lg" loading="lazy"/>
 			}
-			<h1 style="margin-bottom:0">{ feedLabel(feed) } <span class="count">({ itoa(totalFeedItems(groups)) })</span></h1>
+			<h1 style="margin-bottom:0">{ feedLabel(feed) } <span class="count">({ strconv.Itoa(totalFeedItems(groups)) })</span></h1>
 		</div>
 		<div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
 			if feed.SiteURL != "" {
@@ -313,20 +314,6 @@ func truncate(s string, max int) string {
 		cut = cut[:i]
 	}
 	return cut + "…"
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	buf := [20]byte{}
-	pos := len(buf)
-	for n > 0 {
-		pos--
-		buf[pos] = byte(n%10) + '0'
-		n /= 10
-	}
-	return string(buf[pos:])
 }
 
 func formatLastFetched(t *time.Time) string {

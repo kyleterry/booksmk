@@ -54,13 +54,12 @@ templ UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg
 		</div>
 	</div>
 	<div class="card" style="margin-bottom:2rem">
-		<div class="detail-label">look and feel</div>
+		<div class="detail-label">preferences</div>
 		<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/settings") } style="margin:0">
-			<input type="hidden" name="feed_grouping_enabled" value={ fmt.Sprintf("%v", user.FeedGroupingEnabled) }/>
 			<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.75rem">
 				<div style="flex:1;min-width:140px">
 					<label for="theme">theme</label>
-					<select id="theme" name="theme" onchange="this.form.submit()" style="margin-bottom:0">
+					<select id="theme" name="theme" style="margin-bottom:0">
 						<option value="dark" selected?={ user.Theme == "dark" }>dark</option>
 						<option value="light" selected?={ user.Theme == "light" }>light</option>
 						<option value="auto" selected?={ user.Theme == "auto" }>auto (system)</option>
@@ -68,7 +67,7 @@ templ UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg
 				</div>
 				<div style="flex:1;min-width:140px">
 					<label for="font_size">font size</label>
-					<select id="font_size" name="font_size" onchange="this.form.submit()" style="margin-bottom:0">
+					<select id="font_size" name="font_size" style="margin-bottom:0">
 						<option value="small" selected?={ user.FontSize == "small" }>small</option>
 						<option value="medium" selected?={ user.FontSize == "medium" || user.FontSize == "" }>medium</option>
 						<option value="large" selected?={ user.FontSize == "large" }>large</option>
@@ -76,7 +75,7 @@ templ UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg
 				</div>
 				<div style="flex:1;min-width:140px">
 					<label for="results_per_page">results per page</label>
-					<select id="results_per_page" name="results_per_page" onchange="this.form.submit()" style="margin-bottom:0">
+					<select id="results_per_page" name="results_per_page" style="margin-bottom:0">
 						<option value="25" selected?={ user.ResultsPerPage == 25 }>25</option>
 						<option value="50" selected?={ user.ResultsPerPage == 50 || user.ResultsPerPage == 0 }>50</option>
 						<option value="100" selected?={ user.ResultsPerPage == 100 }>100</option>
@@ -84,23 +83,16 @@ templ UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg
 						<option value="500" selected?={ user.ResultsPerPage == 500 }>500</option>
 					</select>
 				</div>
-			</div>
-		</form>
-	</div>
-	<div class="card" style="margin-bottom:2rem">
-		<div class="detail-label">feed options</div>
-		<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/settings") } style="margin:0">
-			<input type="hidden" name="theme" value={ user.Theme }/>
-			<input type="hidden" name="font_size" value={ user.FontSize }/>
-			<input type="hidden" name="results_per_page" value={ fmt.Sprintf("%d", user.ResultsPerPage) }/>
-			<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.75rem">
 				<div style="flex:1;min-width:200px">
 					<label for="feed_grouping_enabled">timeline grouping</label>
-					<select id="feed_grouping_enabled" name="feed_grouping_enabled" onchange="this.form.submit()" style="margin-bottom:0">
+					<select id="feed_grouping_enabled" name="feed_grouping_enabled" style="margin-bottom:0">
 						<option value="true" selected?={ user.FeedGroupingEnabled }>group by feed</option>
 						<option value="false" selected?={ !user.FeedGroupingEnabled }>flat (chronological)</option>
 					</select>
 				</div>
+			</div>
+			<div class="card-footer" style="margin-top:1.25rem">
+				<button type="submit" class="btn btn-sm btn-primary">save preferences</button>
 			</div>
 		</form>
 	</div>
