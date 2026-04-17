@@ -124,7 +124,7 @@ func (h *Handler) navUser(r *http.Request) *ui.NavUser {
 	if !ok {
 		return nil
 	}
-	return &ui.NavUser{ID: u.ID.String(), Email: u.Email, IsAdmin: u.IsAdmin, Theme: u.Theme, FontSize: u.FontSize, ResultsPerPage: u.ResultsPerPage}
+	return &ui.NavUser{ID: u.ID.String(), Email: u.Email, IsAdmin: u.IsAdmin, Theme: u.Theme, FontSize: u.FontSize, ResultsPerPage: u.ResultsPerPage, FeedGroupingEnabled: u.FeedGroupingEnabled}
 }
 
 func (h *Handler) handleTimeline(w http.ResponseWriter, r *http.Request) {
@@ -156,7 +156,7 @@ func (h *Handler) handleTimeline(w http.ResponseWriter, r *http.Request) {
 	}
 
 	groups := groupTimeline(items, h.nowInRequestTZ(r))
-	h.render(w, r, ui.Base("feeds", h.navUser(r), feedpages.TimelinePage(feeds, groups, page, hasMore)))
+	h.render(w, r, ui.Base("feeds", h.navUser(r), feedpages.TimelinePage(feeds, groups, page, hasMore, user.FeedGroupingEnabled)))
 }
 
 func (h *Handler) handleNew(w http.ResponseWriter, r *http.Request) {
@@ -353,6 +353,11 @@ func (h *Handler) handleMarkFeedAllRead(w http.ResponseWriter, r *http.Request) 
 	}
 
 	redirect := "/feed/" + f.ID.String()
+	if err := r.ParseForm(); err == nil {
+		if next := r.FormValue("next"); next != "" && strings.HasPrefix(next, "/") {
+			redirect = next
+		}
+	}
 
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Redirect", redirect)

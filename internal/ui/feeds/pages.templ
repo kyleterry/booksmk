@@ -2,13 +2,14 @@ package feeds
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"go.e64ec.com/booksmk/internal/store"
 )
 
-templ TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, hasMore bool) {
+templ TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, hasMore bool, feedGroupingEnabled bool) {
 	<div class="page-header">
 		<h1>feeds</h1>
 		<div style="display:flex;gap:0.5rem">
@@ -29,8 +30,16 @@ templ TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, h
 		for _, g := range groups {
 			<div class="date-group">
 				<div class="date-group-label">{ g.Label }</div>
-				for _, item := range g.Items {
-					@TimelineItemCard(item)
+				if feedGroupingEnabled {
+					for _, fg := range g.FeedGroups {
+						@TimelineFeedGroupSection(fg)
+					}
+				} else {
+					for _, fg := range g.FeedGroups {
+						for _, item := range fg.Items {
+							@TimelineItemCard(item)
+						}
+					}
 				}
 			</div>
 		}
@@ -42,7 +51,54 @@ templ TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, h
 				<a href={ templ.SafeURL(fmt.Sprintf("/feed?page=%d", page+1)) } class="btn btn-sm">older →</a>
 			}
 		</div>
+		if feedGroupingEnabled {
+			<script>
+				document.querySelectorAll('details[data-feed-id]').forEach(function(el) {
+					if (localStorage.getItem('booksmk-fg-' + el.dataset.feedId) === 'closed') {
+						el.open = false;
+					}
+				});
+				document.querySelectorAll('details[data-feed-id]').forEach(function(details) {
+					new MutationObserver(function() {
+						var total = details.querySelectorAll('.card').length;
+						var unread = details.querySelectorAll('.feed-item-unread').length;
+						var countEl = details.querySelector('.feed-group-title .count');
+						if (!countEl) return;
+						var next = '(' + unread + '/' + total + ')';
+						if (countEl.textContent !== next) countEl.textContent = next;
+					}).observe(details, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+				});
+			</script>
+		}
 	}
+}
+
+templ TimelineFeedGroupSection(fg store.TimelineFeedGroup) {
+	<details
+		data-feed-id={ fg.FeedID.String() }
+		open
+		ontoggle="localStorage.setItem('booksmk-fg-'+this.dataset.feedId,this.open?'open':'closed')"
+		class="feed-group"
+	>
+		<summary class="feed-group-summary">
+			<span class="feed-group-title">
+				if fg.FeedImageURL != "" {
+					<img src={ fg.FeedImageURL } alt="" class="feed-icon" loading="lazy"/>
+				}
+				<a href={ templ.SafeURL("/feed/" + fg.FeedID.String()) }>{ fg.FeedTitle }</a>
+				<span class="count">({ strconv.Itoa(fg.UnreadCount) }/{ strconv.Itoa(len(fg.Items)) })</span>
+			</span>
+			<button
+				class="btn btn-sm"
+				hx-post={ "/feed/" + fg.FeedID.String() + "/read-all" }
+				hx-vals={ `{"next":"/feed"}` }
+				onclick="event.stopPropagation()"
+			>mark all read</button>
+		</summary>
+		for _, item := range fg.Items {
+			@TimelineItemCard(item)
+		}
+	</details>
 }
 
 templ TimelineItemCard(item store.TimelineItem) {
@@ -88,7 +144,7 @@ templ FeedDetailPage(feed store.Feed, groups []store.FeedItemGroup) {
 			if feed.ImageURL != "" {
 				<img src={ feed.ImageURL } alt="" class="feed-icon-lg" loading="lazy"/>
 			}
-			<h1 style="margin-bottom:0">{ feedLabel(feed) } <span class="count">({ itoa(totalFeedItems(groups)) })</span></h1>
+			<h1 style="margin-bottom:0">{ feedLabel(feed) } <span class="count">({ strconv.Itoa(totalFeedItems(groups)) })</span></h1>
 		</div>
 		<div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
 			if feed.SiteURL != "" {
@@ -258,20 +314,6 @@ func truncate(s string, max int) string {
 		cut = cut[:i]
 	}
 	return cut + "…"
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	buf := [20]byte{}
-	pos := len(buf)
-	for n > 0 {
-		pos--
-		buf[pos] = byte(n%10) + '0'
-		n /= 10
-	}
-	return string(buf[pos:])
 }
 
 func formatLastFetched(t *time.Time) string {

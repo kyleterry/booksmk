@@ -58,10 +58,19 @@ type TimelineItem struct {
 	IsRead       bool
 }
 
-// TimelineGroup is a date-labelled group of timeline items.
+// TimelineFeedGroup is a named group of timeline items from a single feed within a date group.
+type TimelineFeedGroup struct {
+	FeedID       uuid.UUID
+	FeedTitle    string
+	FeedImageURL string
+	UnreadCount  int
+	Items        []TimelineItem
+}
+
+// TimelineGroup is a date-labelled collection of per-feed sub-groups on the timeline.
 type TimelineGroup struct {
-	Label string
-	Items []TimelineItem
+	Label      string
+	FeedGroups []TimelineFeedGroup
 }
 
 // FeedItemGroup is a date-labelled group of feed items.
