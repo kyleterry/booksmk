@@ -10,7 +10,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/mmcdole/gofeed"
 
+	"go.e64ec.com/booksmk/internal/jobrunner"
 	"go.e64ec.com/booksmk/internal/store"
+)
+
+const (
+	feedPollInterval    = 60 * time.Second
+	feedPollConcurrency = 5
 )
 
 // feedStore is the subset of store.Store the worker needs.
@@ -37,21 +43,14 @@ func New(st feedStore, logger *slog.Logger) *Worker {
 	}
 }
 
-// Run starts the polling loop and blocks until ctx is cancelled.
-func (w *Worker) Run(ctx context.Context) {
-	ticker := time.NewTicker(60 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			w.tick(ctx)
-		}
-	}
-}
+// Name implements jobrunner.Handler.
+func (w *Worker) Name() string { return "feedworker" }
 
-func (w *Worker) tick(ctx context.Context) {
+// Interval implements jobrunner.Handler.
+func (w *Worker) Interval() time.Duration { return feedPollInterval }
+
+// Tick implements jobrunner.Handler.
+func (w *Worker) Tick(ctx context.Context) {
 	jobs, err := w.store.ListDueFeedPollJobs(ctx)
 	if err != nil {
 		w.logger.Error("list due feed poll jobs", "error", err)
@@ -62,20 +61,7 @@ func (w *Worker) tick(ctx context.Context) {
 	}
 
 	w.logger.Info("starting feed poll batch", "feeds", len(jobs))
-
-	sem := make(chan struct{}, 5)
-	for _, job := range jobs {
-		sem <- struct{}{}
-		go func(j store.FeedPollJob) {
-			defer func() { <-sem }()
-			w.processJob(ctx, j)
-		}(job)
-	}
-	// drain semaphore to wait for all goroutines
-	for i := 0; i < cap(sem); i++ {
-		sem <- struct{}{}
-	}
-
+	jobrunner.Pool(ctx, feedPollConcurrency, jobs, w.processJob)
 	w.logger.Info("feed poll batch complete", "feeds", len(jobs))
 }
 

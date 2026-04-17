@@ -22,6 +22,8 @@ type adminStore interface {
 	ListBatchRuns(ctx context.Context) ([]store.BatchRunSummary, error)
 	GetNextBatchRunAt(ctx context.Context) (time.Time, error)
 	ScheduleBatchRunNow(ctx context.Context) error
+	ListFeedPollJobStatuses(ctx context.Context) ([]store.FeedPollJobStatus, error)
+	ScheduleAllFeedPollJobsNow(ctx context.Context) error
 	ListInviteCodes(ctx context.Context) ([]store.InviteCode, error)
 	CreateInviteCode(ctx context.Context, createdBy uuid.UUID) (store.InviteCode, error)
 	DeleteInviteCode(ctx context.Context, id uuid.UUID) error
@@ -48,6 +50,7 @@ func New(s adminStore, logger *slog.Logger) *Handler {
 	}
 	h.mux.HandleFunc("GET /admin/", h.handleIndex)
 	h.mux.HandleFunc("POST /admin/run", h.handleDispatchRun)
+	h.mux.HandleFunc("POST /admin/feed-poll/run", h.handleDispatchFeedPoll)
 	h.mux.HandleFunc("POST /admin/invite/", h.handleCreateInvite)
 	h.mux.HandleFunc("DELETE /admin/invite/{id}", h.handleDeleteInvite)
 	h.mux.HandleFunc("GET /admin/users", h.handleListUsers)
@@ -91,18 +94,33 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
+	feedJobs, err := h.store.ListFeedPollJobStatuses(r.Context())
+	if err != nil {
+		h.logger.Error("failed to list feed poll jobs", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 	codes, err := h.store.ListInviteCodes(r.Context())
 	if err != nil {
 		h.logger.Error("failed to list invite codes", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	h.render(w, r, ui.Base("admin", h.navUser(r), adminpages.AdminPage(runs, nextAt, codes)))
+	h.render(w, r, ui.Base("admin", h.navUser(r), adminpages.AdminPage(runs, nextAt, feedJobs, codes)))
 }
 
 func (h *Handler) handleDispatchRun(w http.ResponseWriter, r *http.Request) {
 	if err := h.store.ScheduleBatchRunNow(r.Context()); err != nil {
 		h.logger.Error("failed to schedule batch run", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/admin/", http.StatusSeeOther)
+}
+
+func (h *Handler) handleDispatchFeedPoll(w http.ResponseWriter, r *http.Request) {
+	if err := h.store.ScheduleAllFeedPollJobsNow(r.Context()); err != nil {
+		h.logger.Error("failed to schedule feed poll jobs", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

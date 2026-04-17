@@ -368,6 +368,64 @@ func (q *Queries) ListFeedItems(ctx context.Context, arg ListFeedItemsParams) ([
 	return items, nil
 }
 
+const listFeedPollJobStatuses = `-- name: ListFeedPollJobStatuses :many
+select j.id,
+       j.feed_id,
+       f.feed_url,
+       f.title,
+       j.scheduled_at,
+       j.last_fetched_at,
+       j.fetch_count,
+       j.error_count,
+       j.last_error
+from feed_poll_jobs j
+join feeds f on f.id = j.feed_id
+order by j.scheduled_at asc
+limit 100
+`
+
+type ListFeedPollJobStatusesRow struct {
+	ID            uuid.UUID          `json:"id"`
+	FeedID        uuid.UUID          `json:"feed_id"`
+	FeedUrl       string             `json:"feed_url"`
+	Title         string             `json:"title"`
+	ScheduledAt   pgtype.Timestamptz `json:"scheduled_at"`
+	LastFetchedAt pgtype.Timestamptz `json:"last_fetched_at"`
+	FetchCount    int32              `json:"fetch_count"`
+	ErrorCount    int32              `json:"error_count"`
+	LastError     string             `json:"last_error"`
+}
+
+func (q *Queries) ListFeedPollJobStatuses(ctx context.Context) ([]ListFeedPollJobStatusesRow, error) {
+	rows, err := q.db.Query(ctx, listFeedPollJobStatuses)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListFeedPollJobStatusesRow
+	for rows.Next() {
+		var i ListFeedPollJobStatusesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.FeedID,
+			&i.FeedUrl,
+			&i.Title,
+			&i.ScheduledAt,
+			&i.LastFetchedAt,
+			&i.FetchCount,
+			&i.ErrorCount,
+			&i.LastError,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTagNamesForFeed = `-- name: ListTagNamesForFeed :many
 select t.name from tags t
 join feed_tags ft on ft.tag_id = t.id
@@ -625,6 +683,15 @@ type RemoveFeedFromUserParams struct {
 
 func (q *Queries) RemoveFeedFromUser(ctx context.Context, arg RemoveFeedFromUserParams) error {
 	_, err := q.db.Exec(ctx, removeFeedFromUser, arg.UserID, arg.FeedID)
+	return err
+}
+
+const scheduleAllFeedPollJobsNow = `-- name: ScheduleAllFeedPollJobsNow :exec
+update feed_poll_jobs set scheduled_at = now()
+`
+
+func (q *Queries) ScheduleAllFeedPollJobsNow(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, scheduleAllFeedPollJobsNow)
 	return err
 }
 

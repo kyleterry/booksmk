@@ -184,6 +184,24 @@ set scheduled_at    = $2,
     last_error      = $5
 where id = $1;
 
+-- name: ListFeedPollJobStatuses :many
+select j.id,
+       j.feed_id,
+       f.feed_url,
+       f.title,
+       j.scheduled_at,
+       j.last_fetched_at,
+       j.fetch_count,
+       j.error_count,
+       j.last_error
+from feed_poll_jobs j
+join feeds f on f.id = j.feed_id
+order by j.scheduled_at asc
+limit 100;
+
+-- name: ScheduleAllFeedPollJobsNow :exec
+update feed_poll_jobs set scheduled_at = now();
+
 -- name: SearchFeeds :many
 select f.id, f.feed_url, f.site_url, f.title, f.description, f.image_url, f.is_blocked_bypass, f.last_fetched_at, f.created_at, f.updated_at, uf.custom_name
 from feeds f

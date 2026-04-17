@@ -9,7 +9,13 @@ import (
 
 	"github.com/google/uuid"
 
+	"go.e64ec.com/booksmk/internal/jobrunner"
 	"go.e64ec.com/booksmk/internal/store"
+)
+
+const (
+	discussInterval    = 30 * time.Second
+	discussConcurrency = 10
 )
 
 // Discussion is a single discussion thread found for a URL.
@@ -60,21 +66,14 @@ func New(st discussStore, logger *slog.Logger) *Worker {
 	}
 }
 
-// Run starts the polling loop. It returns when ctx is cancelled.
-func (w *Worker) Run(ctx context.Context) {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			w.tick(ctx)
-		}
-	}
-}
+// Name implements jobrunner.Handler.
+func (w *Worker) Name() string { return "discuss" }
 
-func (w *Worker) tick(ctx context.Context) {
+// Interval implements jobrunner.Handler.
+func (w *Worker) Interval() time.Duration { return discussInterval }
+
+// Tick implements jobrunner.Handler.
+func (w *Worker) Tick(ctx context.Context) {
 	claimed, err := w.store.ClaimBatchRun(ctx)
 	if err != nil {
 		w.logger.Error("claim discussion batch run", "error", err)
@@ -101,21 +100,12 @@ func (w *Worker) tick(ctx context.Context) {
 		totalFound int32
 	)
 
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, 10)
-	for _, u := range urls {
-		wg.Add(1)
-		sem <- struct{}{}
-		go func(u store.DiscussionURLJob) {
-			defer wg.Done()
-			defer func() { <-sem }()
-			found := w.processURL(ctx, u)
-			mu.Lock()
-			totalFound += found
-			mu.Unlock()
-		}(u)
-	}
-	wg.Wait()
+	jobrunner.Pool(ctx, discussConcurrency, urls, func(ctx context.Context, u store.DiscussionURLJob) {
+		found := w.processURL(ctx, u)
+		mu.Lock()
+		totalFound += found
+		mu.Unlock()
+	})
 
 	if err := w.store.RecordBatchRun(ctx, startedAt, int32(len(urls)), totalFound); err != nil {
 		w.logger.Error("record batch run", "error", err)

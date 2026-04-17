@@ -13,11 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-
       - name: build
         run: go build ./...
 
@@ -26,14 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-
       - name: generate templ
         run: go tool templ generate
-
       - name: lint
         run: go tool golangci-lint run
 
@@ -61,10 +56,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-
       - name: test
         run: go test ./...
