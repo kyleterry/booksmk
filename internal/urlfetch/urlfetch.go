@@ -75,7 +75,37 @@ func Fetch(rawURL string) Meta {
 	if title != "" && defaults != nil && defaults[0] == "github" {
 		title = strings.TrimSuffix(title, " · GitHub")
 	}
-	return Meta{Title: title, Tags: tags, FeedURL: extractFeedLink(body, rawURL)}
+
+	feedURL := extractFeedLink(body, rawURL)
+	if feedURL == "" {
+		feedURL = findFeedAtBase(rawURL)
+	}
+
+	return Meta{Title: title, Tags: tags, FeedURL: feedURL}
+}
+
+// findFeedAtBase fetches the scheme+host root of rawURL and looks for a feed
+// link there. Some sites only advertise feeds on their index page, not on
+// individual posts. Returns empty string if rawURL is already the root or no
+// feed link is found.
+func findFeedAtBase(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	if u.Path == "" || u.Path == "/" {
+		return ""
+	}
+
+	base := &url.URL{Scheme: u.Scheme, Host: u.Host, Path: "/"}
+	baseURL := base.String()
+
+	body, _ := fetchPageHTML(baseURL)
+	if body == "" {
+		return ""
+	}
+
+	return extractFeedLink(body, baseURL)
 }
 
 // FetchTitle returns the title for rawURL. For YouTube URLs it uses the oEmbed
@@ -97,8 +127,13 @@ func youtubeOEmbedTitle(rawURL string) string {
 		return ""
 	}
 
-	oembedURL := "https://www.youtube.com/oembed?format=json&url=" + url.QueryEscape(rawURL)
-	resp, err := titleClient.Get(oembedURL)
+	oembedURL, _ := url.Parse("https://www.youtube.com/oembed")
+	q := oembedURL.Query()
+	q.Set("format", "json")
+	q.Set("url", rawURL)
+	oembedURL.RawQuery = q.Encode()
+
+	resp, err := titleClient.Get(oembedURL.String())
 	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return ""
 	}
@@ -132,8 +167,10 @@ func githubRepoMeta(rawURL string) (Meta, bool) {
 	}
 	owner, repo := parts[0], parts[1]
 
-	apiURL := "https://api.github.com/repos/" + owner + "/" + repo
-	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
+	apiURL, _ := url.Parse("https://api.github.com")
+	apiURL = apiURL.JoinPath("repos", owner, repo)
+
+	req, err := http.NewRequest(http.MethodGet, apiURL.String(), nil)
 	if err != nil {
 		return Meta{}, false
 	}

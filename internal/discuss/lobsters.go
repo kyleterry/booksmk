@@ -42,9 +42,14 @@ func (f *LobstersFetcher) Fetch(ctx context.Context, rawURL string) ([]Discussio
 		return nil, ctx.Err()
 	}
 
-	feedURL := "https://lobste.rs/search.rss?order=relevance&what=stories&q=" + url.QueryEscape(rawURL)
+	u, _ := url.Parse("https://lobste.rs/search.rss")
+	q := u.Query()
+	q.Set("order", "relevance")
+	q.Set("what", "stories")
+	q.Set("q", rawURL)
+	u.RawQuery = q.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}

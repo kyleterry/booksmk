@@ -25,13 +25,14 @@ func NewHackerNewsFetcher() *HackerNewsFetcher {
 func (f *HackerNewsFetcher) Name() string { return "hackernews" }
 
 func (f *HackerNewsFetcher) Fetch(ctx context.Context, rawURL string) ([]Discussion, error) {
-	params := url.Values{}
-	params.Set("tags", "story")
-	params.Set("query", rawURL)
-	params.Set("restrictSearchableAttributes", "url")
-	apiURL := "https://hn.algolia.com/api/v1/search?" + params.Encode()
+	u, _ := url.Parse("https://hn.algolia.com/api/v1/search")
+	q := u.Query()
+	q.Set("tags", "story")
+	q.Set("query", rawURL)
+	q.Set("restrictSearchableAttributes", "url")
+	u.RawQuery = q.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -68,9 +69,14 @@ func (f *HackerNewsFetcher) Fetch(ctx context.Context, rawURL string) ([]Discuss
 		if strings.TrimRight(h.URL, "/") != target {
 			continue
 		}
+		itemURL, _ := url.Parse("https://news.ycombinator.com/item")
+		iq := itemURL.Query()
+		iq.Set("id", h.ObjectID)
+		itemURL.RawQuery = iq.Encode()
+
 		discussions = append(discussions, Discussion{
 			Title:         h.Title,
-			DiscussionURL: "https://news.ycombinator.com/item?id=" + h.ObjectID,
+			DiscussionURL: itemURL.String(),
 			Score:         h.Points,
 			CommentCount:  h.NumComments,
 		})

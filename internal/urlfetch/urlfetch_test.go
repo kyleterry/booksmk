@@ -1,6 +1,8 @@
 package urlfetch
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"strings"
@@ -256,6 +258,54 @@ func TestExtractTitle(t *testing.T) {
 				t.Errorf("extractTitle() = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestFetchFallsBackToBaseForFeed(t *testing.T) {
+	var postPath, rootPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		switch r.URL.Path {
+		case "/":
+			rootPath = r.URL.Path
+			_, _ = w.Write([]byte(`<html><head><title>Index</title><link rel="alternate" type="application/rss+xml" href="/feed.xml"></head></html>`))
+		case "/posts/hello":
+			postPath = r.URL.Path
+			_, _ = w.Write([]byte(`<html><head><title>Post</title></head></html>`))
+		}
+	}))
+	defer srv.Close()
+
+	meta := Fetch(srv.URL + "/posts/hello")
+	if postPath != "/posts/hello" {
+		t.Fatalf("post page not fetched: %q", postPath)
+	}
+	if rootPath != "/" {
+		t.Fatalf("root page not fetched for fallback: %q", rootPath)
+	}
+	want := srv.URL + "/feed.xml"
+	if meta.FeedURL != want {
+		t.Errorf("FeedURL = %q, want %q", meta.FeedURL, want)
+	}
+}
+
+func TestFindFeedAtBaseSkipsRoot(t *testing.T) {
+	hits := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte(`<html><head><title>Root</title></head></html>`))
+	}))
+	defer srv.Close()
+
+	if got := findFeedAtBase(srv.URL + "/"); got != "" {
+		t.Errorf("expected empty for root URL, got %q", got)
+	}
+	if got := findFeedAtBase(srv.URL); got != "" {
+		t.Errorf("expected empty for host-only URL, got %q", got)
+	}
+	if hits != 0 {
+		t.Errorf("expected no fetches for root URLs, got %d", hits)
 	}
 }
 

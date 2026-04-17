@@ -3,6 +3,7 @@ package urls
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"go.e64ec.com/booksmk/internal/store"
@@ -137,11 +138,11 @@ templ DetailPage(u store.URL, discussions []store.Discussion, subscribedFeed *st
 			</form>
 			if u.FeedURL != "" {
 				if subscribedFeed != nil {
-					<a href={ templ.SafeURL("/feed/" + subscribedFeed.ID.String()) } class="btn btn-sm">view feed ↗</a>
+					<a href={ templ.SafeURL("/feed/" + subscribedFeed.ID.String()) } class="btn btn-sm" style="margin-left:auto">view feed ↗</a>
 				} else {
 					<form method="POST" action="/feed" style="margin:0">
 						<input type="hidden" name="feed_url" value={ u.FeedURL }/>
-						<button type="submit" class="btn btn-sm btn-primary">subscribe to feed</button>
+						<button type="submit" class="btn btn-sm btn-primary" style="margin-left:auto">subscribe to feed</button>
 					</form>
 				}
 			}
@@ -328,7 +329,9 @@ func youtubeEmbedURL(rawURL string) string {
 	if videoID == "" {
 		return ""
 	}
-	return "https://www.youtube.com/embed/" + videoID
+	embedURL, _ := url.Parse("https://www.youtube.com/embed")
+	embedURL = embedURL.JoinPath(videoID)
+	return embedURL.String()
 }
 
 func hostname(rawURL string) string {
@@ -342,17 +345,21 @@ func hostname(rawURL string) string {
 templ pagination(basePath string, page int, hasMore bool) {
 	<div class="pagination">
 		if page > 1 {
-			<a href={ templ.SafeURL(fmt.Sprintf("%s%spage=%d", basePath, paramJoin(basePath), page-1)) } class="btn btn-sm">← newer</a>
+			<a href={ templ.SafeURL(paginationURL(basePath, page-1)) } class="btn btn-sm">← newer</a>
 		}
 		if hasMore {
-			<a href={ templ.SafeURL(fmt.Sprintf("%s%spage=%d", basePath, paramJoin(basePath), page+1)) } class="btn btn-sm">older →</a>
+			<a href={ templ.SafeURL(paginationURL(basePath, page+1)) } class="btn btn-sm">older →</a>
 		}
 	</div>
 }
 
-func paramJoin(path string) string {
-	if strings.Contains(path, "?") {
-		return "&"
+func paginationURL(basePath string, page int) string {
+	u, err := url.Parse(basePath)
+	if err != nil {
+		return basePath
 	}
-	return "?"
+	q := u.Query()
+	q.Set("page", strconv.Itoa(page))
+	u.RawQuery = q.Encode()
+	return u.String()
 }
