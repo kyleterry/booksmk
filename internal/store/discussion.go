@@ -62,10 +62,10 @@ func (s *Store) ListDueURLs(ctx context.Context) ([]DiscussionURLJob, error) {
 
 func (s *Store) CompleteDiscussionJob(ctx context.Context, id uuid.UUID, nextAt time.Time, checkCount, emptyCount int32) error {
 	return s.queries.CompleteDiscussionJob(ctx, sqlstore.CompleteDiscussionJobParams{
-		ID:            id,
-		NextCheckAt:   pgtype.Timestamptz{Time: nextAt.UTC(), Valid: true},
-		CheckCount:    checkCount,
-		EmptyCount:    emptyCount,
+		ID:          id,
+		NextCheckAt: pgtype.Timestamptz{Time: nextAt.UTC(), Valid: true},
+		CheckCount:  checkCount,
+		EmptyCount:  emptyCount,
 	})
 }
 

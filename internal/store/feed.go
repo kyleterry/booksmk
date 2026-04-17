@@ -390,11 +390,11 @@ func (s *Store) ListDueFeedPollJobs(ctx context.Context) ([]FeedPollJob, error) 
 // CompleteFeedPollJob updates the poll job after processing.
 func (s *Store) CompleteFeedPollJob(ctx context.Context, id uuid.UUID, nextAt time.Time, fetchCount, errorCount int32, lastError string) error {
 	return s.queries.CompleteFeedPollJob(ctx, sqlstore.CompleteFeedPollJobParams{
-		ID:            id,
-		NextFetchAt:   pgtype.Timestamptz{Time: nextAt.UTC(), Valid: true},
-		FetchCount:    fetchCount,
-		ErrorCount:    errorCount,
-		LastError:     lastError,
+		ID:          id,
+		NextFetchAt: pgtype.Timestamptz{Time: nextAt.UTC(), Valid: true},
+		FetchCount:  fetchCount,
+		ErrorCount:  errorCount,
+		LastError:   lastError,
 	})
 }
 
