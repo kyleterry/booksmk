@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/a-h/templ"
@@ -184,7 +185,7 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	if r.TLS == nil {
 		scheme = "http"
 	}
-	baseURL := scheme + "://" + r.Host
+	baseURL := (&url.URL{Scheme: scheme, Host: r.Host}).String()
 
 	h.render(w, r, ui.Base("settings", h.navUser(r), userpages.UserDetailPage(user, keys, baseURL, "")))
 }

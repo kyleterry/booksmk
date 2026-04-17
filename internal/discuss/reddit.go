@@ -82,8 +82,12 @@ func (f *RedditFetcher) Fetch(ctx context.Context, rawURL string) ([]Discussion,
 		return nil, fmt.Errorf("reddit auth: %w", err)
 	}
 
-	apiURL := "https://oauth.reddit.com/api/info?url=" + url.QueryEscape(rawURL)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	u, _ := url.Parse("https://oauth.reddit.com/api/info")
+	q := u.Query()
+	q.Set("url", rawURL)
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +137,7 @@ func (f *RedditFetcher) Fetch(ctx context.Context, rawURL string) ([]Discussion,
 		}
 		discussions = append(discussions, Discussion{
 			Title:         d.Title,
-			DiscussionURL: "https://www.reddit.com" + d.Permalink,
+			DiscussionURL: (&url.URL{Scheme: "https", Host: "www.reddit.com"}).JoinPath(d.Permalink).String(),
 			Score:         d.Score,
 			CommentCount:  d.NumComments,
 		})

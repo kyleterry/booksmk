@@ -97,7 +97,9 @@ func findFeedAtBase(rawURL string) string {
 		return ""
 	}
 
-	baseURL := u.Scheme + "://" + u.Host + "/"
+	base := &url.URL{Scheme: u.Scheme, Host: u.Host, Path: "/"}
+	baseURL := base.String()
+
 	body, _ := fetchPageHTML(baseURL)
 	if body == "" {
 		return ""
@@ -125,8 +127,13 @@ func youtubeOEmbedTitle(rawURL string) string {
 		return ""
 	}
 
-	oembedURL := "https://www.youtube.com/oembed?format=json&url=" + url.QueryEscape(rawURL)
-	resp, err := titleClient.Get(oembedURL)
+	oembedURL, _ := url.Parse("https://www.youtube.com/oembed")
+	q := oembedURL.Query()
+	q.Set("format", "json")
+	q.Set("url", rawURL)
+	oembedURL.RawQuery = q.Encode()
+
+	resp, err := titleClient.Get(oembedURL.String())
 	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return ""
 	}
@@ -160,8 +167,10 @@ func githubRepoMeta(rawURL string) (Meta, bool) {
 	}
 	owner, repo := parts[0], parts[1]
 
-	apiURL := "https://api.github.com/repos/" + owner + "/" + repo
-	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
+	apiURL, _ := url.Parse("https://api.github.com")
+	apiURL = apiURL.JoinPath("repos", owner, repo)
+
+	req, err := http.NewRequest(http.MethodGet, apiURL.String(), nil)
 	if err != nil {
 		return Meta{}, false
 	}

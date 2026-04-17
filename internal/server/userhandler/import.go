@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path/filepath"
 
 	"go.e64ec.com/booksmk/internal/auth"
@@ -46,7 +47,7 @@ func (h *Handler) handleImport(w http.ResponseWriter, r *http.Request) {
 		if r.TLS == nil {
 			scheme = "http"
 		}
-		baseURL := scheme + "://" + r.Host
+		baseURL := (&url.URL{Scheme: scheme, Host: r.Host}).String()
 
 		h.render(w, r, ui.Base("settings", h.navUser(r), userpages.UserDetailPage(user, keys, baseURL, importErrMsg)))
 	}
