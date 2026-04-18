@@ -211,10 +211,10 @@ templ CategoryPage(cat *store.Category, urls []store.URL, categories []store.Cat
 		<div class="page-content">
 			<div class="page-header">
 				if cat != nil {
-					<div>
+					<div style="flex: 1;">
 						<h1>{ cat.Name }</h1>
 						if len(cat.Members) > 0 {
-							<p class="page-subtitle">{ categoryMembersString(cat.Members) }</p>
+							<div class="page-subtitle">{ categoryMembersString(cat.Members) }</div>
 						}
 					</div>
 					<div style="display:flex;gap:0.5rem">
