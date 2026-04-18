@@ -15,7 +15,7 @@ templ UsersPage(users []store.User) {
 	if len(users) == 0 {
 		<div class="empty">no users</div>
 	} else {
-		<div style="overflow-x:auto">
+		<div class="card" style="overflow-x:auto">
 			<table style="width:100%;border-collapse:collapse;font-size:0.78rem">
 				<thead>
 					<tr style="border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left">
@@ -38,7 +38,7 @@ templ UsersPage(users []store.User) {
 							</td>
 							<td style="padding:0.55rem 0.75rem;color:var(--fg4)"><time datetime={ u.CreatedAt.UTC().Format("2006-01-02T15:04:05Z07:00") }>{ u.CreatedAt.Format("Jan 2, 2006") }</time></td>
 							<td style="padding:0.55rem 0 0.55rem 0.75rem;text-align:right">
-								<a href={ templ.SafeURL("/admin/users/" + u.ID.String() + "/reset-password") } class="btn btn-sm">reset password</a>
+								<a href={ templ.SafeURL("/admin/users/" + u.ID.String() + "/reset-password") } class="btn btn-primary btn-sm">reset password</a>
 							</td>
 						</tr>
 					}
@@ -88,7 +88,7 @@ templ AdminPage(discussRuns []store.JobRun, nextDiscussAt time.Time, feedRuns []
 	if len(feedJobs) == 0 {
 		<div class="empty" style="margin-bottom:3rem">no feeds</div>
 	} else {
-		<div style="overflow-x:auto;margin-bottom:3rem">
+		<div class="card" style="overflow-x:auto;margin-bottom:3rem">
 			<table style="width:100%;border-collapse:collapse;font-size:0.78rem">
 				<thead>
 					<tr style="border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left">
@@ -163,7 +163,7 @@ templ JobRunsSection(title, actionURL string, runs []store.JobRun, nextAt time.T
 	if len(runs) == 0 {
 		<div class="empty" style="margin-bottom:3rem">no runs yet</div>
 	} else {
-		<div style="overflow-x:auto;margin-bottom:3rem">
+		<div class="card" style="overflow-x:auto;margin-bottom:3rem">
 			<table style="width:100%;border-collapse:collapse;font-size:0.78rem">
 				<thead>
 					<tr style="border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left">

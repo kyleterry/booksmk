@@ -56,7 +56,7 @@ templ UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg
 	<div class="card" style="margin-bottom:2rem">
 		<div class="detail-label">preferences</div>
 		<form method="POST" action={ templ.SafeURL("/user/" + user.ID.String() + "/settings") } style="margin:0">
-			<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.75rem">
+			<div style="display:flex;gap:1.3rem;flex-wrap:wrap;margin-top:0.75rem">
 				<div style="flex:1;min-width:140px">
 					<label for="theme">theme</label>
 					<select id="theme" name="theme" style="margin-bottom:0">
@@ -99,7 +99,7 @@ templ UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg
 	<div class="card" style="margin-bottom:2rem">
 		<div class="detail-field">
 			<div class="detail-label">import bookmarks</div>
-			<div class="detail-value" style="font-size:0.78rem;color:var(--fg2);margin-bottom:0.75rem">upload a browser bookmark export (.html) or a Pinboard / Delicious export (.csv)</div>
+			<div class="detail-value" style="font-size:0.75rem;color:var(--fg2);margin-bottom:0.75rem">upload a browser bookmark export (.html) or a Pinboard / Delicious export (.csv)</div>
 		</div>
 		if importErrMsg != "" {
 			<div class="error">{ importErrMsg }</div>
@@ -114,7 +114,7 @@ templ UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg
 	<div class="card" style="margin-bottom:2rem">
 		<div class="detail-field">
 			<div class="detail-label">bookmarklet</div>
-			<div class="detail-value" style="font-size:0.78rem;color:var(--fg2);margin-bottom:0.75rem">drag the button below to your bookmarks bar, then click it on any page to save it to booksmk</div>
+			<div class="detail-value" style="font-size:0.75rem;color:var(--fg2);margin-bottom:0.75rem">drag the button below to your bookmarks bar, then click it on any page to save it to booksmk</div>
 		</div>
 		<a href={ bookmarkletHref(baseURL) } class="btn btn-primary" onclick="return false;" ondragstart="" style="cursor:grab">save to booksmk</a>
 	</div>

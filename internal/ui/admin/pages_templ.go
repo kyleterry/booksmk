@@ -60,7 +60,7 @@ func UsersPage(users []store.User) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div style=\"overflow-x:auto\"><table style=\"width:100%;border-collapse:collapse;font-size:0.78rem\"><thead><tr style=\"border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left\"><th style=\"padding:0.4rem 0.75rem 0.4rem 0;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">email</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">role</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">joined</th><th style=\"padding:0.4rem 0 0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\"></th></tr></thead> <tbody>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"card\" style=\"overflow-x:auto\"><table style=\"width:100%;border-collapse:collapse;font-size:0.78rem\"><thead><tr style=\"border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left\"><th style=\"padding:0.4rem 0.75rem 0.4rem 0;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">email</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">role</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">joined</th><th style=\"padding:0.4rem 0 0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\"></th></tr></thead> <tbody>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -132,7 +132,7 @@ func UsersPage(users []store.User) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" class=\"btn btn-sm\">reset password</a></td></tr>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" class=\"btn btn-primary btn-sm\">reset password</a></td></tr>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -280,7 +280,7 @@ func AdminPage(discussRuns []store.JobRun, nextDiscussAt time.Time, feedRuns []s
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<div style=\"overflow-x:auto;margin-bottom:3rem\"><table style=\"width:100%;border-collapse:collapse;font-size:0.78rem\"><thead><tr style=\"border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left\"><th style=\"padding:0.4rem 0.75rem 0.4rem 0;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">feed</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">next run</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">last fetched</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right\">fetches</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right\">errors</th><th style=\"padding:0.4rem 0 0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">last error</th></tr></thead> <tbody>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<div class=\"card\" style=\"overflow-x:auto;margin-bottom:3rem\"><table style=\"width:100%;border-collapse:collapse;font-size:0.78rem\"><thead><tr style=\"border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left\"><th style=\"padding:0.4rem 0.75rem 0.4rem 0;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">feed</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">next run</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">last fetched</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right\">fetches</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right\">errors</th><th style=\"padding:0.4rem 0 0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">last error</th></tr></thead> <tbody>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -550,7 +550,7 @@ func JobRunsSection(title, actionURL string, runs []store.JobRun, nextAt time.Ti
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "<div style=\"overflow-x:auto;margin-bottom:3rem\"><table style=\"width:100%;border-collapse:collapse;font-size:0.78rem\"><thead><tr style=\"border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left\"><th style=\"padding:0.4rem 0.75rem 0.4rem 0;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">started</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">duration</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "<div class=\"card\" style=\"overflow-x:auto;margin-bottom:3rem\"><table style=\"width:100%;border-collapse:collapse;font-size:0.78rem\"><thead><tr style=\"border-bottom:1px solid var(--bg2);color:var(--fg4);text-align:left\"><th style=\"padding:0.4rem 0.75rem 0.4rem 0;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">started</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem\">duration</th><th style=\"padding:0.4rem 0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.65rem;text-align:right\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

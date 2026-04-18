@@ -159,7 +159,7 @@ func UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg 
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" style=\"margin:0\"><div style=\"display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.75rem\"><div style=\"flex:1;min-width:140px\"><label for=\"theme\">theme</label> <select id=\"theme\" name=\"theme\" style=\"margin-bottom:0\"><option value=\"dark\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" style=\"margin:0\"><div style=\"display:flex;gap:1.3rem;flex-wrap:wrap;margin-top:0.75rem\"><div style=\"flex:1;min-width:140px\"><label for=\"theme\">theme</label> <select id=\"theme\" name=\"theme\" style=\"margin-bottom:0\"><option value=\"dark\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -289,7 +289,7 @@ func UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg 
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, ">flat (chronological)</option></select></div></div><div class=\"card-footer\" style=\"margin-top:1.25rem\"><button type=\"submit\" class=\"btn btn-sm btn-primary\">save preferences</button></div></form></div><div class=\"card\" style=\"margin-bottom:2rem\"><div class=\"detail-field\"><div class=\"detail-label\">import bookmarks</div><div class=\"detail-value\" style=\"font-size:0.78rem;color:var(--fg2);margin-bottom:0.75rem\">upload a browser bookmark export (.html) or a Pinboard / Delicious export (.csv)</div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, ">flat (chronological)</option></select></div></div><div class=\"card-footer\" style=\"margin-top:1.25rem\"><button type=\"submit\" class=\"btn btn-sm btn-primary\">save preferences</button></div></form></div><div class=\"card\" style=\"margin-bottom:2rem\"><div class=\"detail-field\"><div class=\"detail-label\">import bookmarks</div><div class=\"detail-value\" style=\"font-size:0.75rem;color:var(--fg2);margin-bottom:0.75rem\">upload a browser bookmark export (.html) or a Pinboard / Delicious export (.csv)</div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -325,7 +325,7 @@ func UserDetailPage(user store.User, keys []store.APIKey, baseURL, importErrMsg 
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "\" enctype=\"multipart/form-data\" style=\"margin:0\"><div style=\"display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap\"><input type=\"file\" id=\"bookmarks_file\" name=\"bookmarks_file\" accept=\".html,.htm,.csv\" required style=\"flex:1;min-width:0\"> <button type=\"submit\" class=\"btn btn-sm btn-primary\">import</button></div></form></div><div class=\"card\" style=\"margin-bottom:2rem\"><div class=\"detail-field\"><div class=\"detail-label\">bookmarklet</div><div class=\"detail-value\" style=\"font-size:0.78rem;color:var(--fg2);margin-bottom:0.75rem\">drag the button below to your bookmarks bar, then click it on any page to save it to booksmk</div></div><a href=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "\" enctype=\"multipart/form-data\" style=\"margin:0\"><div style=\"display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap\"><input type=\"file\" id=\"bookmarks_file\" name=\"bookmarks_file\" accept=\".html,.htm,.csv\" required style=\"flex:1;min-width:0\"> <button type=\"submit\" class=\"btn btn-sm btn-primary\">import</button></div></form></div><div class=\"card\" style=\"margin-bottom:2rem\"><div class=\"detail-field\"><div class=\"detail-label\">bookmarklet</div><div class=\"detail-value\" style=\"font-size:0.75rem;color:var(--fg2);margin-bottom:0.75rem\">drag the button below to your bookmarks bar, then click it on any page to save it to booksmk</div></div><a href=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

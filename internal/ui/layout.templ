@@ -108,10 +108,10 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					}
 				}
 				html[data-font-size="small"]  { --base-font-size: 11px; }
-				html[data-font-size="medium"] { --base-font-size: 13px; }
-				html[data-font-size="large"]  { --base-font-size: 15px; }
+				html[data-font-size="medium"] { --base-font-size: 15px; }
+				html[data-font-size="large"]  { --base-font-size: 17px; }
 				html {
-					font-size: var(--base-font-size, 13px);
+					font-size: var(--base-font-size, 15px);
 				}
 				*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 				body {
@@ -281,11 +281,11 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					text-decoration: none;
 					transition: all 0.1s;
 				}
-				.btn:hover { border-color: var(--bg3); color: var(--fg1); background: var(--bg1); text-decoration: none; }
+				.btn:hover { border-color: var(--bg3); color: var(--fg1); background: var(--bg2); text-decoration: none; }
 				.btn-primary { border-color: var(--accent); color: var(--accent); }
-				.btn-primary:hover { background: var(--accent-d); color: var(--accent-b); }
+				.btn-primary:hover { border-color: var(--accent); background: var(--accent-d); color: var(--accent-b); }
 				.btn-danger { border-color: var(--red); color: var(--red); }
-				.btn-danger:hover { background: var(--red-d); }
+				.btn-danger:hover { border-color: var(--red); color: var(--red); background: var(--red-d); }
 				.btn-sm { }
 				.filter-input {
 					width: 100%;
@@ -302,12 +302,13 @@ templ Base(title string, user *NavUser, content templ.Component) {
 				.filter-input:focus { outline: none; border-color: var(--accent-d); }
 				.filter-input::placeholder { color: var(--bg4); }
 				form label {
-					display: block;
+					display: inline;
 					margin-bottom: 0.3rem;
 					color: var(--fg3);
 					font-size: 0.68rem;
 					text-transform: uppercase;
 					letter-spacing: 0.1em;
+                    vertical-align: top;
 				}
 				form input[type="text"],
 				form input[type="email"],
@@ -322,7 +323,6 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					border-radius: 3px;
 					color: var(--fg);
 					font-family: inherit;
-					font-size: 0.82rem;
 					margin-bottom: 1.1rem;
 					transition: border-color 0.15s, box-shadow 0.15s;
 				}
@@ -349,7 +349,7 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					background: var(--bg-s);
 					transition: border-left-color 0.15s, background 0.1s;
 				}
-				.card:hover { border-left-color: var(--accent-d); background: var(--bg1); }
+				.card:hover { border-left-color: var(--accent-b); background: var(--bg1); }
 				.card-title {
 					font-size: 0.88rem;
 					font-weight: 600;
@@ -410,7 +410,7 @@ templ Base(title string, user *NavUser, content templ.Component) {
 					justify-content: space-between;
 					align-items: center;
 					margin-bottom: 1.5rem;
-					padding-bottom: 0.75rem;
+					padding-bottom: 0.70rem;
 					border-bottom: 1px solid var(--bg1);
 				}
 				.page-subtitle {
@@ -491,8 +491,8 @@ templ Base(title string, user *NavUser, content templ.Component) {
 				.feed-icon { width: 16px; height: 16px; object-fit: contain; border-radius: 2px; vertical-align: middle; margin-right: 0.35rem; flex-shrink: 0; }
 				.feed-icon-lg { width: 28px; height: 28px; object-fit: contain; border-radius: 3px; flex-shrink: 0; }
 				.date-group { margin-bottom: 2rem; }
-				.date-group-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg4); border-bottom: 1px solid var(--bg2); padding-bottom: 0.3rem; margin-bottom: 0.75rem; }
-				.feed-group { border: none; margin-bottom: 1rem; }
+				.date-group-label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg4); border-bottom: 1px solid var(--bg2); padding-bottom: 0.3rem; margin-bottom: 0.60rem; }
+				.feed-group { border: none; margin-bottom: 0.75rem; }
 				.feed-group-summary { display: flex; align-items: center; justify-content: space-between; padding: 0.3rem 0; cursor: pointer; list-style: none; gap: 0.5rem; }
 				.feed-group-summary::-webkit-details-marker { display: none; }
 				.feed-group-summary::before { content: "▶"; font-size: 0.6rem; color: var(--fg4); margin-right: 0.4rem; flex-shrink: 0; transition: transform 0.15s; }
