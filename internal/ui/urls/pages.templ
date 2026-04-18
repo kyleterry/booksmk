@@ -10,21 +10,25 @@ import (
 )
 
 templ ListPage(urls []store.URL, categories []store.Category, page int, hasMore bool) {
-	<div class="page-header">
-		<h1>bookmarks</h1>
-		<a href="/url/new" class="btn btn-primary">+ bookmark</a>
+	<div class="page-layout">
+		@categoryNav(categories, "")
+		<div class="page-content">
+			<div class="page-header">
+				<h1>bookmarks</h1>
+				<a href="/url/new" class="btn btn-primary">+ bookmark</a>
+			</div>
+			if len(urls) == 0 {
+				<div class="empty">no bookmarks yet - <a href="/url/new">add one</a></div>
+			} else {
+				@filterInput()
+				for _, u := range urls {
+					@URLCard(u)
+				}
+				@filterScript()
+				@pagination("/url", page, hasMore)
+			}
+		</div>
 	</div>
-	@categoryNav(categories, "")
-	if len(urls) == 0 {
-		<div class="empty">no bookmarks yet - <a href="/url/new">add one</a></div>
-	} else {
-		@filterInput()
-		for _, u := range urls {
-			@URLCard(u)
-		}
-		@filterScript()
-		@pagination("/url", page, hasMore)
-	}
 }
 
 templ filterInput() {
@@ -180,69 +184,82 @@ templ DetailPage(u store.URL, discussions []store.Discussion, subscribedFeed *st
 }
 
 templ TagPage(tag string, urls []store.URL, categories []store.Category, page int, hasMore bool) {
-	<div class="page-header">
-		<h1>tag: <span style="color:var(--accent)">{ tag }</span></h1>
-		<a href="/url/new" class="btn btn-primary">+ bookmark</a>
+	<div class="page-layout">
+		@categoryNav(categories, "")
+		<div class="page-content">
+			<div class="page-header">
+				<h1>tag: <span style="color:var(--accent)">{ tag }</span></h1>
+				<a href="/url/new" class="btn btn-primary">+ bookmark</a>
+			</div>
+			if len(urls) == 0 {
+				<div class="empty">no bookmarks with this tag</div>
+			} else {
+				@filterInput()
+				for _, u := range urls {
+					@URLCard(u)
+				}
+				@filterScript()
+				@pagination("/url?tag="+tag, page, hasMore)
+			}
+		</div>
 	</div>
-	@categoryNav(categories, "")
-	if len(urls) == 0 {
-		<div class="empty">no bookmarks with this tag</div>
-	} else {
-		@filterInput()
-		for _, u := range urls {
-			@URLCard(u)
-		}
-		@filterScript()
-		@pagination("/url?tag="+tag, page, hasMore)
-	}
 }
 
 templ CategoryPage(cat *store.Category, urls []store.URL, categories []store.Category, page int, hasMore bool) {
-	<div class="page-header">
-		if cat != nil {
-			<div>
-				<h1>{ cat.Name }</h1>
-				if len(cat.Members) > 0 {
-					<p class="page-subtitle">{ categoryMembersString(cat.Members) }</p>
+	<div class="page-layout">
+		@categoryNav(categories, activeCategoryID(cat))
+		<div class="page-content">
+			<div class="page-header">
+				if cat != nil {
+					<div>
+						<h1>{ cat.Name }</h1>
+						if len(cat.Members) > 0 {
+							<p class="page-subtitle">{ categoryMembersString(cat.Members) }</p>
+						}
+					</div>
+					<div style="display:flex;gap:0.5rem">
+						<a href={ templ.SafeURL("/category/" + cat.ID.String() + "/edit") } class="btn btn-sm">edit</a>
+						<a href="/url/new" class="btn btn-primary">+ bookmark</a>
+					</div>
+				} else {
+					<h1>category</h1>
+					<a href="/url/new" class="btn btn-primary">+ bookmark</a>
 				}
 			</div>
-			<div style="display:flex;gap:0.5rem">
-				<a href={ templ.SafeURL("/category/" + cat.ID.String() + "/edit") } class="btn btn-sm">edit</a>
-				<a href="/url/new" class="btn btn-primary">+ bookmark</a>
-			</div>
-		} else {
-			<h1>category</h1>
-			<a href="/url/new" class="btn btn-primary">+ bookmark</a>
-		}
+			if len(urls) == 0 {
+				<div class="empty">no bookmarks match this category</div>
+			} else {
+				@filterInput()
+				for _, u := range urls {
+					@URLCard(u)
+				}
+				@filterScript()
+				if cat != nil {
+					@pagination("/url?category="+cat.ID.String(), page, hasMore)
+				} else {
+					@pagination("/url", page, hasMore)
+				}
+			}
+		</div>
 	</div>
-	@categoryNav(categories, activeCategoryID(cat))
-	if len(urls) == 0 {
-		<div class="empty">no bookmarks match this category</div>
-	} else {
-		@filterInput()
-		for _, u := range urls {
-			@URLCard(u)
-		}
-		@filterScript()
-		if cat != nil {
-			@pagination("/url?category="+cat.ID.String(), page, hasMore)
-		} else {
-			@pagination("/url", page, hasMore)
-		}
-	}
 }
 
 templ categoryNav(categories []store.Category, activeID string) {
-	<div class="feed-nav">
-		for _, c := range categories {
-			<a
-				href={ templ.SafeURL("/url?category=" + c.ID.String()) }
-				class={ "feed-nav-link", templ.KV("feed-nav-link-active", c.ID.String() == activeID) }
-			>{ c.Name }</a>
-		}
-		<a href="/category/new" class="feed-nav-link" style="border-style:dashed;opacity:0.6">+ category</a>
-	</div>
+	<aside class="sidebar">
+		<div class="sidebar-section-title">Categories</div>
+		<div class="sidebar-content">
+			<a href="/url" class={ "sidebar-link", templ.KV("sidebar-link-active", activeID == "") }>All</a>
+			for _, c := range categories {
+				<a
+					href={ templ.SafeURL("/url?category=" + c.ID.String()) }
+					class={ "sidebar-link", templ.KV("sidebar-link-active", c.ID.String() == activeID) }
+				>{ c.Name }</a>
+			}
+			<a href="/category/new" class="btn btn-sidebar">+ category</a>
+		</div>
+	</aside>
 }
+
 
 func categoryMembersString(members []store.CategoryMember) string {
 	parts := make([]string, len(members))

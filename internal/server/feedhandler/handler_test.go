@@ -194,6 +194,7 @@ func TestHandleTimeline(t *testing.T) {
 		target     string
 		setup      func(*mockFeedStore)
 		wantStatus int
+		verify     func(*testing.T, *httptest.ResponseRecorder)
 	}{
 		{
 			name:       "empty timeline renders page",
@@ -223,14 +224,38 @@ func TestHandleTimeline(t *testing.T) {
 			},
 			wantStatus: http.StatusInternalServerError,
 		},
+		{
+			name:   "renders sidebar and content",
+			target: "/feed",
+			setup: func(m *mockFeedStore) {
+				m.ListTimelineItemsFn = func(ctx context.Context, userID uuid.UUID, limit, offset int) ([]store.TimelineItem, error) {
+					return []store.TimelineItem{}, nil
+				}
+				m.ListFeedsFn = func(ctx context.Context, userID uuid.UUID) ([]store.Feed, error) {
+					return []store.Feed{fixtureFeed}, nil
+				}
+			},
+			wantStatus: http.StatusOK,
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assertContains(t, w, "class=\"page-layout\"")
+				assertContains(t, w, "class=\"sidebar\"")
+				assertContains(t, w, "class=\"page-content\"")
+				assertContains(t, w, fixtureFeed.Title)
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ms := &mockFeedStore{}
-			tt.setup(ms)
+			if tt.setup != nil {
+				tt.setup(ms)
+			}
 			w := serve(t, newHandler(ms), authReq(http.MethodGet, tt.target, ""))
 			assertStatus(t, w, tt.wantStatus)
+			if tt.verify != nil {
+				tt.verify(t, w)
+			}
 		})
 	}
 }

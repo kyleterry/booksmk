@@ -11,67 +11,84 @@ import (
 )
 
 templ TimelinePage(feeds []store.Feed, groups []store.TimelineGroup, page int, hasMore bool, feedGroupingEnabled bool) {
-	<div class="page-header">
-		<h1>feeds</h1>
-		<div style="display:flex;gap:0.5rem">
-			<button class="btn btn-sm" hx-post="/feed/items/read-all" hx-disabled-elt="this">mark all read</button>
-			<a href="/feed/new" class="btn btn-primary">+ subscribe</a>
+	<div class="page-layout">
+		@FeedSidebar(feeds, "")
+		<div class="page-content">
+			<div class="page-header">
+				<h1>your timeline</h1>
+				<div style="display:flex;gap:0.5rem">
+					<button class="btn btn-sm" hx-post="/feed/items/read-all" hx-disabled-elt="this">mark all read</button>
+					<a href="/feed/new" class="btn btn-primary">+ subscribe</a>
+				</div>
+			</div>
+			if len(groups) == 0 {
+				<div class="empty">no items yet - <a href="/feed/new">subscribe to a feed</a></div>
+			} else {
+				for _, g := range groups {
+					<div class="date-group">
+						<div class="date-group-label">{ g.Label }</div>
+						if feedGroupingEnabled {
+							for _, fg := range g.FeedGroups {
+								@TimelineFeedGroupSection(fg)
+							}
+						} else {
+							for _, fg := range g.FeedGroups {
+								for _, item := range fg.Items {
+									@TimelineItemCard(item)
+								}
+							}
+						}
+					</div>
+				}
+				<div class="pagination">
+					if page > 1 {
+						<a href={ templ.SafeURL(paginationURL("/feed", page-1)) } class="btn btn-sm">← newer</a>
+					}
+					if hasMore {
+						<a href={ templ.SafeURL(paginationURL("/feed", page+1)) } class="btn btn-sm">older →</a>
+					}
+				</div>
+				if feedGroupingEnabled {
+					<script>
+						document.querySelectorAll('details[data-feed-id]').forEach(function(el) {
+							if (localStorage.getItem('booksmk-fg-' + el.dataset.feedId) === 'closed') {
+								el.open = false;
+							}
+						});
+						document.querySelectorAll('details[data-feed-id]').forEach(function(details) {
+							new MutationObserver(function() {
+								var total = details.querySelectorAll('.card').length;
+								var unread = details.querySelectorAll('.feed-item-unread').length;
+								var countEl = details.querySelector('.feed-group-title .count');
+								if (!countEl) return;
+								var next = '(' + unread + '/' + total + ')';
+								if (countEl.textContent !== next) countEl.textContent = next;
+							}).observe(details, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+						});
+					</script>
+				}
+			}
 		</div>
 	</div>
-	if len(feeds) > 0 {
-		<div class="feed-nav">
+}
+
+templ FeedSidebar(feeds []store.Feed, activeFeedID string) {
+	<aside class="sidebar">
+		<div class="sidebar-section-title">Feeds</div>
+		<div class="sidebar-content">
+			<a href="/feed" class={ "sidebar-link", templ.KV("sidebar-link-active", activeFeedID == "") }>All</a>
 			for _, f := range feeds {
-				<a href={ templ.SafeURL("/feed/" + f.ID.String()) } class="feed-nav-link">{ feedLabel(f) }</a>
+				<a
+					href={ templ.SafeURL("/feed/" + f.ID.String()) }
+					class={ "sidebar-link", templ.KV("sidebar-link-active", f.ID.String() == activeFeedID) }
+					title={ feedLabel(f) }
+				>
+					{ feedLabel(f) }
+				</a>
 			}
+			<a href="/feed/new" class="btn btn-sidebar">+ subscribe</a>
 		</div>
-	}
-	if len(groups) == 0 {
-		<div class="empty">no items yet - <a href="/feed/new">subscribe to a feed</a></div>
-	} else {
-		for _, g := range groups {
-			<div class="date-group">
-				<div class="date-group-label">{ g.Label }</div>
-				if feedGroupingEnabled {
-					for _, fg := range g.FeedGroups {
-						@TimelineFeedGroupSection(fg)
-					}
-				} else {
-					for _, fg := range g.FeedGroups {
-						for _, item := range fg.Items {
-							@TimelineItemCard(item)
-						}
-					}
-				}
-			</div>
-		}
-		<div class="pagination">
-			if page > 1 {
-				<a href={ templ.SafeURL(paginationURL("/feed", page-1)) } class="btn btn-sm">← newer</a>
-			}
-			if hasMore {
-				<a href={ templ.SafeURL(paginationURL("/feed", page+1)) } class="btn btn-sm">older →</a>
-			}
-		</div>
-		if feedGroupingEnabled {
-			<script>
-				document.querySelectorAll('details[data-feed-id]').forEach(function(el) {
-					if (localStorage.getItem('booksmk-fg-' + el.dataset.feedId) === 'closed') {
-						el.open = false;
-					}
-				});
-				document.querySelectorAll('details[data-feed-id]').forEach(function(details) {
-					new MutationObserver(function() {
-						var total = details.querySelectorAll('.card').length;
-						var unread = details.querySelectorAll('.feed-item-unread').length;
-						var countEl = details.querySelector('.feed-group-title .count');
-						if (!countEl) return;
-						var next = '(' + unread + '/' + total + ')';
-						if (countEl.textContent !== next) countEl.textContent = next;
-					}).observe(details, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-				});
-			</script>
-		}
-	}
+	</aside>
 }
 
 templ TimelineFeedGroupSection(fg store.TimelineFeedGroup) {
